@@ -1,0 +1,17 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+    var userId = Context.Session.GetInt32("UserId");
+    var displayName = Context.Session.GetString("FullName");
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    @if (userId is not null)
+    {
+        <p class="lead">Signed in as <strong>@displayName</strong>.</p>
+    }
+    else
+    {
+        <p class="lead">Please <a asp-controller="Account" asp-action="Login">sign in</a> to continue.</p>
+    }
+</div>

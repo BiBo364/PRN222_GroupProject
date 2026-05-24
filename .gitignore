@@ -1,0 +1,32 @@
+## Build
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+## Rider / VS Code
+.idea/
+.vscode/
+
+## NuGet
+*.nupkg
+**/packages/*
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## App settings (keep secrets local)
+**/appsettings.json
+**/appsettings.*.json
+!**/appsettings.example.json
+
+## OS
+Thumbs.db
+.DS_Store

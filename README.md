@@ -1,4 +1,4 @@
-# Assignmet1
+# PRN222_10W_Assignment1
 
 ASP.NET Core MVC app with layered architecture (Repository → Service → Presentation).
 

@@ -1,0 +1,120 @@
+@model PaymentAdminIndexViewModel
+@using Assignment1_Repository.Models
+@{
+    ViewData["Title"] = "Duyệt thanh toán";
+    string StatusLabel(string status) => status switch
+    {
+        PaymentTicketStatus.Approved => "Đã duyệt",
+        PaymentTicketStatus.Rejected => "Từ chối",
+        _ => "Chờ duyệt"
+    };
+    string StatusBadge(string status) => status switch
+    {
+        PaymentTicketStatus.Approved => "bg-success",
+        PaymentTicketStatus.Rejected => "bg-danger",
+        _ => "bg-warning text-dark"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Lịch sử thanh toán</h2>
+        <p class="text-muted mb-0">@Model.PendingCount ticket đang chờ duyệt</p>
+    </div>
+    <div class="btn-group">
+        <a class="btn btn-outline-secondary @(Model.StatusFilter is null ? "active" : "")"
+           asp-action="Index">Tất cả</a>
+        <a class="btn btn-outline-warning @(Model.StatusFilter == PaymentTicketStatus.Pending ? "active" : "")"
+           asp-action="Index" asp-route-status="@PaymentTicketStatus.Pending">Chờ duyệt</a>
+        <a class="btn btn-outline-success @(Model.StatusFilter == PaymentTicketStatus.Approved ? "active" : "")"
+           asp-action="Index" asp-route-status="@PaymentTicketStatus.Approved">Đã duyệt</a>
+        <a class="btn btn-outline-danger @(Model.StatusFilter == PaymentTicketStatus.Rejected ? "active" : "")"
+           asp-action="Index" asp-route-status="@PaymentTicketStatus.Rejected">Từ chối</a>
+    </div>
+</div>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+@if (!Model.Tickets.Any())
+{
+    <div class="alert alert-info">Không có ticket nào.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Người dùng</th>
+                    <th>Gói</th>
+                    <th>Số tiền</th>
+                    <th>Ghi chú CK</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th style="min-width: 280px;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model.Tickets)
+                {
+                    <tr>
+                        <td>@t.Id</td>
+                        <td>
+                            <strong>@(t.User.FullName ?? t.User.Username)</strong><br />
+                            <small class="text-muted">@t.User.Email</small>
+                        </td>
+                        <td>@t.Plan.Name</td>
+                        <td>@t.Amount.ToString("N0") đ</td>
+                        <td>@(string.IsNullOrWhiteSpace(t.TransferReference) ? "—" : t.TransferReference)</td>
+                        <td><span class="badge @StatusBadge(t.Status)">@StatusLabel(t.Status)</span></td>
+                        <td>@(t.CreatedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
+                        <td>
+                            @if (t.Status == PaymentTicketStatus.Pending)
+                            {
+                                <form asp-action="Approve" method="post" class="mb-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <input type="text" name="adminNote" class="form-control form-control-sm mb-1"
+                                           placeholder="Ghi chú (tuỳ chọn)" />
+                                    <button type="submit" class="btn btn-success btn-sm w-100"
+                                            onclick="return confirm('Chấp nhận thanh toán và cấp subscription?');">
+                                        Chấp nhận
+                                    </button>
+                                </form>
+                                <form asp-action="Reject" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <input type="text" name="adminNote" class="form-control form-control-sm mb-1"
+                                           placeholder="Lý do từ chối" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100"
+                                            onclick="return confirm('Từ chối ticket này?');">
+                                        Từ chối
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <small class="text-muted">
+                                    @(t.ReviewedByNavigation?.FullName ?? t.ReviewedByNavigation?.Username ?? "—")
+                                    · @(t.ReviewedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")
+                                </small>
+                                @if (!string.IsNullOrWhiteSpace(t.AdminNote))
+                                {
+                                    <div class="small mt-1">@t.AdminNote</div>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

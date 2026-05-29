@@ -53,6 +53,12 @@ public partial class RagEduContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+
+    public virtual DbSet<PaymentTicket> PaymentTickets { get; set; }
+
+    public virtual DbSet<UserSubscription> UserSubscriptions { get; set; }
+
     
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -683,6 +689,112 @@ public partial class RagEduContext : DbContext
             entity.HasOne(d => d.Subject).WithMany(p => p.Users)
                 .HasForeignKey(d => d.SubjectId)
                 .HasConstraintName("FK__users__subject_i__398D8EEE");
+        });
+
+        modelBuilder.Entity<SubscriptionPlan>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_subscription_plans");
+
+            entity.ToTable("subscription_plans");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Price)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("price");
+            entity.Property(e => e.DurationDays).HasColumnName("duration_days");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<PaymentTicket>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_payment_tickets");
+
+            entity.ToTable("payment_tickets");
+
+            entity.HasIndex(e => e.UserId, "idx_payment_tickets_user");
+            entity.HasIndex(e => e.Status, "idx_payment_tickets_status");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.PlanId).HasColumnName("plan_id");
+            entity.Property(e => e.Amount)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("amount");
+            entity.Property(e => e.TransferReference)
+                .HasMaxLength(500)
+                .HasColumnName("transfer_reference");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue(PaymentTicketStatus.Pending)
+                .HasColumnName("status");
+            entity.Property(e => e.AdminNote).HasColumnName("admin_note");
+            entity.Property(e => e.ReviewedBy).HasColumnName("reviewed_by");
+            entity.Property(e => e.ReviewedAt).HasColumnName("reviewed_at");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.User).WithMany(p => p.PaymentTickets)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_payment_tickets_user");
+
+            entity.HasOne(d => d.Plan).WithMany(p => p.PaymentTickets)
+                .HasForeignKey(d => d.PlanId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_payment_tickets_plan");
+
+            entity.HasOne(d => d.ReviewedByNavigation).WithMany(p => p.ReviewedPaymentTickets)
+                .HasForeignKey(d => d.ReviewedBy)
+                .HasConstraintName("FK_payment_tickets_reviewer");
+        });
+
+        modelBuilder.Entity<UserSubscription>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_user_subscriptions");
+
+            entity.ToTable("user_subscriptions");
+
+            entity.HasIndex(e => e.UserId, "idx_user_subscriptions_user");
+            entity.HasIndex(e => e.PaymentTicketId, "UQ_user_subscriptions_ticket")
+                .IsUnique()
+                .HasFilter("[payment_ticket_id] IS NOT NULL");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.PlanId).HasColumnName("plan_id");
+            entity.Property(e => e.StartAt).HasColumnName("start_at");
+            entity.Property(e => e.EndAt).HasColumnName("end_at");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+            entity.Property(e => e.PaymentTicketId).HasColumnName("payment_ticket_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UserSubscriptions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_user_subscriptions_user");
+
+            entity.HasOne(d => d.Plan).WithMany(p => p.UserSubscriptions)
+                .HasForeignKey(d => d.PlanId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_user_subscriptions_plan");
+
+            entity.HasOne(d => d.PaymentTicket).WithOne(p => p.UserSubscription)
+                .HasForeignKey<UserSubscription>(d => d.PaymentTicketId)
+                .HasConstraintName("FK_user_subscriptions_ticket");
         });
 
         OnModelCreatingPartial(modelBuilder);

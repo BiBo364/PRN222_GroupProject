@@ -1,0 +1,40 @@
+@model ChatIndexViewModel
+@{
+    ViewData["Title"] = "Chat";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Chat & Q&A</h2>
+        @if (Model.Subject is not null)
+        {
+            <p class="text-muted mb-0">Subject: <strong>@Model.Subject.Code</strong> — @Model.Subject.Name</p>
+        }
+    </div>
+    <a class="btn btn-primary" asp-action="New">New conversation</a>
+</div>
+
+<div class="alert alert-info">
+    Answers are limited to indexed course documents. Sources are cited from uploaded materials.
+</div>
+
+@if (!Model.Sessions.Any())
+{
+    <p class="text-muted">No conversations yet. Start a new chat to ask questions about your materials.</p>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var session in Model.Sessions)
+        {
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+               asp-action="Conversation" asp-route-id="@session.Id">
+                <div>
+                    <div class="fw-semibold">@session.Title</div>
+                    <small class="text-muted">Updated @session.UpdatedAt?.ToString("g")</small>
+                </div>
+                <span class="badge bg-secondary rounded-pill">open</span>
+            </a>
+        }
+    </div>
+}

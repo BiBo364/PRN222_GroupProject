@@ -1,0 +1,140 @@
+@model DocumentDetailViewModel
+@{
+    ViewData["Title"] = Model.Document.OriginalName;
+    var doc = Model.Document;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h2>@doc.OriginalName</h2>
+        <p class="text-muted mb-0">
+            @doc.FileType.ToUpper()
+            @if (Model.IsSlideDeck)
+            {
+                <span class="badge bg-info text-dark ms-1">@doc.Chunks.Count slides</span>
+            }
+            @if (doc.Chapter is not null)
+            {
+                <span> · Chapter @doc.Chapter.Number: @doc.Chapter.Title</span>
+            }
+        </p>
+    </div>
+    <div>
+        <a class="btn btn-outline-secondary" asp-action="Index">Back to list</a>
+        @if (Model.CanReindex && Model.NeedsReindex)
+        {
+            <form asp-action="Reindex" asp-route-id="@doc.Id" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-warning">Re-index</button>
+            </form>
+        }
+        @if (Model.CanDelete)
+        {
+            <form asp-action="Delete" asp-route-id="@doc.Id" method="post" class="d-inline"
+                  onsubmit="return confirm('Delete this document?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger">Delete</button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Status</div>
+                <div class="fw-semibold">@doc.Status</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">@(Model.IsSlideDeck ? "Slides" : "Chunks")</div>
+                <div class="fw-semibold">@doc.Chunks.Count</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Uploaded by</div>
+                <div class="fw-semibold">@(doc.UploadedByNavigation?.FullName ?? doc.UploadedByNavigation?.Username ?? "—")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Indexed at</div>
+                <div class="fw-semibold">@(doc.IndexedAt?.ToString("g") ?? "—")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4 class="mb-3">@(Model.IsSlideDeck ? "Slides" : "Indexed content")</h4>
+
+@if (!Model.ChunkItems.Any())
+{
+    <div class="alert alert-warning">
+        <strong>No indexed content.</strong>
+        @if (Model.CanReindex)
+        {
+            <span>Click <strong>Re-index</strong> or upload the file again.</span>
+        }
+    </div>
+}
+else
+{
+    @foreach (var item in Model.ChunkItems)
+    {
+        var chunk = item.Chunk;
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between">
+                @if (item.IsSlide && item.SlideNumber.HasValue)
+                {
+                    <span>Slide @item.SlideNumber</span>
+                }
+                else
+                {
+                    <span>Chunk #@chunk.ChunkIndex</span>
+                }
+                <span class="text-muted small">@chunk.TokenCount tokens</span>
+            </div>
+            <div class="card-body">
+                @if (item.ImageUrls.Any())
+                {
+                    <div class="row g-3 mb-3">
+                        @foreach (var imageUrl in item.ImageUrls)
+                        {
+                            var isBrowserImage = imageUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                                || imageUrl.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                                || imageUrl.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+                                || imageUrl.EndsWith(".gif", StringComparison.OrdinalIgnoreCase)
+                                || imageUrl.EndsWith(".webp", StringComparison.OrdinalIgnoreCase);
+
+                            @if (isBrowserImage)
+                            {
+                                <div class="col-md-6 col-lg-4">
+                                    <img src="@imageUrl" alt="Slide @item.SlideNumber image" class="img-fluid rounded border" />
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+                <pre class="mb-0" style="white-space: pre-wrap;">@chunk.Content</pre>
+            </div>
+        </div>
+    }
+}

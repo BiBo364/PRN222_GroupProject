@@ -35,6 +35,12 @@ public partial class User
 
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
+    public virtual ICollection<PaymentTicket> PaymentTickets { get; set; } = new List<PaymentTicket>();
+
+    public virtual ICollection<PaymentTicket> ReviewedPaymentTickets { get; set; } = new List<PaymentTicket>();
+
+    public virtual ICollection<UserSubscription> UserSubscriptions { get; set; } = new List<UserSubscription>();
+
     public virtual Role Role { get; set; } = null!;
 
     public virtual Subject? Subject { get; set; }

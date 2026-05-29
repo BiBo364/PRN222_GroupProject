@@ -1,0 +1,158 @@
+@model SubscriptionIndexViewModel
+@using Assignment1_Repository.Models
+@{
+    ViewData["Title"] = "Đăng ký gói";
+    string StatusLabel(string status) => status switch
+    {
+        PaymentTicketStatus.Approved => "Đã duyệt",
+        PaymentTicketStatus.Rejected => "Từ chối",
+        _ => "Chờ duyệt"
+    };
+    string StatusBadge(string status) => status switch
+    {
+        PaymentTicketStatus.Approved => "bg-success",
+        PaymentTicketStatus.Rejected => "bg-danger",
+        _ => "bg-warning text-dark"
+    };
+}
+
+<div class="mb-4">
+    <h2>Đăng ký subscription</h2>
+    <p class="text-muted mb-0">Chuyển khoản cho admin, tạo ticket — admin duyệt xong bạn dùng được Chat.</p>
+</div>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="card h-100 border-primary">
+            <div class="card-header bg-primary text-white">Thông tin chuyển khoản</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Ngân hàng</dt>
+                    <dd class="col-sm-7">@Model.PaymentInfo.BankName</dd>
+                    <dt class="col-sm-5">Số tài khoản</dt>
+                    <dd class="col-sm-7"><strong>@Model.PaymentInfo.AccountNumber</strong></dd>
+                    <dt class="col-sm-5">Chủ tài khoản</dt>
+                    <dd class="col-sm-7">@Model.PaymentInfo.AccountHolder</dd>
+                    <dt class="col-sm-5">Nội dung CK</dt>
+                    <dd class="col-sm-7"><code>@Model.PaymentInfo.TransferContentHint</code></dd>
+                </dl>
+                <p class="small text-muted mt-3 mb-0">Sau khi chuyển khoản, chọn gói và gửi ticket — admin sẽ đối soát và duyệt.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header">Trạng thái subscription</div>
+            <div class="card-body">
+                @if (Model.ActiveSubscription is not null)
+                {
+                    <div class="alert alert-success mb-0">
+                        <strong>Đang hoạt động:</strong> @Model.ActiveSubscription.Plan.Name<br />
+                        Hết hạn: <strong>@Model.ActiveSubscription.EndAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning mb-0">
+                        Bạn chưa có subscription. Tạo ticket thanh toán để admin kích hoạt.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    @foreach (var plan in Model.Plans)
+    {
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">@plan.Name</h5>
+                    <p class="card-text text-muted">@plan.Description</p>
+                    <p class="fs-4 fw-bold text-primary mb-1">@plan.Price.ToString("N0") đ</p>
+                    <p class="small text-muted">@plan.DurationDays ngày sử dụng</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="card mb-5">
+    <div class="card-header">Tạo ticket thanh toán</div>
+    <div class="card-body">
+        <form asp-action="CreateTicket" method="post">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label asp-for="CreateTicket.PlanId" class="form-label"></label>
+                    <select asp-for="CreateTicket.PlanId" class="form-select" required>
+                        <option value="">-- Chọn gói --</option>
+                        @foreach (var plan in Model.Plans)
+                        {
+                            <option value="@plan.Id">@plan.Name — @plan.Price.ToString("N0") đ</option>
+                        }
+                    </select>
+                    <span asp-validation-for="CreateTicket.PlanId" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">Gửi ticket cho admin</button>
+                </div>
+            </div>
+            <p class="small text-muted mt-2 mb-0">Chỉ cần chọn gói và gửi — không cần nhập mã giao dịch.</p>
+        </form>
+    </div>
+</div>
+
+<div>
+    <h4>Lịch sử ticket của bạn</h4>
+    @if (!Model.Tickets.Any())
+    {
+        <div class="alert alert-info">Chưa có ticket nào.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Gói</th>
+                        <th>Số tiền</th>
+                        <th>Ghi chú CK</th>
+                        <th>Trạng thái</th>
+                        <th>Ghi chú admin</th>
+                        <th>Ngày tạo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.Tickets)
+                    {
+                        <tr>
+                            <td>@t.Id</td>
+                            <td>@t.Plan.Name</td>
+                            <td>@t.Amount.ToString("N0") đ</td>
+                            <td>@(string.IsNullOrWhiteSpace(t.TransferReference) ? "—" : t.TransferReference)</td>
+                            <td><span class="badge @StatusBadge(t.Status)">@StatusLabel(t.Status)</span></td>
+                            <td>@(string.IsNullOrWhiteSpace(t.AdminNote) ? "—" : t.AdminNote)</td>
+                            <td>@(t.CreatedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

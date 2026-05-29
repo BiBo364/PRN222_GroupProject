@@ -27,6 +27,11 @@ artifacts/
 **/appsettings.*.json
 !**/appsettings.example.json
 
+## Uploaded files
+uploads/
+Assignmet1_Presentation/uploads/
+Assignmet1_Presentation/wwwroot/slide-images/
+
 ## OS
 Thumbs.db
 .DS_Store

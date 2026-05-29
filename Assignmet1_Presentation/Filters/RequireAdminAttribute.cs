@@ -1,0 +1,26 @@
+using Assignmet1_Presentation.Helpers;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
+namespace Assignmet1_Presentation.Filters;
+
+public class RequireAdminAttribute : ActionFilterAttribute
+{
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        if (context.HttpContext.Session.GetInt32("UserId") is null)
+        {
+            context.Result = new RedirectToActionResult("Login", "Account", null);
+            return;
+        }
+
+        var roleId = context.HttpContext.Session.GetInt32("RoleId");
+        if (roleId is null || !SubscriptionPermissions.IsAdmin(roleId.Value))
+        {
+            context.Result = new RedirectToActionResult("Index", "Home", null);
+            return;
+        }
+
+        base.OnActionExecuting(context);
+    }
+}

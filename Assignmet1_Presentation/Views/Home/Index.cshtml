@@ -9,6 +9,10 @@
     @if (userId is not null)
     {
         <p class="lead">Signed in as <strong>@displayName</strong>.</p>
+        <p>
+            <a class="btn btn-primary me-2" asp-controller="Documents" asp-action="Index">Manage documents</a>
+            <a class="btn btn-outline-primary" asp-controller="Chat" asp-action="Index">Chat & Q&A</a>
+        </p>
     }
     else
     {

@@ -1,3 +1,4 @@
+using Assignmet1_Presentation.Models;
 using Assignment1_Repository.Models;
 using Assignment1_Repository.Repositories;
 using Assignment1_Repository.Repositories.Interfaces;
@@ -14,6 +15,15 @@ builder.Services.AddDbContext<RagEduContext>(options =>
 
 builder.Services.AddScoped<IUserReposity, UserRepository>();
 builder.Services.AddScoped<IUserServices, UserServices>();
+builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+
+builder.Services.Configure<PaymentSettings>(
+    builder.Configuration.GetSection(PaymentSettings.SectionName));
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

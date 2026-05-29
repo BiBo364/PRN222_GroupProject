@@ -25,6 +25,24 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
+                        @if (Context.Session.GetInt32("UserId") is not null)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Documents" asp-action="Index">Documents</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Chat" asp-action="Index">Chat</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Subscription" asp-action="Index">Đăng ký</a>
+                            </li>
+                            @if (Context.Session.GetInt32("RoleId") is int roleId && (roleId == 1 || roleId == 2))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-controller="PaymentAdmin" asp-action="Index">Duyệt TT</a>
+                                </li>
+                            }
+                        }
                     </ul>
                     <ul class="navbar-nav">
                         @if (Context.Session.GetInt32("UserId") is not null)

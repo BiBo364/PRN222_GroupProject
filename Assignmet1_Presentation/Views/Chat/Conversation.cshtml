@@ -1,0 +1,76 @@
+@model ChatConversationViewModel
+@using Assignment1_Service.Helpers
+@{
+    ViewData["Title"] = Model.Session.Title ?? "Chat";
+    var session = Model.Session;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="h4 mb-0">@session.Title</h2>
+        @if (session.Subject is not null)
+        {
+            <small class="text-muted">@session.Subject.Code — @session.Subject.Name</small>
+        }
+    </div>
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">All chats</a>
+</div>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="border rounded p-3 mb-3 bg-light" style="min-height: 360px; max-height: 520px; overflow-y: auto;">
+    @if (!session.Messages.Any())
+    {
+        <p class="text-muted mb-0">Ask a question about the indexed documents for this subject.</p>
+    }
+    else
+    {
+        @foreach (var message in session.Messages.OrderBy(m => m.CreatedAt))
+        {
+            var isUser = message.Role == "user";
+            <div class="mb-3 d-flex @(isUser ? "justify-content-end" : "justify-content-start")">
+                <div class="p-3 rounded @(isUser ? "bg-primary text-white" : "bg-white border")" style="max-width: 85%;">
+                    <div class="small fw-semibold mb-1">@(isUser ? "You" : "Assistant")</div>
+                    <div style="white-space: pre-wrap;">@message.Content</div>
+
+                    @if (!isUser && message.MessageCitations.Any())
+                    {
+                        <hr class="my-2" />
+                        <div class="small">
+                            <strong>Sources:</strong>
+                            <ul class="mb-0 ps-3">
+                                @foreach (var cite in message.MessageCitations.OrderBy(c => c.RankOrder))
+                                {
+                                    var slideMeta = SlideChunkMetadata.FromJson(cite.Chunk.Metadata);
+                                    var slide = slideMeta?.SlideNumber ?? cite.Chunk.PageNumber;
+                                    <li>
+                                        @cite.Chunk.Document.OriginalName
+                                        @(slide.HasValue ? $"(slide {slide})" : "")
+                                        <span class="text-muted">— score @cite.SimilarityScore</span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<form asp-action="Ask" asp-route-id="@session.Id" method="post">
+  <div asp-validation-summary="All" class="text-danger mb-2"></div>
+  <div class="input-group">
+    <input asp-for="Question" class="form-control" placeholder="Ask about the course materials..." autocomplete="off" />
+    <button type="submit" class="btn btn-primary">Send</button>
+  </div>
+  <span asp-validation-for="Question" class="text-danger"></span>
+  <div class="form-text">Answers use RAG retrieval from indexed documents only.</div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

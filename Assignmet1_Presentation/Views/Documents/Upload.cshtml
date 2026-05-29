@@ -1,0 +1,45 @@
+@model DocumentUploadViewModel
+@{
+    ViewData["Title"] = "Upload document";
+}
+
+<h2 class="mb-3">Upload document</h2>
+
+@if (Model.DemoSubject is not null)
+{
+    <p class="text-muted">Demo subject: <strong>@Model.DemoSubject.Code</strong> — @Model.DemoSubject.Name</p>
+}
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<form asp-action="Upload" method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    <div class="mb-3">
+        <label asp-for="File" class="form-label"></label>
+        <input asp-for="File" class="form-control" accept=".pdf,.docx,.pptx" />
+        <div class="form-text">Supported: PDF, DOCX, PPTX (lecture slides).</div>
+        <span asp-validation-for="File" class="text-danger"></span>
+    </div>
+
+    @if (Model.ChapterOptions.Any())
+    {
+        <div class="mb-3">
+            <label asp-for="ChapterId" class="form-label"></label>
+            <select asp-for="ChapterId" asp-items="Model.ChapterOptions" class="form-select">
+                <option value="">-- Select chapter --</option>
+            </select>
+            <span asp-validation-for="ChapterId" class="text-danger"></span>
+        </div>
+    }
+
+    <button type="submit" class="btn btn-primary">Upload &amp; index</button>
+    <a asp-action="Index" class="btn btn-outline-secondary ms-2">Back to list</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

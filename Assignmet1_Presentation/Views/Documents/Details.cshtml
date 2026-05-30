@@ -1,21 +1,20 @@
 @model DocumentDetailViewModel
 @{
-    ViewData["Title"] = Model.Document.OriginalName;
-    var doc = Model.Document;
+    ViewData["Title"] = Model.OriginalName;
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <h2>@doc.OriginalName</h2>
+        <h2>@Model.OriginalName</h2>
         <p class="text-muted mb-0">
-            @doc.FileType.ToUpper()
+            @Model.FileType.ToUpper()
             @if (Model.IsSlideDeck)
             {
-                <span class="badge bg-info text-dark ms-1">@doc.Chunks.Count slides</span>
+                <span class="badge bg-info text-dark ms-1">@Model.Chunks.Count slides</span>
             }
-            @if (doc.Chapter is not null)
+            @if (Model.ChapterNumber is not null)
             {
-                <span> · Chapter @doc.Chapter.Number: @doc.Chapter.Title</span>
+                <span> · Chapter @Model.ChapterNumber: @Model.ChapterTitle</span>
             }
         </p>
     </div>
@@ -23,14 +22,14 @@
         <a class="btn btn-outline-secondary" asp-action="Index">Back to list</a>
         @if (Model.CanReindex && Model.NeedsReindex)
         {
-            <form asp-action="Reindex" asp-route-id="@doc.Id" method="post" class="d-inline">
+            <form asp-action="Reindex" asp-route-id="@Model.Id" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-warning">Re-index</button>
             </form>
         }
         @if (Model.CanDelete)
         {
-            <form asp-action="Delete" asp-route-id="@doc.Id" method="post" class="d-inline"
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
                   onsubmit="return confirm('Delete this document?');">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-danger">Delete</button>
@@ -53,7 +52,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="text-muted small">Status</div>
-                <div class="fw-semibold">@doc.Status</div>
+                <div class="fw-semibold">@Model.Status</div>
             </div>
         </div>
     </div>
@@ -61,7 +60,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="text-muted small">@(Model.IsSlideDeck ? "Slides" : "Chunks")</div>
-                <div class="fw-semibold">@doc.Chunks.Count</div>
+                <div class="fw-semibold">@Model.Chunks.Count</div>
             </div>
         </div>
     </div>
@@ -69,7 +68,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="text-muted small">Uploaded by</div>
-                <div class="fw-semibold">@(doc.UploadedByNavigation?.FullName ?? doc.UploadedByNavigation?.Username ?? "—")</div>
+                <div class="fw-semibold">@(Model.UploadedByName ?? "—")</div>
             </div>
         </div>
     </div>
@@ -77,7 +76,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="text-muted small">Indexed at</div>
-                <div class="fw-semibold">@(doc.IndexedAt?.ToString("g") ?? "—")</div>
+                <div class="fw-semibold">@(Model.IndexedAt?.ToString("g") ?? "—")</div>
             </div>
         </div>
     </div>

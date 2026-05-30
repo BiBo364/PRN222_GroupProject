@@ -1,8 +1,8 @@
-﻿using Assignment1_Repository.Models;
+﻿using Assignment1_Service.Models;
 
 namespace Assignment1_Service.Services.Interfaces;
 
 public interface IUserServices
 {
-    Task<User?> LoginAsync(string username, string password);
+    Task<LoginUserDto?> LoginAsync(string username, string password);
 }

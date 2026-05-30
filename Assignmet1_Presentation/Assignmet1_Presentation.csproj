@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Assignment1_Service\Assignment1_Service.csproj" />
-    <ProjectReference Include="..\Assignment1_Repository\Assignment1_Repository.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,19 +1,19 @@
-using Assignment1_Repository.Models;
+using Assignment1_Service.Models;
 
 namespace Assignment1_Service.Services.Interfaces;
 
 public interface IDocumentService
 {
-    Task<Subject?> GetDemoSubjectAsync();
-    Task<List<Document>> GetDocumentsAsync();
-    Task<Document?> GetDocumentByIdAsync(int id);
+    Task<SubjectDto?> GetDemoSubjectAsync();
+    Task<List<DocumentListItemDto>> GetDocumentsAsync();
+    Task<DocumentDetailDto?> GetDocumentByIdAsync(int id);
     Task<bool> DeleteDocumentAsync(int id, string storageRoot, string contentRoot, string webRoot);
-    Task<(Document? Document, string? Error)> ReindexDocumentAsync(
+    Task<(DocumentUploadResultDto? Result, string? Error)> ReindexDocumentAsync(
         int id,
         string storageRoot,
         string contentRoot,
         string webRoot);
-    Task<(Document? Document, string? Error)> UploadAndProcessAsync(
+    Task<(DocumentUploadResultDto? Result, string? Error)> UploadAndProcessAsync(
         Stream fileStream,
         string originalFileName,
         long fileSize,

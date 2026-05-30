@@ -57,7 +57,7 @@ else
                     <tr>
                         <td>@doc.OriginalName</td>
                         <td><span class="badge bg-secondary">@doc.FileType.ToUpper()</span></td>
-                        <td>@(doc.Chapter is null ? "—" : $"Ch.{doc.Chapter.Number}: {doc.Chapter.Title}")</td>
+                        <td>@(doc.ChapterNumber is null ? "—" : $"Ch.{doc.ChapterNumber}: {doc.ChapterTitle}")</td>
                         <td>
                             @{
                                 var badge = doc.Status switch
@@ -75,8 +75,8 @@ else
                             }
                         </td>
                         <td>
-                            @doc.Chunks.Count
-                            @if (doc.Status == "indexed" && doc.Chunks.Count == 0)
+                            @doc.ChunkCount
+                            @if (doc.Status == "indexed" && doc.ChunkCount == 0)
                             {
                                 <span class="badge bg-warning text-dark ms-1">needs re-index</span>
                             }

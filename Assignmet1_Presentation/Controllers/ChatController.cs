@@ -1,5 +1,6 @@
 using Assignmet1_Presentation.Filters;
 using Assignmet1_Presentation.Helpers;
+using Assignmet1_Presentation.Mappings;
 using Assignmet1_Presentation.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -33,8 +34,8 @@ public class ChatController : Controller
 
         return View(new ChatIndexViewModel
         {
-            Subject = subject,
-            Sessions = sessions
+            Subject = subject is null ? null : ViewModelMapper.ToViewModel(subject),
+            Sessions = sessions.Select(ViewModelMapper.ToViewModel).ToList()
         });
     }
 
@@ -66,7 +67,10 @@ public class ChatController : Controller
         if (session is null)
             return NotFound();
 
-        return View(new ChatConversationViewModel { Session = session });
+        return View(new ChatConversationViewModel
+        {
+            Session = ViewModelMapper.ToViewModel(session)
+        });
     }
 
     [HttpPost]
@@ -89,7 +93,7 @@ public class ChatController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        model.Session = session;
+        model.Session = ViewModelMapper.ToViewModel(session);
 
         if (string.IsNullOrWhiteSpace(model.Question))
         {

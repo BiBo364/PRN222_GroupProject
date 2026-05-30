@@ -1,17 +1,17 @@
 @model SubscriptionIndexViewModel
-@using Assignment1_Repository.Models
+@using Assignmet1_Presentation.Constants
 @{
     ViewData["Title"] = "Đăng ký gói";
     string StatusLabel(string status) => status switch
     {
-        PaymentTicketStatus.Approved => "Đã duyệt",
-        PaymentTicketStatus.Rejected => "Từ chối",
+        PaymentStatuses.Approved => "Đã duyệt",
+        PaymentStatuses.Rejected => "Từ chối",
         _ => "Chờ duyệt"
     };
     string StatusBadge(string status) => status switch
     {
-        PaymentTicketStatus.Approved => "bg-success",
-        PaymentTicketStatus.Rejected => "bg-danger",
+        PaymentStatuses.Approved => "bg-success",
+        PaymentStatuses.Rejected => "bg-danger",
         _ => "bg-warning text-dark"
     };
 }
@@ -56,7 +56,7 @@
                 @if (Model.ActiveSubscription is not null)
                 {
                     <div class="alert alert-success mb-0">
-                        <strong>Đang hoạt động:</strong> @Model.ActiveSubscription.Plan.Name<br />
+                        <strong>Đang hoạt động:</strong> @Model.ActiveSubscription.PlanName<br />
                         Hết hạn: <strong>@Model.ActiveSubscription.EndAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong>
                     </div>
                 }
@@ -139,7 +139,7 @@
                     {
                         <tr>
                             <td>@t.Id</td>
-                            <td>@t.Plan.Name</td>
+                            <td>@t.PlanName</td>
                             <td>@t.Amount.ToString("N0") đ</td>
                             <td>@(string.IsNullOrWhiteSpace(t.TransferReference) ? "—" : t.TransferReference)</td>
                             <td><span class="badge @StatusBadge(t.Status)">@StatusLabel(t.Status)</span></td>

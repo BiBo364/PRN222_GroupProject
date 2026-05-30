@@ -1,6 +1,6 @@
 using Assignmet1_Presentation.Filters;
+using Assignmet1_Presentation.Mappings;
 using Assignmet1_Presentation.Models;
-using Assignment1_Repository.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,13 +20,13 @@ public class PaymentAdminController : Controller
     public async Task<IActionResult> Index(string? status)
     {
         var tickets = await _subscriptionService.GetAllTicketsAsync(status);
-        var pending = await _subscriptionService.GetAllTicketsAsync(PaymentTicketStatus.Pending);
+        var pendingCount = await _subscriptionService.GetPendingTicketCountAsync();
 
         return View(new PaymentAdminIndexViewModel
         {
             StatusFilter = status,
-            Tickets = tickets,
-            PendingCount = pending.Count
+            Tickets = tickets.Select(ViewModelMapper.ToViewModel).ToList(),
+            PendingCount = pendingCount
         });
     }
 

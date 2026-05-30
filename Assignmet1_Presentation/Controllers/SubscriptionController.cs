@@ -1,4 +1,5 @@
 using Assignmet1_Presentation.Filters;
+using Assignmet1_Presentation.Mappings;
 using Assignmet1_Presentation.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -29,11 +30,11 @@ public class SubscriptionController : Controller
 
         return View(new SubscriptionIndexViewModel
         {
-            Plans = plans,
-            ActiveSubscription = active,
-            Tickets = tickets,
+            Plans = plans.Select(ViewModelMapper.ToViewModel).ToList(),
+            ActiveSubscription = active is null ? null : ViewModelMapper.ToViewModel(active),
+            Tickets = tickets.Select(ViewModelMapper.ToViewModel).ToList(),
             PaymentInfo = _paymentSettings,
-            CreateTicket = new CreateTicketInput()
+            CreateTicket = new CreateTicketViewModel()
         });
     }
 
@@ -43,7 +44,7 @@ public class SubscriptionController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateTicket(
-        [Bind(Prefix = "CreateTicket")] CreateTicketInput model)
+        [Bind(Prefix = "CreateTicket")] CreateTicketViewModel model)
     {
         var userId = HttpContext.Session.GetInt32("UserId")!.Value;
 
@@ -53,7 +54,7 @@ public class SubscriptionController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        var (_, error) = await _subscriptionService.CreateTicketAsync(userId, model.PlanId);
+        var error = await _subscriptionService.CreateTicketAsync(userId, model.PlanId);
 
         if (error is not null)
         {

@@ -15,20 +15,22 @@ public class ChatService : IChatService
         _chatRepository = chatRepository;
     }
 
-    public Task<Subject?> GetDemoSubjectAsync()
+    public async Task<SubjectDto?> GetDemoSubjectAsync()
     {
-        return _chatRepository.GetDemoSubjectAsync();
+        var subject = await _chatRepository.GetDemoSubjectAsync();
+        return subject is null ? null : DtoMapper.ToDto(subject);
     }
 
-    public async Task<List<Session>> GetSessionsAsync(string userId)
+    public async Task<List<ChatSessionListItemDto>> GetSessionsAsync(string userId)
     {
         var subject = await _chatRepository.GetDemoSubjectAsync()
             ?? throw new InvalidOperationException("No subject configured.");
 
-        return await _chatRepository.GetUserSessionsAsync(userId, subject.Id);
+        var sessions = await _chatRepository.GetUserSessionsAsync(userId, subject.Id);
+        return sessions.Select(DtoMapper.ToListItemDto).ToList();
     }
 
-    public async Task<Session> CreateSessionAsync(string userId, string? title = null)
+    public async Task<ChatSessionDto> CreateSessionAsync(string userId, string? title = null)
     {
         var subject = await _chatRepository.GetDemoSubjectAsync()
             ?? throw new InvalidOperationException("No subject configured.");
@@ -44,12 +46,15 @@ public class ChatService : IChatService
             IsArchived = false
         };
 
-        return await _chatRepository.CreateSessionAsync(session);
+        session = await _chatRepository.CreateSessionAsync(session);
+        session.Subject = subject;
+        return DtoMapper.ToDto(session);
     }
 
-    public Task<Session?> GetSessionAsync(string sessionId, string userId)
+    public async Task<ChatSessionDto?> GetSessionAsync(string sessionId, string userId)
     {
-        return _chatRepository.GetSessionForUserAsync(sessionId, userId);
+        var session = await _chatRepository.GetSessionForUserAsync(sessionId, userId);
+        return session is null ? null : DtoMapper.ToDto(session);
     }
 
     public async Task<ChatReplyDto> AskAsync(string sessionId, string userId, string question)

@@ -1,5 +1,4 @@
 @model ChatConversationViewModel
-@using Assignment1_Service.Helpers
 @{
     ViewData["Title"] = Model.Session.Title ?? "Chat";
     var session = Model.Session;
@@ -8,9 +7,9 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="h4 mb-0">@session.Title</h2>
-        @if (session.Subject is not null)
+        @if (!string.IsNullOrWhiteSpace(session.SubjectCode))
         {
-            <small class="text-muted">@session.Subject.Code — @session.Subject.Name</small>
+            <small class="text-muted">@session.SubjectCode — @session.SubjectName</small>
         }
     </div>
     <a class="btn btn-outline-secondary btn-sm" asp-action="Index">All chats</a>
@@ -28,7 +27,7 @@
     }
     else
     {
-        @foreach (var message in session.Messages.OrderBy(m => m.CreatedAt))
+        @foreach (var message in session.Messages)
         {
             var isUser = message.Role == "user";
             <div class="mb-3 d-flex @(isUser ? "justify-content-end" : "justify-content-start")">
@@ -36,20 +35,18 @@
                     <div class="small fw-semibold mb-1">@(isUser ? "You" : "Assistant")</div>
                     <div style="white-space: pre-wrap;">@message.Content</div>
 
-                    @if (!isUser && message.MessageCitations.Any())
+                    @if (!isUser && message.Citations.Any())
                     {
                         <hr class="my-2" />
                         <div class="small">
                             <strong>Sources:</strong>
                             <ul class="mb-0 ps-3">
-                                @foreach (var cite in message.MessageCitations.OrderBy(c => c.RankOrder))
+                                @foreach (var cite in message.Citations)
                                 {
-                                    var slideMeta = SlideChunkMetadata.FromJson(cite.Chunk.Metadata);
-                                    var slide = slideMeta?.SlideNumber ?? cite.Chunk.PageNumber;
                                     <li>
-                                        @cite.Chunk.Document.OriginalName
-                                        @(slide.HasValue ? $"(slide {slide})" : "")
-                                        <span class="text-muted">— score @cite.SimilarityScore</span>
+                                        @cite.DocumentName
+                                        @(cite.SlideNumber.HasValue ? $"(slide {cite.SlideNumber})" : "")
+                                        <span class="text-muted">— score @cite.Score</span>
                                     </li>
                                 }
                             </ul>

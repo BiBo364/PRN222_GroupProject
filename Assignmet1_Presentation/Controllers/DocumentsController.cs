@@ -1,5 +1,6 @@
 using Assignmet1_Presentation.Filters;
 using Assignmet1_Presentation.Helpers;
+using Assignmet1_Presentation.Mappings;
 using Assignmet1_Presentation.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -33,8 +34,8 @@ public class DocumentsController : Controller
 
         return View(new DocumentListViewModel
         {
-            DemoSubject = subject,
-            Documents = documents,
+            DemoSubject = subject is null ? null : ViewModelMapper.ToViewModel(subject),
+            Documents = documents.Select(ViewModelMapper.ToViewModel).ToList(),
             CanUpload = DocumentPermissions.CanUpload(roleId),
             CanDelete = DocumentPermissions.CanDelete(roleId)
         });
@@ -50,20 +51,12 @@ public class DocumentsController : Controller
             return NotFound();
 
         var roleId = HttpContext.Session.GetInt32("RoleId")!.Value;
-        var chunkItems = document.Chunks
-            .OrderBy(c => c.ChunkIndex)
-            .Select(ChunkDisplayItem.FromChunk)
-            .ToList();
+        var viewModel = ViewModelMapper.ToDocumentDetailPage(document);
+        viewModel.CanUpload = DocumentPermissions.CanUpload(roleId);
+        viewModel.CanDelete = DocumentPermissions.CanDelete(roleId);
+        viewModel.CanReindex = DocumentPermissions.CanUpload(roleId);
 
-        return View(new DocumentDetailViewModel
-        {
-            Document = document,
-            ChunkItems = chunkItems,
-            IsSlideDeck = document.FileType == "pptx",
-            CanUpload = DocumentPermissions.CanUpload(roleId),
-            CanDelete = DocumentPermissions.CanDelete(roleId),
-            CanReindex = DocumentPermissions.CanUpload(roleId)
-        });
+        return View(viewModel);
     }
 
     [HttpPost]
@@ -72,16 +65,16 @@ public class DocumentsController : Controller
     public async Task<IActionResult> Reindex(int id)
     {
         var paths = GetStoragePaths();
-        var (document, error) = await _documentService.ReindexDocumentAsync(
+        var (result, error) = await _documentService.ReindexDocumentAsync(
             id, paths.StorageRoot, paths.ContentRoot, paths.WebRoot);
 
-        if (document is null)
+        if (result is null)
         {
             TempData["Error"] = error ?? "Re-index failed.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        TempData["Success"] = $"Re-indexed: {document.OriginalName} ({document.Chunks.Count} chunks).";
+        TempData["Success"] = $"Re-indexed: {result.OriginalName} ({result.ChunkCount} chunks).";
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -123,7 +116,7 @@ public class DocumentsController : Controller
         var paths = GetStoragePaths();
         await using var stream = model.File!.OpenReadStream();
 
-        var (document, error) = await _documentService.UploadAndProcessAsync(
+        var (result, error) = await _documentService.UploadAndProcessAsync(
             stream,
             model.File.FileName,
             model.File.Length,
@@ -133,13 +126,13 @@ public class DocumentsController : Controller
             paths.StorageRoot,
             paths.WebRoot);
 
-        if (document is null)
+        if (result is null)
         {
             ModelState.AddModelError(string.Empty, error ?? "Upload failed.");
             return View(model);
         }
 
-        TempData["Success"] = $"Uploaded and indexed: {document.OriginalName}";
+        TempData["Success"] = $"Uploaded and indexed: {result.OriginalName}";
         return RedirectToAction(nameof(Index));
     }
 
@@ -179,7 +172,8 @@ public class DocumentsController : Controller
 
     private async Task<DocumentUploadViewModel> BuildUploadViewModelAsync()
     {
-        var subject = await _documentService.GetDemoSubjectAsync();
+        var subjectDto = await _documentService.GetDemoSubjectAsync();
+        var subject = subjectDto is null ? null : ViewModelMapper.ToViewModel(subjectDto);
         return new DocumentUploadViewModel
         {
             DemoSubject = subject,
@@ -189,7 +183,7 @@ public class DocumentsController : Controller
                     Value = c.Id.ToString(),
                     Text = $"Chapter {c.Number}: {c.Title}"
                 })
-                .ToList() ?? new List<SelectListItem>()
+                .ToList() ?? []
         };
     }
 }

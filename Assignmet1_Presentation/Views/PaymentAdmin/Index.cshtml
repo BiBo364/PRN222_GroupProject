@@ -1,17 +1,17 @@
 @model PaymentAdminIndexViewModel
-@using Assignment1_Repository.Models
+@using Assignmet1_Presentation.Constants
 @{
     ViewData["Title"] = "Duyệt thanh toán";
     string StatusLabel(string status) => status switch
     {
-        PaymentTicketStatus.Approved => "Đã duyệt",
-        PaymentTicketStatus.Rejected => "Từ chối",
+        PaymentStatuses.Approved => "Đã duyệt",
+        PaymentStatuses.Rejected => "Từ chối",
         _ => "Chờ duyệt"
     };
     string StatusBadge(string status) => status switch
     {
-        PaymentTicketStatus.Approved => "bg-success",
-        PaymentTicketStatus.Rejected => "bg-danger",
+        PaymentStatuses.Approved => "bg-success",
+        PaymentStatuses.Rejected => "bg-danger",
         _ => "bg-warning text-dark"
     };
 }
@@ -24,12 +24,12 @@
     <div class="btn-group">
         <a class="btn btn-outline-secondary @(Model.StatusFilter is null ? "active" : "")"
            asp-action="Index">Tất cả</a>
-        <a class="btn btn-outline-warning @(Model.StatusFilter == PaymentTicketStatus.Pending ? "active" : "")"
-           asp-action="Index" asp-route-status="@PaymentTicketStatus.Pending">Chờ duyệt</a>
-        <a class="btn btn-outline-success @(Model.StatusFilter == PaymentTicketStatus.Approved ? "active" : "")"
-           asp-action="Index" asp-route-status="@PaymentTicketStatus.Approved">Đã duyệt</a>
-        <a class="btn btn-outline-danger @(Model.StatusFilter == PaymentTicketStatus.Rejected ? "active" : "")"
-           asp-action="Index" asp-route-status="@PaymentTicketStatus.Rejected">Từ chối</a>
+        <a class="btn btn-outline-warning @(Model.StatusFilter == PaymentStatuses.Pending ? "active" : "")"
+           asp-action="Index" asp-route-status="@PaymentStatuses.Pending">Chờ duyệt</a>
+        <a class="btn btn-outline-success @(Model.StatusFilter == PaymentStatuses.Approved ? "active" : "")"
+           asp-action="Index" asp-route-status="@PaymentStatuses.Approved">Đã duyệt</a>
+        <a class="btn btn-outline-danger @(Model.StatusFilter == PaymentStatuses.Rejected ? "active" : "")"
+           asp-action="Index" asp-route-status="@PaymentStatuses.Rejected">Từ chối</a>
     </div>
 </div>
 
@@ -68,16 +68,16 @@ else
                     <tr>
                         <td>@t.Id</td>
                         <td>
-                            <strong>@(t.User.FullName ?? t.User.Username)</strong><br />
-                            <small class="text-muted">@t.User.Email</small>
+                            <strong>@(t.FullName ?? t.Username)</strong><br />
+                            <small class="text-muted">@t.Email</small>
                         </td>
-                        <td>@t.Plan.Name</td>
+                        <td>@t.PlanName</td>
                         <td>@t.Amount.ToString("N0") đ</td>
                         <td>@(string.IsNullOrWhiteSpace(t.TransferReference) ? "—" : t.TransferReference)</td>
                         <td><span class="badge @StatusBadge(t.Status)">@StatusLabel(t.Status)</span></td>
                         <td>@(t.CreatedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
                         <td>
-                            @if (t.Status == PaymentTicketStatus.Pending)
+                            @if (t.Status == PaymentStatuses.Pending)
                             {
                                 <form asp-action="Approve" method="post" class="mb-2">
                                     @Html.AntiForgeryToken()
@@ -103,7 +103,7 @@ else
                             else
                             {
                                 <small class="text-muted">
-                                    @(t.ReviewedByNavigation?.FullName ?? t.ReviewedByNavigation?.Username ?? "—")
+                                    @(t.ReviewerName ?? "—")
                                     · @(t.ReviewedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")
                                 </small>
                                 @if (!string.IsNullOrWhiteSpace(t.AdminNote))

@@ -1,5 +1,7 @@
 using Assignment1_Repository.Models;
 using Assignment1_Repository.Repositories.Interfaces;
+using Assignment1_Service.Helpers;
+using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 
 namespace Assignment1_Service.Services;
@@ -13,47 +15,61 @@ public class SubscriptionService : ISubscriptionService
         _repository = repository;
     }
 
-    public Task<List<SubscriptionPlan>> GetActivePlansAsync() =>
-        _repository.GetActivePlansAsync();
+    public async Task<List<SubscriptionPlanDto>> GetActivePlansAsync()
+    {
+        var plans = await _repository.GetActivePlansAsync();
+        return plans.Select(DtoMapper.ToDto).ToList();
+    }
 
-    public async Task<UserSubscription?> GetActiveSubscriptionAsync(int userId)
+    public async Task<UserSubscriptionDto?> GetActiveSubscriptionAsync(int userId)
     {
         await _repository.DeactivateExpiredSubscriptionsAsync(userId);
-        return await _repository.GetActiveSubscriptionAsync(userId);
+        var subscription = await _repository.GetActiveSubscriptionAsync(userId);
+        return subscription is null ? null : DtoMapper.ToDto(subscription);
     }
 
     public async Task<bool> HasActiveSubscriptionAsync(int userId)
     {
-        var sub = await GetActiveSubscriptionAsync(userId);
-        return sub is not null;
+        return await GetActiveSubscriptionAsync(userId) is not null;
     }
 
-    public Task<List<PaymentTicket>> GetUserTicketsAsync(int userId) =>
-        _repository.GetTicketsByUserAsync(userId);
+    public async Task<List<PaymentTicketDto>> GetUserTicketsAsync(int userId)
+    {
+        var tickets = await _repository.GetTicketsByUserAsync(userId);
+        return tickets.Select(DtoMapper.ToDto).ToList();
+    }
 
-    public Task<List<PaymentTicket>> GetAllTicketsAsync(string? status = null) =>
-        _repository.GetAllTicketsAsync(status);
+    public async Task<List<PaymentTicketDto>> GetAllTicketsAsync(string? status = null)
+    {
+        var tickets = await _repository.GetAllTicketsAsync(status);
+        return tickets.Select(DtoMapper.ToDto).ToList();
+    }
 
-    public async Task<(PaymentTicket? Ticket, string? Error)> CreateTicketAsync(int userId, int planId)
+    public async Task<int> GetPendingTicketCountAsync()
+    {
+        var tickets = await _repository.GetAllTicketsAsync(PaymentTicketStatuses.Pending);
+        return tickets.Count;
+    }
+
+    public async Task<string?> CreateTicketAsync(int userId, int planId)
     {
         var plan = await _repository.GetPlanByIdAsync(planId);
         if (plan is null)
-            return (null, "Gói đăng ký không hợp lệ.");
+            return "Gói đăng ký không hợp lệ.";
 
         if (await _repository.HasPendingTicketAsync(userId, planId))
-            return (null, "Bạn đã có ticket chờ duyệt cho gói này.");
+            return "Bạn đã có ticket chờ duyệt cho gói này.";
 
-        var ticket = new PaymentTicket
+        await _repository.AddTicketAsync(new PaymentTicket
         {
             UserId = userId,
             PlanId = plan.Id,
             Amount = plan.Price,
             TransferReference = null,
-            Status = PaymentTicketStatus.Pending
-        };
+            Status = PaymentTicketStatuses.Pending
+        });
 
-        ticket = await _repository.AddTicketAsync(ticket);
-        return (ticket, null);
+        return null;
     }
 
     public async Task<(bool Success, string? Error)> ApproveTicketAsync(
@@ -63,7 +79,7 @@ public class SubscriptionService : ISubscriptionService
         if (ticket is null)
             return (false, "Không tìm thấy ticket.");
 
-        if (ticket.Status != PaymentTicketStatus.Pending)
+        if (ticket.Status != PaymentTicketStatuses.Pending)
             return (false, "Ticket này đã được xử lý.");
 
         var plan = ticket.Plan ?? await _repository.GetPlanByIdAsync(ticket.PlanId);
@@ -96,7 +112,7 @@ public class SubscriptionService : ISubscriptionService
             });
         }
 
-        ticket.Status = PaymentTicketStatus.Approved;
+        ticket.Status = PaymentTicketStatuses.Approved;
         ticket.ReviewedBy = adminUserId;
         ticket.ReviewedAt = now;
         ticket.AdminNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote.Trim();
@@ -112,10 +128,10 @@ public class SubscriptionService : ISubscriptionService
         if (ticket is null)
             return (false, "Không tìm thấy ticket.");
 
-        if (ticket.Status != PaymentTicketStatus.Pending)
+        if (ticket.Status != PaymentTicketStatuses.Pending)
             return (false, "Ticket này đã được xử lý.");
 
-        ticket.Status = PaymentTicketStatus.Rejected;
+        ticket.Status = PaymentTicketStatuses.Rejected;
         ticket.ReviewedBy = adminUserId;
         ticket.ReviewedAt = DateTime.UtcNow;
         ticket.AdminNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote.Trim();

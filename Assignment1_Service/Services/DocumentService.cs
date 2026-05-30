@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Assignment1_Repository.Models;
 using Assignment1_Repository.Repositories.Interfaces;
 using Assignment1_Service.Helpers;
+using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 
 namespace Assignment1_Service.Services;
@@ -15,19 +16,22 @@ public class DocumentService : IDocumentService
         _documentRepository = documentRepository;
     }
 
-    public Task<Subject?> GetDemoSubjectAsync()
+    public async Task<SubjectDto?> GetDemoSubjectAsync()
     {
-        return _documentRepository.GetFirstSubjectWithChaptersAsync();
+        var subject = await _documentRepository.GetFirstSubjectWithChaptersAsync();
+        return subject is null ? null : DtoMapper.ToDto(subject);
     }
 
-    public Task<List<Document>> GetDocumentsAsync()
+    public async Task<List<DocumentListItemDto>> GetDocumentsAsync()
     {
-        return _documentRepository.GetDocumentsWithDetailsAsync();
+        var documents = await _documentRepository.GetDocumentsWithDetailsAsync();
+        return documents.Select(DtoMapper.ToListItemDto).ToList();
     }
 
-    public Task<Document?> GetDocumentByIdAsync(int id)
+    public async Task<DocumentDetailDto?> GetDocumentByIdAsync(int id)
     {
-        return _documentRepository.GetByIdWithDetailsAsync(id);
+        var document = await _documentRepository.GetByIdWithDetailsAsync(id);
+        return document is null ? null : DtoMapper.ToDetailDto(document);
     }
 
     public async Task<bool> DeleteDocumentAsync(int id, string storageRoot, string contentRoot, string webRoot)
@@ -49,7 +53,7 @@ public class DocumentService : IDocumentService
         return true;
     }
 
-    public async Task<(Document? Document, string? Error)> ReindexDocumentAsync(
+    public async Task<(DocumentUploadResultDto? Result, string? Error)> ReindexDocumentAsync(
         int id,
         string storageRoot,
         string contentRoot,
@@ -81,7 +85,7 @@ public class DocumentService : IDocumentService
 
             await IndexDocumentContentAsync(document, filePath, webRoot);
             var updated = await _documentRepository.GetByIdWithDetailsAsync(id);
-            return (updated, null);
+            return updated is null ? (null, "Document not found after re-index.") : (DtoMapper.ToUploadResult(updated), null);
         }
         catch (Exception ex)
         {
@@ -92,7 +96,7 @@ public class DocumentService : IDocumentService
         }
     }
 
-    public async Task<(Document? Document, string? Error)> UploadAndProcessAsync(
+    public async Task<(DocumentUploadResultDto? Result, string? Error)> UploadAndProcessAsync(
         Stream fileStream,
         string originalFileName,
         long fileSize,
@@ -142,7 +146,7 @@ public class DocumentService : IDocumentService
         {
             await IndexDocumentContentAsync(document, storagePath, webRoot);
             var updated = await _documentRepository.GetByIdWithDetailsAsync(document.Id);
-            return (updated, null);
+            return updated is null ? (null, "Document not found after upload.") : (DtoMapper.ToUploadResult(updated), null);
         }
         catch (Exception ex)
         {

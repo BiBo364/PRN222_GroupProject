@@ -1,5 +1,6 @@
 ﻿using Assignment1_Repository.Models;
 using Assignment1_Repository.Repositories.Interfaces;
+using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 
 namespace Assignment1_Service.Services;
@@ -15,7 +16,7 @@ public class UserServices : IUserServices
         _context = context;
     }
 
-    public async Task<User?> LoginAsync(string username, string password)
+    public async Task<LoginUserDto?> LoginAsync(string username, string password)
     {
         var user = await _userRepository.GetByUsernameAsync(username);
         if (user is null || user.IsActive == false)
@@ -27,6 +28,12 @@ public class UserServices : IUserServices
         user.LastLoginAt = DateTime.Now;
         await _context.SaveChangesAsync();
 
-        return user;
+        return new LoginUserDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            FullName = user.FullName,
+            RoleId = user.RoleId
+        };
     }
 }

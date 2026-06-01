@@ -4,6 +4,11 @@ namespace Assignment1_Service.Helpers;
 
 public static class VectorMath
 {
+    public static string SerializeVector(float[] vector)
+    {
+        return JsonSerializer.Serialize(vector);
+    }
+
     public static float[] ParseVector(string json)
     {
         return JsonSerializer.Deserialize<float[]>(json) ?? Array.Empty<float>();

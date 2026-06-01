@@ -16,10 +16,11 @@
     };
 }
 
-<div class="mb-4">
-    <h2>Đăng ký subscription</h2>
-    <p class="text-muted mb-0">Chuyển khoản cho admin, tạo ticket — admin duyệt xong bạn dùng được Chat.</p>
-</div>
+<section class="page-hero mb-4">
+    <div class="hero-badge mb-3">Subscription</div>
+    <h1 class="page-title">Đăng ký subscription</h1>
+    <p class="page-subtitle mb-0">Chuyển khoản cho admin, tạo ticket, rồi chờ duyệt để mở khóa Chat.</p>
+</section>
 
 @if (TempData["Success"] is string success)
 {
@@ -32,41 +33,39 @@
 
 <div class="row g-4 mb-4">
     <div class="col-lg-5">
-        <div class="card h-100 border-primary">
-            <div class="card-header bg-primary text-white">Thông tin chuyển khoản</div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-5">Ngân hàng</dt>
-                    <dd class="col-sm-7">@Model.PaymentInfo.BankName</dd>
-                    <dt class="col-sm-5">Số tài khoản</dt>
-                    <dd class="col-sm-7"><strong>@Model.PaymentInfo.AccountNumber</strong></dd>
-                    <dt class="col-sm-5">Chủ tài khoản</dt>
-                    <dd class="col-sm-7">@Model.PaymentInfo.AccountHolder</dd>
-                    <dt class="col-sm-5">Nội dung CK</dt>
-                    <dd class="col-sm-7"><code>@Model.PaymentInfo.TransferContentHint</code></dd>
-                </dl>
-                <p class="small text-muted mt-3 mb-0">Sau khi chuyển khoản, chọn gói và gửi ticket — admin sẽ đối soát và duyệt.</p>
-            </div>
+        <div class="surface-card h-100">
+            <div class="stat-label mb-2">Payment info</div>
+            <h3 class="h5 mb-3">Thông tin chuyển khoản</h3>
+            <dl class="row mb-0">
+                <dt class="col-sm-5">Ngân hàng</dt>
+                <dd class="col-sm-7">@Model.PaymentInfo.BankName</dd>
+                <dt class="col-sm-5">Số tài khoản</dt>
+                <dd class="col-sm-7"><strong>@Model.PaymentInfo.AccountNumber</strong></dd>
+                <dt class="col-sm-5">Chủ tài khoản</dt>
+                <dd class="col-sm-7">@Model.PaymentInfo.AccountHolder</dd>
+                <dt class="col-sm-5">Nội dung CK</dt>
+                <dd class="col-sm-7"><code>@Model.PaymentInfo.TransferContentHint</code></dd>
+            </dl>
+            <p class="small mt-3 mb-0">Sau khi chuyển khoản, chọn gói và gửi ticket. Admin sẽ đối soát và duyệt.</p>
         </div>
     </div>
     <div class="col-lg-7">
-        <div class="card h-100">
-            <div class="card-header">Trạng thái subscription</div>
-            <div class="card-body">
-                @if (Model.ActiveSubscription is not null)
-                {
-                    <div class="alert alert-success mb-0">
-                        <strong>Đang hoạt động:</strong> @Model.ActiveSubscription.PlanName<br />
-                        Hết hạn: <strong>@Model.ActiveSubscription.EndAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong>
-                    </div>
-                }
-                else
-                {
-                    <div class="alert alert-warning mb-0">
-                        Bạn chưa có subscription. Tạo ticket thanh toán để admin kích hoạt.
-                    </div>
-                }
-            </div>
+        <div class="surface-card h-100">
+            <div class="stat-label mb-2">Access state</div>
+            <h3 class="h5 mb-3">Trạng thái subscription</h3>
+            @if (Model.ActiveSubscription is not null)
+            {
+                <div class="alert alert-success mb-0">
+                    <strong>Đang hoạt động:</strong> @Model.ActiveSubscription.PlanName<br />
+                    Hết hạn: <strong>@Model.ActiveSubscription.EndAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning mb-0">
+                    Bạn chưa có subscription. Tạo ticket thanh toán để admin kích hoạt.
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -87,9 +86,9 @@
     }
 </div>
 
-<div class="card mb-5">
-    <div class="card-header">Tạo ticket thanh toán</div>
-    <div class="card-body">
+<div class="surface-card mb-5">
+    <div class="stat-label mb-2">Ticket workflow</div>
+    <h3 class="h5 mb-3">Tạo ticket thanh toán</h3>
         <form asp-action="CreateTicket" method="post">
             <div asp-validation-summary="All" class="text-danger mb-3"></div>
             <div class="row g-3 align-items-end">
@@ -110,7 +109,6 @@
             </div>
             <p class="small text-muted mt-2 mb-0">Chỉ cần chọn gói và gửi — không cần nhập mã giao dịch.</p>
         </form>
-    </div>
 </div>
 
 <div>
@@ -121,8 +119,9 @@
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-striped align-middle">
+        <div class="surface-card p-0 overflow-hidden">
+            <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -142,13 +141,14 @@
                             <td>@t.PlanName</td>
                             <td>@t.Amount.ToString("N0") đ</td>
                             <td>@(string.IsNullOrWhiteSpace(t.TransferReference) ? "—" : t.TransferReference)</td>
-                            <td><span class="badge @StatusBadge(t.Status)">@StatusLabel(t.Status)</span></td>
+                            <td><span class="status-chip @StatusBadge(t.Status)">@StatusLabel(t.Status)</span></td>
                             <td>@(string.IsNullOrWhiteSpace(t.AdminNote) ? "—" : t.AdminNote)</td>
                             <td>@(t.CreatedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
                         </tr>
                     }
                 </tbody>
             </table>
+            </div>
         </div>
     }
 </div>

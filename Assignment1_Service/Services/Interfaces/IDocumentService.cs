@@ -4,9 +4,14 @@ namespace Assignment1_Service.Services.Interfaces;
 
 public interface IDocumentService
 {
-    Task<SubjectDto?> GetDemoSubjectAsync();
     Task<List<DocumentListItemDto>> GetDocumentsAsync();
     Task<DocumentDetailDto?> GetDocumentByIdAsync(int id);
+    Task<DocumentDetailDto?> CreateDocumentEntryAsync(
+        string originalName,
+        string fileType,
+        int subjectId,
+        int? chapterId,
+        int userId);
     Task<bool> DeleteDocumentAsync(int id, string storageRoot, string contentRoot, string webRoot);
     Task<(DocumentUploadResultDto? Result, string? Error)> ReindexDocumentAsync(
         int id,

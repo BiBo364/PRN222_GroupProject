@@ -60,6 +60,13 @@ public class DocumentRepository : IDocumentRepository
         return _context.EmbeddingModels.OrderBy(m => m.Id).FirstOrDefaultAsync();
     }
 
+    public Task<List<EmbeddingModel>> GetEmbeddingModelsAsync()
+    {
+        return _context.EmbeddingModels
+            .OrderBy(model => model.Id)
+            .ToListAsync();
+    }
+
     public Task<ChunkingConfig?> GetFirstChunkingConfigAsync()
     {
         return _context.ChunkingConfigs.OrderBy(c => c.Id).FirstOrDefaultAsync();
@@ -78,6 +85,13 @@ public class DocumentRepository : IDocumentRepository
             .Where(c => c.DocumentId == documentId)
             .ToListAsync();
 
+        var chunkIds = chunks.Select(c => c.Id).ToList();
+        var citations = await _context.MessageCitations
+            .Where(c => chunkIds.Contains(c.ChunkId))
+            .ToListAsync();
+
+        _context.MessageCitations.RemoveRange(citations);
+
         foreach (var chunk in chunks)
             _context.Embeddings.RemoveRange(chunk.Embeddings);
 
@@ -94,6 +108,13 @@ public class DocumentRepository : IDocumentRepository
 
         if (document is null)
             return;
+
+        var chunkIds = document.Chunks.Select(c => c.Id).ToList();
+        var citations = await _context.MessageCitations
+            .Where(c => chunkIds.Contains(c.ChunkId))
+            .ToListAsync();
+
+        _context.MessageCitations.RemoveRange(citations);
 
         foreach (var chunk in document.Chunks)
             _context.Embeddings.RemoveRange(chunk.Embeddings);

@@ -16,13 +16,19 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddDbContext<RagEduContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection"),
+                sqlOptions => sqlOptions.CommandTimeout(180)));
 
         services.AddScoped<IUserReposity, UserRepository>();
         services.AddScoped<IUserServices, UserServices>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
-        services.AddScoped<IDocumentService, DocumentService>();
+        services.AddScoped<ISubjectRepository, SubjectRepository>();
         services.AddScoped<IChatRepository, ChatRepository>();
+        services.AddHttpClient<IEmbeddingService, EmbeddingService>();
+        services.AddHttpClient<IGeminiService, GeminiService>();
+        services.AddScoped<IDocumentService, DocumentService>();
+        services.AddScoped<ISubjectService, SubjectService>();
         services.AddScoped<IChatService, ChatService>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();

@@ -5,7 +5,9 @@ namespace Assignmet1_Presentation.Models;
 
 public class DocumentUploadViewModel
 {
-    public SubjectViewModel? DemoSubject { get; set; }
+    public SubjectViewModel? Subject { get; set; }
+
+    public int? SubjectId { get; set; }
 
     [Required(ErrorMessage = "Please select a file.")]
     [Display(Name = "Document file (PDF, DOCX, PPTX)")]

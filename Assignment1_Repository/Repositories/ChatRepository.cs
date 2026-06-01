@@ -13,30 +13,64 @@ public class ChatRepository : IChatRepository
         _context = context;
     }
 
-    public Task<Subject?> GetDemoSubjectAsync()
-    {
-        return _context.Subjects.OrderBy(s => s.Id).FirstOrDefaultAsync();
-    }
-
     public Task<EmbeddingModel?> GetDefaultEmbeddingModelAsync()
     {
         return _context.EmbeddingModels.OrderBy(m => m.Id).FirstOrDefaultAsync();
     }
 
-    public Task<List<Chunk>> GetIndexedChunksBySubjectAsync(int subjectId)
+    public Task<List<EmbeddingModel>> GetEmbeddingModelsAsync()
     {
-        return _context.Chunks
-            .Include(c => c.Embeddings)
-            .Include(c => c.Document)
-            .Where(c => c.Document.SubjectId == subjectId && c.Document.Status == "indexed")
+        return _context.EmbeddingModels
+            .OrderBy(model => model.Id)
             .ToListAsync();
     }
 
-    public Task<List<Session>> GetUserSessionsAsync(string userId, int subjectId)
+    public Task<List<Subject>> GetSubjectsWithIndexedDocumentsAsync()
     {
-        return _context.Sessions
-            .Where(s => s.UserId == userId && s.SubjectId == subjectId && s.IsArchived != true)
-            .OrderByDescending(s => s.UpdatedAt)
+        return _context.Subjects
+            .Include(subject => subject.Chapters)
+            .Where(subject => subject.Documents.Any(document => document.Status == "indexed"))
+            .OrderBy(subject => subject.Code)
+            .ToListAsync();
+    }
+
+    public Task<List<Chunk>> GetIndexedChunkBatchBySubjectAsync(
+        int subjectId,
+        IReadOnlyCollection<int> embeddingModelIds,
+        int? lastChunkId,
+        int take)
+    {
+        var modelIds = embeddingModelIds
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        var query = _context.Chunks
+            .AsNoTracking()
+            .Include(c => c.Document)
+            .Include(c => c.Embeddings.Where(e => modelIds.Contains(e.EmbeddingModelId)))
+            .Where(c => c.Document.SubjectId == subjectId && c.Document.Status == "indexed")
+            .OrderBy(c => c.Id)
+            .AsSplitQuery();
+
+        if (lastChunkId.HasValue)
+            query = query.Where(c => c.Id > lastChunkId.Value);
+
+        return query
+            .Take(take)
+            .ToListAsync();
+    }
+
+    public Task<List<Session>> GetUserSessionsAsync(string userId, int? subjectId = null)
+    {
+        var query = _context.Sessions
+            .Where(session => session.UserId == userId && session.IsArchived != true);
+
+        if (subjectId.HasValue)
+            query = query.Where(session => session.SubjectId == subjectId.Value);
+
+        return query
+            .OrderByDescending(session => session.UpdatedAt)
             .ToListAsync();
     }
 
@@ -45,16 +79,15 @@ public class ChatRepository : IChatRepository
         sessionId = sessionId.Trim();
         userId = userId.Trim();
 
-        var sessions = await _context.Sessions
+        return await _context.Sessions
             .Include(s => s.Subject)
             .Include(s => s.Messages.OrderBy(m => m.CreatedAt))
                 .ThenInclude(m => m.MessageCitations)
                     .ThenInclude(mc => mc.Chunk)
                         .ThenInclude(c => c.Document)
-            .Where(s => s.UserId == userId)
-            .ToListAsync();
-
-        return sessions.FirstOrDefault(s => s.Id.Trim() == sessionId);
+            .Where(s => s.UserId == userId && s.Id.Trim() == sessionId)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Session> CreateSessionAsync(Session session)

@@ -1,0 +1,111 @@
+@model SubjectDetailViewModel
+@{
+    ViewData["Title"] = $"{Model.Subject.Code} - Subject";
+}
+
+<section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <div class="hero-badge mb-3">Subject details</div>
+            <h1 class="page-title mb-2">@Model.Subject.Code</h1>
+            <p class="page-subtitle mb-0">@Model.Subject.Name</p>
+            @if (!string.IsNullOrWhiteSpace(Model.Subject.Description))
+            {
+                <p class="page-subtitle mt-2 mb-0">@Model.Subject.Description</p>
+            }
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @if (Model.CanUploadDocument)
+            {
+                <a class="btn btn-primary" asp-controller="Documents" asp-action="Upload" asp-route-subjectId="@Model.Subject.Id">Upload document</a>
+                <a class="btn btn-outline-light" asp-controller="Documents" asp-action="Create" asp-route-subjectId="@Model.Subject.Id">Create file entry</a>
+            }
+            <a class="btn btn-outline-light" asp-controller="Documents" asp-action="Index">Back to subjects</a>
+        </div>
+    </div>
+</section>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="surface-card h-100">
+            <div class="text-white-50 small text-uppercase">Chapters</div>
+            <div class="display-6 fw-semibold">@Model.Subject.Chapters.Count</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="surface-card h-100">
+            <div class="text-white-50 small text-uppercase">Documents</div>
+            <div class="display-6 fw-semibold">@Model.Documents.Count</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="surface-card h-100">
+            <div class="text-white-50 small text-uppercase">Indexed</div>
+            <div class="display-6 fw-semibold">@Model.Documents.Count(d => d.Status == "indexed")</div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Documents.Any())
+{
+    <div class="content-panel text-center py-5">
+        <h3 class="h5 mb-2">No documents indexed yet</h3>
+        <p class="page-subtitle mb-0">Upload a file to start the indexing pipeline and make it searchable in Chat.</p>
+    </div>
+}
+else
+{
+    <div class="surface-card p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>File name</th>
+                        <th>Type</th>
+                        <th>Chapter</th>
+                        <th>Status</th>
+                        <th>Chunks</th>
+                        <th>Uploaded</th>
+                        <th>Indexed</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var doc in Model.Documents)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@doc.OriginalName</div>
+                                <div class="small">#@doc.Id</div>
+                            </td>
+                            <td><span class="status-chip badge-soft">@doc.FileType.ToUpper()</span></td>
+                            <td>@(doc.ChapterNumber is null ? "—" : $"Ch.{doc.ChapterNumber}: {doc.ChapterTitle}")</td>
+                            <td>
+                                <span class="status-chip badge-soft">@doc.Status</span>
+                                @if (doc.Status == "failed" && !string.IsNullOrEmpty(doc.ErrorMsg))
+                                {
+                                    <div class="small text-danger">@doc.ErrorMsg</div>
+                                }
+                            </td>
+                            <td>@doc.ChunkCount</td>
+                            <td>@(doc.CreatedAt?.ToString("g") ?? "—")</td>
+                            <td>@(doc.IndexedAt?.ToString("g") ?? "—")</td>
+                            <td class="text-nowrap">
+                                <a class="btn btn-sm btn-outline-light" asp-controller="Documents" asp-action="Details" asp-route-id="@doc.Id">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

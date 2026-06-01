@@ -102,6 +102,7 @@ public static class DtoMapper
     {
         Id = session.Id,
         Title = session.Title,
+        SubjectId = session.SubjectId,
         SubjectCode = session.Subject?.Code,
         SubjectName = session.Subject?.Name,
         Messages = session.Messages

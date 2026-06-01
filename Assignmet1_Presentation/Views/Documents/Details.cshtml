@@ -3,40 +3,43 @@
     ViewData["Title"] = Model.OriginalName;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-4">
-    <div>
-        <h2>@Model.OriginalName</h2>
-        <p class="text-muted mb-0">
-            @Model.FileType.ToUpper()
-            @if (Model.IsSlideDeck)
+<section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
+        <div>
+            <div class="hero-badge mb-3">Document detail</div>
+            <h1 class="page-title mb-2">@Model.OriginalName</h1>
+            <p class="page-subtitle mb-0">
+                <span class="status-chip badge-soft me-2">@Model.FileType.ToUpper()</span>
+                @if (Model.IsSlideDeck)
+                {
+                    <span class="status-chip badge-soft me-2">@Model.Chunks.Count slides</span>
+                }
+                @if (Model.ChapterNumber is not null)
+                {
+                    <span>Chapter @Model.ChapterNumber: @Model.ChapterTitle</span>
+                }
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-light" asp-action="Index">Back to list</a>
+            @if (Model.CanReindex && Model.NeedsReindex)
             {
-                <span class="badge bg-info text-dark ms-1">@Model.Chunks.Count slides</span>
+                <form asp-action="Reindex" asp-route-id="@Model.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-warning">Re-index</button>
+                </form>
             }
-            @if (Model.ChapterNumber is not null)
+            @if (Model.CanDelete)
             {
-                <span> · Chapter @Model.ChapterNumber: @Model.ChapterTitle</span>
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                      onsubmit="return confirm('Delete this document?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
             }
-        </p>
+        </div>
     </div>
-    <div>
-        <a class="btn btn-outline-secondary" asp-action="Index">Back to list</a>
-        @if (Model.CanReindex && Model.NeedsReindex)
-        {
-            <form asp-action="Reindex" asp-route-id="@Model.Id" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-warning">Re-index</button>
-            </form>
-        }
-        @if (Model.CanDelete)
-        {
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
-                  onsubmit="return confirm('Delete this document?');">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-outline-danger">Delete</button>
-            </form>
-        }
-    </div>
-</div>
+</section>
 
 @if (TempData["Success"] is string success)
 {
@@ -49,69 +52,62 @@
 
 <div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Status</div>
-                <div class="fw-semibold">@Model.Status</div>
-            </div>
+        <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-value fs-6">@Model.Status</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">@(Model.IsSlideDeck ? "Slides" : "Chunks")</div>
-                <div class="fw-semibold">@Model.Chunks.Count</div>
-            </div>
+        <div class="stat-card">
+            <div class="stat-label">@(Model.IsSlideDeck ? "Slides" : "Chunks")</div>
+            <div class="stat-value fs-6">@Model.Chunks.Count</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Uploaded by</div>
-                <div class="fw-semibold">@(Model.UploadedByName ?? "—")</div>
-            </div>
+        <div class="stat-card">
+            <div class="stat-label">Uploaded by</div>
+            <div class="stat-value fs-6">@(Model.UploadedByName ?? "—")</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Indexed at</div>
-                <div class="fw-semibold">@(Model.IndexedAt?.ToString("g") ?? "—")</div>
-            </div>
+        <div class="stat-card">
+            <div class="stat-label">Indexed at</div>
+            <div class="stat-value fs-6">@(Model.IndexedAt?.ToString("g") ?? "—")</div>
         </div>
     </div>
 </div>
 
-<h4 class="mb-3">@(Model.IsSlideDeck ? "Slides" : "Indexed content")</h4>
+<div class="surface-card mb-4">
+    <h4 class="mb-3">@(Model.IsSlideDeck ? "Slides" : "Indexed content")</h4>
 
-@if (!Model.ChunkItems.Any())
-{
-    <div class="alert alert-warning">
-        <strong>No indexed content.</strong>
-        @if (Model.CanReindex)
-        {
-            <span>Click <strong>Re-index</strong> or upload the file again.</span>
-        }
-    </div>
-}
-else
-{
-    @foreach (var item in Model.ChunkItems)
+    @if (!Model.ChunkItems.Any())
     {
-        var chunk = item.Chunk;
-        <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between">
-                @if (item.IsSlide && item.SlideNumber.HasValue)
-                {
-                    <span>Slide @item.SlideNumber</span>
-                }
-                else
-                {
-                    <span>Chunk #@chunk.ChunkIndex</span>
-                }
-                <span class="text-muted small">@chunk.TokenCount tokens</span>
-            </div>
-            <div class="card-body">
+        <div class="alert alert-warning mb-0">
+            <strong>No indexed content.</strong>
+            @if (Model.CanReindex)
+            {
+                <span>Click <strong>Re-index</strong> or upload the file again.</span>
+            }
+        </div>
+    }
+    else
+    {
+        @foreach (var item in Model.ChunkItems)
+        {
+            var chunk = item.Chunk;
+            <div class="mini-panel mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    @if (item.IsSlide && item.SlideNumber.HasValue)
+                    {
+                        <div class="fw-semibold">Slide @item.SlideNumber</div>
+                    }
+                    else
+                    {
+                        <div class="fw-semibold">Chunk #@chunk.ChunkIndex</div>
+                    }
+                    <span class="status-chip badge-soft">@chunk.TokenCount tokens</span>
+                </div>
+
                 @if (item.ImageUrls.Any())
                 {
                     <div class="row g-3 mb-3">
@@ -126,14 +122,17 @@ else
                             @if (isBrowserImage)
                             {
                                 <div class="col-md-6 col-lg-4">
-                                    <img src="@imageUrl" alt="Slide @item.SlideNumber image" class="img-fluid rounded border" />
+                                    <div class="image-tile p-2">
+                                        <img src="@imageUrl" alt="Slide @item.SlideNumber image" class="img-fluid rounded" />
+                                    </div>
                                 </div>
                             }
                         }
                     </div>
                 }
+
                 <pre class="mb-0" style="white-space: pre-wrap;">@chunk.Content</pre>
             </div>
-        </div>
+        }
     }
-}
+</div>

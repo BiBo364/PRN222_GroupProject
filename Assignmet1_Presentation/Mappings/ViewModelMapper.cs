@@ -47,6 +47,23 @@ public static class ViewModelMapper
         Chapters = dto.Chapters.Select(ToViewModel).ToList()
     };
 
+    public static SubjectListItemViewModel ToViewModel(SubjectListItemDto dto) => new()
+    {
+        Id = dto.Id,
+        Code = dto.Code,
+        Name = dto.Name,
+        Description = dto.Description,
+        ChapterCount = dto.ChapterCount,
+        DocumentCount = dto.DocumentCount,
+        IndexedDocumentCount = dto.IndexedDocumentCount
+    };
+
+    public static SubjectDetailViewModel ToViewModel(SubjectDetailDto dto) => new()
+    {
+        Subject = ToViewModel(dto.Subject),
+        Documents = dto.Documents.Select(ToViewModel).ToList()
+    };
+
     public static ChapterViewModel ToViewModel(ChapterDto dto) => new()
     {
         Id = dto.Id,
@@ -109,6 +126,7 @@ public static class ViewModelMapper
     {
         Id = dto.Id,
         Title = dto.Title,
+        SubjectId = dto.SubjectId,
         SubjectCode = dto.SubjectCode,
         SubjectName = dto.SubjectName,
         Messages = dto.Messages.Select(ToViewModel).ToList()

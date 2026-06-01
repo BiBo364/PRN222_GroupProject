@@ -8,6 +8,11 @@ public class ChatConversationViewModel
     [ValidateNever]
     public ChatSessionViewModel Session { get; set; } = null!;
 
+    [ValidateNever]
+    public List<SubjectViewModel> AvailableSubjects { get; set; } = [];
+
+    public int? SelectedSubjectId { get; set; }
+
     [Required(ErrorMessage = "Please enter a question.")]
     [Display(Name = "Your question")]
     public string Question { get; set; } = string.Empty;

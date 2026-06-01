@@ -11,6 +11,7 @@ public interface IDocumentRepository
     Task DeleteDocumentAsync(int id);
     Task<Subject?> GetFirstSubjectWithChaptersAsync();
     Task<EmbeddingModel?> GetFirstEmbeddingModelAsync();
+    Task<List<EmbeddingModel>> GetEmbeddingModelsAsync();
     Task<ChunkingConfig?> GetFirstChunkingConfigAsync();
     Task AddChunksAsync(IEnumerable<Chunk> chunks);
     Task ClearChunksAsync(int documentId);

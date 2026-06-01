@@ -26,6 +26,11 @@ public static class TextExtractor
 
     public static string ExtractText(string filePath, string fileType)
     {
+        return string.Join("\n", ExtractPages(filePath, fileType).Select(page => page.Content));
+    }
+
+    public static List<PageTextSegment> ExtractPages(string filePath, string fileType)
+    {
         return fileType switch
         {
             "pdf" => ExtractFromPdf(filePath),
@@ -35,48 +40,67 @@ public static class TextExtractor
         };
     }
 
-    private static string ExtractFromPdf(string filePath)
+    private static List<PageTextSegment> ExtractFromPdf(string filePath)
     {
-        var builder = new StringBuilder();
+        var pages = new List<PageTextSegment>();
         using var document = PdfDocument.Open(filePath);
         foreach (var page in document.GetPages())
         {
-            builder.AppendLine(page.Text);
+            var text = page.Text?.Trim();
+            if (!string.IsNullOrWhiteSpace(text))
+                pages.Add(new PageTextSegment { PageNumber = page.Number, Content = text });
         }
-        return builder.ToString();
+
+        return pages;
     }
 
-    private static string ExtractFromDocx(string filePath)
+    private static List<PageTextSegment> ExtractFromDocx(string filePath)
     {
         var builder = new StringBuilder();
         using var document = WordprocessingDocument.Open(filePath, false);
         var body = document.MainDocumentPart?.Document.Body;
         if (body is null)
-            return string.Empty;
+            return [];
 
         foreach (var paragraph in body.Elements<Paragraph>())
         {
             builder.AppendLine(paragraph.InnerText);
         }
-        return builder.ToString();
+
+        var text = builder.ToString().Trim();
+        return string.IsNullOrWhiteSpace(text)
+            ? []
+            : [new PageTextSegment { PageNumber = 1, Content = text }];
     }
 
-    private static string ExtractFromPptx(string filePath)
+    private static List<PageTextSegment> ExtractFromPptx(string filePath)
     {
-        var builder = new StringBuilder();
+        var pages = new List<PageTextSegment>();
         using var document = PresentationDocument.Open(filePath, false);
         var slides = document.PresentationPart?.SlideParts;
         if (slides is null)
-            return string.Empty;
+            return pages;
 
         foreach (var slide in slides)
         {
+            var builder = new StringBuilder();
             foreach (var text in slide.Slide.Descendants<DocumentFormat.OpenXml.Drawing.Text>())
             {
                 if (!string.IsNullOrWhiteSpace(text.Text))
                     builder.AppendLine(text.Text);
             }
+
+            var slideText = builder.ToString().Trim();
+            if (!string.IsNullOrWhiteSpace(slideText))
+            {
+                pages.Add(new PageTextSegment
+                {
+                    PageNumber = pages.Count + 1,
+                    Content = slideText
+                });
+            }
         }
-        return builder.ToString();
+
+        return pages;
     }
 }

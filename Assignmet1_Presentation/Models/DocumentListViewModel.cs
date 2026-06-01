@@ -2,8 +2,6 @@ namespace Assignmet1_Presentation.Models;
 
 public class DocumentListViewModel
 {
-    public SubjectViewModel? DemoSubject { get; set; }
-    public List<DocumentListItemViewModel> Documents { get; set; } = [];
-    public bool CanUpload { get; set; }
-    public bool CanDelete { get; set; }
+    public List<SubjectListItemViewModel> Subjects { get; set; } = [];
+    public bool CanCreateSubject { get; set; }
 }

@@ -19,7 +19,7 @@ public class ChatController : Controller
         _subscriptionService = subscriptionService;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int? subjectId)
     {
         var userId = GetUserId();
         if (userId is null)
@@ -29,17 +29,40 @@ public class ChatController : Controller
         if (access is not null)
             return access;
 
-        var subject = await _chatService.GetDemoSubjectAsync();
-        var sessions = await _chatService.GetSessionsAsync(userId);
+        var availableSubjects = await _chatService.GetAvailableSubjectsAsync();
+        SubjectViewModel? selectedSubject = null;
+        int? selectedSubjectId = null;
+
+        if (subjectId.HasValue)
+        {
+            selectedSubject = availableSubjects
+                .Select(ViewModelMapper.ToViewModel)
+                .FirstOrDefault(subject => subject.Id == subjectId.Value);
+
+            if (selectedSubject is null)
+            {
+                TempData["Error"] = "Selected subject is not available for chat.";
+            }
+            else
+            {
+                selectedSubjectId = selectedSubject.Id;
+            }
+        }
+
+        var sessions = selectedSubjectId.HasValue
+            ? await _chatService.GetSessionsAsync(userId, selectedSubjectId)
+            : [];
 
         return View(new ChatIndexViewModel
         {
-            Subject = subject is null ? null : ViewModelMapper.ToViewModel(subject),
+            Subject = selectedSubject,
+            AvailableSubjects = availableSubjects.Select(ViewModelMapper.ToViewModel).ToList(),
+            SelectedSubjectId = selectedSubjectId,
             Sessions = sessions.Select(ViewModelMapper.ToViewModel).ToList()
         });
     }
 
-    public async Task<IActionResult> New()
+    public async Task<IActionResult> New(int? subjectId)
     {
         var userId = GetUserId();
         if (userId is null)
@@ -49,7 +72,13 @@ public class ChatController : Controller
         if (access is not null)
             return access;
 
-        var session = await _chatService.CreateSessionAsync(userId);
+        if (!subjectId.HasValue || subjectId.Value <= 0)
+        {
+            TempData["Error"] = "Please select a subject before starting a new conversation.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var session = await _chatService.CreateSessionAsync(userId, subjectId.Value);
         return RedirectToAction(nameof(Conversation), new { id = session.Id });
     }
 
@@ -69,7 +98,11 @@ public class ChatController : Controller
 
         return View(new ChatConversationViewModel
         {
-            Session = ViewModelMapper.ToViewModel(session)
+            Session = ViewModelMapper.ToViewModel(session),
+            AvailableSubjects = (await _chatService.GetAvailableSubjectsAsync())
+                .Select(ViewModelMapper.ToViewModel)
+                .ToList(),
+            SelectedSubjectId = session.SubjectId
         });
     }
 
@@ -94,20 +127,46 @@ public class ChatController : Controller
         }
 
         model.Session = ViewModelMapper.ToViewModel(session);
+        model.SelectedSubjectId = session.SubjectId;
+        model.AvailableSubjects = (await _chatService.GetAvailableSubjectsAsync())
+            .Select(ViewModelMapper.ToViewModel)
+            .ToList();
 
         if (string.IsNullOrWhiteSpace(model.Question))
         {
             ModelState.AddModelError(nameof(model.Question), "Please enter a question.");
+            if (IsAjaxRequest())
+                return BadRequest(new { error = "Please enter a question." });
+
             return View("Conversation", model);
         }
 
         try
         {
-            await _chatService.AskAsync(id, userId, model.Question);
+            var reply = await _chatService.AskAsync(id, userId, model.Question);
+
+            if (IsAjaxRequest())
+            {
+                return Json(new
+                {
+                    answer = reply.Answer,
+                    foundInDocuments = reply.FoundInDocuments,
+                    citations = reply.Citations.Select(citation => new
+                    {
+                        documentName = citation.DocumentName,
+                        slideNumber = citation.SlideNumber,
+                        score = citation.Score
+                    })
+                });
+            }
+
             return RedirectToAction(nameof(Conversation), new { id });
         }
         catch (Exception ex)
         {
+            if (IsAjaxRequest())
+                return BadRequest(new { error = ex.Message });
+
             TempData["Error"] = ex.Message;
             return RedirectToAction(nameof(Conversation), new { id });
         }
@@ -130,5 +189,12 @@ public class ChatController : Controller
 
         TempData["Error"] = "Bạn cần subscription đang hoạt động để dùng Chat. Vui lòng tạo ticket thanh toán.";
         return RedirectToAction("Index", "Subscription");
+    }
+    private bool IsAjaxRequest()
+    {
+        return string.Equals(
+            Request.Headers["X-Requested-With"],
+            "XMLHttpRequest",
+            StringComparison.OrdinalIgnoreCase);
     }
 }

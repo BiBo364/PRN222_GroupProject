@@ -22,6 +22,13 @@ public class SubjectsController : Controller
         return RedirectToAction("Index", "Documents");
     }
 
+    [RequireTeacher]
+    public async Task<IActionResult> Manage()
+    {
+        var subjects = await _subjectService.GetSubjectsAsync();
+        return View(subjects.Select(ViewModelMapper.ToViewModel).ToList());
+    }
+
     public async Task<IActionResult> Details(int id)
     {
         if (!CanViewSubjects())
@@ -42,21 +49,17 @@ public class SubjectsController : Controller
     }
 
     [HttpGet]
+    [RequireTeacher]
     public IActionResult Create()
     {
-        if (!CanManageSubjects())
-            return RedirectToAction("Index", "Documents");
-
         return View(new SubjectCreateViewModel());
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireTeacher]
     public async Task<IActionResult> Create(SubjectCreateViewModel model)
     {
-        if (!CanManageSubjects())
-            return RedirectToAction("Index", "Documents");
-
         if (!ModelState.IsValid)
             return View(model);
 
@@ -64,13 +67,68 @@ public class SubjectsController : Controller
         {
             var created = await _subjectService.CreateSubjectAsync(model.Code!, model.Name!, model.Description);
             TempData["Success"] = $"Created subject {created.Subject.Code} — {created.Subject.Name}.";
-            return RedirectToAction(nameof(Details), new { id = created.Subject.Id });
+            return RedirectToAction(nameof(Manage));
         }
         catch (Exception ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             return View(model);
         }
+    }
+
+    [HttpGet]
+    [RequireTeacher]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var subject = await _subjectService.GetSubjectAsync(id);
+        if (subject is null)
+            return NotFound();
+
+        return View(new SubjectEditViewModel
+        {
+            Id = subject.Subject.Id,
+            Code = subject.Subject.Code,
+            Name = subject.Subject.Name,
+            Description = subject.Subject.Description
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequireTeacher]
+    public async Task<IActionResult> Edit(int id, SubjectEditViewModel model)
+    {
+        if (id != model.Id)
+            return BadRequest();
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        try
+        {
+            await _subjectService.UpdateSubjectAsync(id, model.Code!, model.Name!, model.Description);
+            TempData["Success"] = $"Cập nhật môn học {model.Code} thành công.";
+            return RedirectToAction(nameof(Manage));
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(model);
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequireTeacher]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var (success, error) = await _subjectService.DeleteSubjectAsync(id);
+        if (success)
+            TempData["Success"] = "Đã xóa môn học.";
+        else
+            TempData["Error"] = error ?? "Lỗi khi xóa môn học.";
+
+        return RedirectToAction(nameof(Manage));
     }
 
     [HttpPost("/api/subjects")]
@@ -102,6 +160,6 @@ public class SubjectsController : Controller
     private bool CanManageSubjects()
     {
         var roleId = HttpContext.Session.GetInt32("RoleId");
-        return roleId is not null && DocumentPermissions.CanUpload(roleId.Value);
+        return roleId is not null && (roleId == 1 || roleId == 2 || roleId == 3);
     }
 }

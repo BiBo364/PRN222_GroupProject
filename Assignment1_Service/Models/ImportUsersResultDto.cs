@@ -1,11 +1,11 @@
 namespace Assignment1_Service.Models;
 
 /// <summary>
-/// Kết quả import sinh viên từ file Excel.
+/// Kết quả import người dùng từ file Excel/CSV.
 /// </summary>
-public class ImportStudentsResultDto
+public class ImportUsersResultDto
 {
-    /// <summary>Tổng số dòng dữ liệu đọc được từ Excel (bỏ qua dòng header).</summary>
+    /// <summary>Tổng số dòng dữ liệu đọc được từ file (bỏ qua dòng header).</summary>
     public int TotalRows { get; set; }
 
     /// <summary>Số tài khoản tạo thành công.</summary>

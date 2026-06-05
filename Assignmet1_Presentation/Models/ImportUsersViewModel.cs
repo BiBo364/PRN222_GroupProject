@@ -3,13 +3,17 @@ using Assignment1_Service.Models;
 
 namespace Assignmet1_Presentation.Models;
 
-public class ImportStudentsViewModel
+public class ImportUsersViewModel
 {
-    [Required(ErrorMessage = "Vui lòng chọn file Excel (.xlsx).")]
-    [Display(Name = "File danh sách sinh viên (.xlsx)")]
+    [Required(ErrorMessage = "Vui lòng chọn file (.xlsx, .csv).")]
+    [Display(Name = "File danh sách người dùng")]
     public IFormFile? File { get; set; }
 
-    [Display(Name = "Môn học (gán cho toàn bộ sinh viên trong file)")]
+    [Display(Name = "Vai trò (áp dụng cho toàn bộ danh sách)")]
+    [Required(ErrorMessage = "Vui lòng chọn vai trò.")]
+    public int RoleId { get; set; }
+
+    [Display(Name = "Môn học (tuỳ chọn)")]
     public int? SubjectId { get; set; }
 
     public List<SubjectListItemViewModel> SubjectOptions { get; set; } = [];

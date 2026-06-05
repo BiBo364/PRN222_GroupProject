@@ -3,6 +3,11 @@ using Assignment1_Repository.Repositories.Interfaces;
 using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using ClosedXML.Excel;
+using CsvHelper;
+using CsvHelper.Configuration;
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Assignment1_Service.Services;
 
@@ -76,40 +81,50 @@ public class UserServices : IUserServices
     }
 
     /// <summary>
-    /// Đọc file Excel và tạo tài khoản sinh viên hàng loạt.
-    /// Cấu trúc Excel: Cột A = FullName, Cột B = Email, Cột C = Username (tuỳ chọn).
-    /// Nếu email đã tồn tại → skip và báo cáo Duplicate.
+    /// Đọc file (Excel/CSV) và tạo tài khoản hàng loạt.
+    /// Cấu trúc: Cột A = FullName, Cột B = Email, Cột C = Username (tuỳ chọn).
     /// </summary>
-    public async Task<ImportStudentsResultDto> ImportStudentsFromExcelAsync(Stream excelStream, int? subjectId)
+    public async Task<ImportUsersResultDto> ImportUsersFromFileAsync(Stream stream, string fileName, int? subjectId, int roleId)
     {
-        var result = new ImportStudentsResultDto();
+        var result = new ImportUsersResultDto();
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
 
-        using var workbook = new XLWorkbook(excelStream);
-        var worksheet = workbook.Worksheets.First();
+        List<ImportRowResultDto> rows = [];
 
-        // Tìm dòng cuối có dữ liệu
-        var lastRowUsed = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+        try
+        {
+            if (ext == ".xlsx" || ext == ".xls")
+            {
+                rows = ParseExcel(stream);
+            }
+            else if (ext == ".csv")
+            {
+                rows = ParseCsv(stream);
+            }
+            else if (ext == ".json")
+            {
+                rows = ParseJson(stream);
+            }
+            else if (ext == ".txt")
+            {
+                rows = ParseTxt(stream);
+            }
+            else
+            {
+                throw new InvalidOperationException("Định dạng file không được hỗ trợ.");
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Lỗi khi phân tích file: {ex.Message}");
+        }
 
-        // Bỏ qua dòng 1 (header)
-        for (int rowNum = 2; rowNum <= lastRowUsed; rowNum++)
+        foreach (var rowResult in rows)
         {
             result.TotalRows++;
-            var row = worksheet.Row(rowNum);
-
-            var fullName = row.Cell(1).GetString()?.Trim();
-            var email    = row.Cell(2).GetString()?.Trim();
-            var username = row.Cell(3).GetString()?.Trim();
-
-            var rowResult = new ImportRowResultDto
-            {
-                RowNumber = rowNum,
-                FullName  = fullName,
-                Email     = email,
-                Username  = username
-            };
 
             // Kiểm tra dữ liệu bắt buộc
-            if (string.IsNullOrWhiteSpace(email))
+            if (string.IsNullOrWhiteSpace(rowResult.Email))
             {
                 rowResult.Status  = ImportRowStatus.Error;
                 rowResult.Message = "Email không được để trống.";
@@ -118,16 +133,34 @@ public class UserServices : IUserServices
                 continue;
             }
 
-            if (!IsValidEmail(email))
+            if (!IsValidEmail(rowResult.Email))
             {
                 rowResult.Status  = ImportRowStatus.Error;
-                rowResult.Message = $"Email '{email}' không hợp lệ.";
+                rowResult.Message = $"Email '{rowResult.Email}' không hợp lệ.";
                 result.ErrorCount++;
                 result.Rows.Add(rowResult);
                 continue;
             }
 
-            if (string.IsNullOrWhiteSpace(fullName))
+            // Kiểm tra quy tắc tên miền email theo vai trò
+            if (roleId == 4 && !rowResult.Email.EndsWith("@fpt.edu.vn", StringComparison.OrdinalIgnoreCase))
+            {
+                rowResult.Status  = ImportRowStatus.Error;
+                rowResult.Message = "Sinh viên phải sử dụng email có đuôi @fpt.edu.vn.";
+                result.ErrorCount++;
+                result.Rows.Add(rowResult);
+                continue;
+            }
+            else if ((roleId == 1 || roleId == 2 || roleId == 3) && !rowResult.Email.EndsWith("@edu.vn", StringComparison.OrdinalIgnoreCase))
+            {
+                rowResult.Status  = ImportRowStatus.Error;
+                rowResult.Message = "Giảng viên/Admin phải sử dụng email có đuôi @edu.vn.";
+                result.ErrorCount++;
+                result.Rows.Add(rowResult);
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(rowResult.FullName))
             {
                 rowResult.Status  = ImportRowStatus.Error;
                 rowResult.Message = "Họ tên không được để trống.";
@@ -137,19 +170,20 @@ public class UserServices : IUserServices
             }
 
             // Kiểm tra email đã tồn tại
-            var existing = await _userRepository.GetByEmailAsync(email);
+            var existing = await _userRepository.GetByEmailAsync(rowResult.Email);
             if (existing is not null)
             {
                 rowResult.Status  = ImportRowStatus.Duplicate;
-                rowResult.Message = $"Email '{email}' đã tồn tại trong hệ thống (username: {existing.Username}).";
+                rowResult.Message = $"Email '{rowResult.Email}' đã tồn tại (username: {existing.Username}).";
                 result.SkippedDuplicateCount++;
                 result.Rows.Add(rowResult);
                 continue;
             }
 
             // Sinh username từ email nếu không cung cấp
+            var username = rowResult.Username;
             if (string.IsNullOrWhiteSpace(username))
-                username = GenerateUsername(email);
+                username = GenerateUsername(rowResult.Email);
 
             // Đảm bảo username duy nhất
             username = await EnsureUniqueUsernameAsync(username);
@@ -159,10 +193,10 @@ public class UserServices : IUserServices
             var newUser = new User
             {
                 Username  = username,
-                Email     = email.ToLowerInvariant(),
-                FullName  = fullName,
+                Email     = rowResult.Email.ToLowerInvariant(),
+                FullName  = rowResult.FullName,
                 Password  = DefaultPassword,
-                RoleId    = StudentRoleId,
+                RoleId    = roleId,
                 SubjectId = subjectId,
                 IsActive  = true,
                 CreatedAt = DateTime.Now,
@@ -178,6 +212,130 @@ public class UserServices : IUserServices
         }
 
         return result;
+    }
+
+    private List<ImportRowResultDto> ParseExcel(Stream stream)
+    {
+        var rows = new List<ImportRowResultDto>();
+        using var workbook = new XLWorkbook(stream);
+        var worksheet = workbook.Worksheets.First();
+        var lastRowUsed = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+
+        // Bỏ qua dòng 1 (header)
+        for (int rowNum = 2; rowNum <= lastRowUsed; rowNum++)
+        {
+            var row = worksheet.Row(rowNum);
+            rows.Add(new ImportRowResultDto
+            {
+                RowNumber = rowNum,
+                FullName  = row.Cell(1).GetString()?.Trim(),
+                Email     = row.Cell(2).GetString()?.Trim(),
+                Username  = row.Cell(3).GetString()?.Trim()
+            });
+        }
+        return rows;
+    }
+
+    private List<ImportRowResultDto> ParseCsv(Stream stream)
+    {
+        var rows = new List<ImportRowResultDto>();
+        using var reader = new StreamReader(stream);
+        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+            TrimOptions = TrimOptions.Trim,
+            MissingFieldFound = null,
+            BadDataFound = null
+        });
+
+        int rowNum = 2;
+        if (csv.Read())
+        {
+            csv.ReadHeader();
+            while (csv.Read())
+            {
+                rows.Add(new ImportRowResultDto
+                {
+                    RowNumber = rowNum++,
+                    FullName  = csv.GetField(0),
+                    Email     = csv.GetField(1),
+                    Username  = csv.TryGetField(2, out string? username) ? username : null
+                });
+            }
+        }
+        return rows;
+    }
+
+    private List<ImportRowResultDto> ParseJson(Stream stream)
+    {
+        var rows = new List<ImportRowResultDto>();
+        try
+        {
+            using var reader = new StreamReader(stream);
+            var json = reader.ReadToEnd();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var data = JsonSerializer.Deserialize<List<JsonImportRow>>(json, options);
+
+            if (data != null)
+            {
+                int rowNum = 2; // Assuming row 1 is structural representation
+                foreach (var item in data)
+                {
+                    rows.Add(new ImportRowResultDto
+                    {
+                        RowNumber = rowNum++,
+                        FullName = item.FullName,
+                        Email = item.Email,
+                        Username = item.Username
+                    });
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"Lỗi phân tích JSON: {ex.Message}", ex);
+        }
+        return rows;
+    }
+
+    private class JsonImportRow
+    {
+        public string? FullName { get; set; }
+        public string? Email { get; set; }
+        public string? Username { get; set; }
+    }
+
+    private List<ImportRowResultDto> ParseTxt(Stream stream)
+    {
+        var rows = new List<ImportRowResultDto>();
+        using var reader = new StreamReader(stream);
+        
+        string? headerLine = reader.ReadLine();
+        if (headerLine == null) return rows;
+
+        // Try to detect separator
+        char separator = headerLine.Contains('\t') ? '\t' : (headerLine.Contains('|') ? '|' : ',');
+
+        int rowNum = 2;
+        while (!reader.EndOfStream)
+        {
+            var line = reader.ReadLine();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            var parts = line.Split(separator);
+            if (parts.Length >= 2)
+            {
+                rows.Add(new ImportRowResultDto
+                {
+                    RowNumber = rowNum++,
+                    FullName = parts[0].Trim(),
+                    Email = parts[1].Trim(),
+                    Username = parts.Length > 2 ? parts[2].Trim() : null
+                });
+            }
+        }
+
+        return rows;
     }
 
     public async Task<(bool Success, string? Error)> AssignSubjectAsync(int userId, int? subjectId)

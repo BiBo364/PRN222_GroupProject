@@ -75,14 +75,14 @@ public class AdminController : Controller
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Import sinh viên từ Excel
+    // Import người dùng từ Excel/CSV
     // ─────────────────────────────────────────────────────────────────
 
     [HttpGet]
-    public async Task<IActionResult> ImportStudents()
+    public async Task<IActionResult> ImportUsers()
     {
         var subjects = await _subjectService.GetSubjectsAsync();
-        return View(new ImportStudentsViewModel
+        return View(new ImportUsersViewModel
         {
             SubjectOptions = subjects.Select(ViewModelMapper.ToViewModel).ToList()
         });
@@ -91,7 +91,7 @@ public class AdminController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(10 * 1024 * 1024)] // 10 MB
-    public async Task<IActionResult> ImportStudents(ImportStudentsViewModel model)
+    public async Task<IActionResult> ImportUsers(ImportUsersViewModel model)
     {
         var subjects = await _subjectService.GetSubjectsAsync();
         model.SubjectOptions = subjects.Select(ViewModelMapper.ToViewModel).ToList();
@@ -102,16 +102,16 @@ public class AdminController : Controller
         // Kiểm tra định dạng file
         var file = model.File!;
         var ext  = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (ext != ".xlsx")
+        if (ext != ".xlsx" && ext != ".csv" && ext != ".json" && ext != ".txt")
         {
-            ModelState.AddModelError(nameof(model.File), "Chỉ hỗ trợ file .xlsx");
+            ModelState.AddModelError(nameof(model.File), "Chỉ hỗ trợ file .xlsx, .csv, .json hoặc .txt");
             return View(model);
         }
 
         try
         {
             await using var stream = file.OpenReadStream();
-            var result = await _userServices.ImportStudentsFromExcelAsync(stream, model.SubjectId);
+            var result = await _userServices.ImportUsersFromFileAsync(stream, file.FileName, model.SubjectId, model.RoleId);
 
             model.Result = new ImportResultViewModel
             {
@@ -138,7 +138,7 @@ public class AdminController : Controller
         }
         catch (Exception ex)
         {
-            ModelState.AddModelError(string.Empty, $"Không thể đọc file Excel: {ex.Message}");
+            ModelState.AddModelError(string.Empty, $"Không thể đọc file: {ex.Message}");
         }
 
         return View(model);

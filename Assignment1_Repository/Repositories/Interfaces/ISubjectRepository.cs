@@ -8,4 +8,6 @@ public interface ISubjectRepository
     Task<Subject?> GetByIdWithDetailsAsync(int id);
     Task<Subject?> GetByCodeAsync(string code);
     Task<Subject> AddAsync(Subject subject);
+    Task UpdateAsync(Subject subject);
+    Task<bool> DeleteAsync(int id);
 }

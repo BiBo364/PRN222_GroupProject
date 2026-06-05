@@ -27,6 +27,10 @@
                             <li class="nav-item"><a class="nav-link" asp-controller="Documents" asp-action="Index">📄 Tài liệu</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Chat" asp-action="Index">💬 Chat AI</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Subscription" asp-action="Index">⭐ Gói học</a></li>
+                            @if (Context.Session.GetInt32("RoleId") is int rId && rId == 3)
+                            {
+                                <li class="nav-item"><a class="nav-link" asp-controller="Subjects" asp-action="Manage">📚 Quản lý môn học</a></li>
+                            }
                             @if (Context.Session.GetInt32("RoleId") is int roleId && (roleId == 1 || roleId == 2))
                             {
                                 <li class="nav-item dropdown">
@@ -39,8 +43,8 @@
                                                style="color:#eaf0ff">👥 Quản lý người dùng</a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item" asp-controller="Admin" asp-action="ImportStudents"
-                                               style="color:#eaf0ff">📥 Import sinh viên</a>
+                                            <a class="dropdown-item" asp-controller="Admin" asp-action="ImportUsers"
+                                               style="color:#eaf0ff">📥 Import người dùng</a>
                                         </li>
                                         <li><hr class="dropdown-divider" style="border-color:rgba(255,255,255,.1)" /></li>
                                         <li>

@@ -85,4 +85,59 @@ public class SubjectService : ISubjectService
             Documents = []
         };
     }
+
+    public async Task<SubjectDetailDto> UpdateSubjectAsync(int id, string code, string name, string? description = null)
+    {
+        var subject = await _subjectRepository.GetByIdWithDetailsAsync(id);
+        if (subject is null)
+            throw new KeyNotFoundException("Subject not found.");
+
+        code = code.Trim().ToUpperInvariant();
+        name = name.Trim();
+        description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
+        if (string.IsNullOrWhiteSpace(code))
+            throw new ArgumentException("Code is required.", nameof(code));
+
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Name is required.", nameof(name));
+
+        var existingWithCode = await _subjectRepository.GetByCodeAsync(code);
+        if (existingWithCode is not null && existingWithCode.Id != id)
+            throw new InvalidOperationException("Subject code already exists.");
+
+        subject.Code = code;
+        subject.Name = name;
+        subject.Description = description;
+
+        await _subjectRepository.UpdateAsync(subject);
+
+        return new SubjectDetailDto
+        {
+            Subject = DtoMapper.ToDto(subject),
+            Documents = subject.Documents
+                .OrderByDescending(document => document.CreatedAt)
+                .Select(DtoMapper.ToListItemDto)
+                .ToList()
+        };
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteSubjectAsync(int id)
+    {
+        var subject = await _subjectRepository.GetByIdWithDetailsAsync(id);
+        if (subject is null)
+            return (false, "Subject not found.");
+
+        if (subject.Documents.Any())
+            return (false, "Cannot delete subject because it has documents attached.");
+            
+        if (subject.Users.Any())
+             return (false, "Cannot delete subject because there are users assigned to it.");
+
+        var deleted = await _subjectRepository.DeleteAsync(id);
+        if (!deleted)
+             return (false, "Failed to delete subject.");
+             
+        return (true, null);
+    }
 }

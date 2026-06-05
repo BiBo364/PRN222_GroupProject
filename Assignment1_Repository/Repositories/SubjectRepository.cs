@@ -45,4 +45,20 @@ public class SubjectRepository : ISubjectRepository
         await _context.SaveChangesAsync();
         return subject;
     }
+
+    public async Task UpdateAsync(Subject subject)
+    {
+        _context.Subjects.Update(subject);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var subject = await _context.Subjects.FindAsync(id);
+        if (subject is null) return false;
+
+        _context.Subjects.Remove(subject);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

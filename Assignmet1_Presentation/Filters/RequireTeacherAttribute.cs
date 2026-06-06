@@ -15,8 +15,7 @@ public class RequireTeacherAttribute : ActionFilterAttribute
         }
 
         var roleId = context.HttpContext.Session.GetInt32("RoleId");
-        // RoleId 1 (SuperAdmin), 2 (Admin), 3 (Teacher)
-        if (roleId is null || (roleId.Value != 1 && roleId.Value != 2 && roleId.Value != 3))
+        if (roleId is null || !DocumentPermissions.CanManageSubjects(roleId.Value))
         {
             context.Result = new RedirectToActionResult("Index", "Home", null);
             return;

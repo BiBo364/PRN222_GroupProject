@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace Assignmet1_Presentation.Controllers;
 
 /// <summary>
-/// Controller quản lý người dùng dành cho Admin (RoleId 1 hoặc 2).
+/// Controller quản lý người dùng dành cho SuperAdmin (RoleId 1).
 /// </summary>
 [RequireAdmin]
 public class AdminController : Controller
@@ -57,11 +57,13 @@ public class AdminController : Controller
         page = Math.Max(1, Math.Min(page, totalPages == 0 ? 1 : totalPages));
 
         var pagedUsers = allUsers.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var teacherBySubjectId = await BuildTeacherBySubjectIdAsync();
 
         var model = new UserListViewModel
         {
             Users      = pagedUsers.Select(ToViewModel).ToList(),
             Subjects   = allSubjects.Select(ViewModelMapper.ToViewModel).ToList(),
+            TeacherBySubjectId = teacherBySubjectId,
             SearchTerm    = search,
             FilterRoleId  = roleId,
             FilterSubjectId = subjectId,
@@ -84,7 +86,8 @@ public class AdminController : Controller
         var subjects = await _subjectService.GetSubjectsAsync();
         return View(new ImportUsersViewModel
         {
-            SubjectOptions = subjects.Select(ViewModelMapper.ToViewModel).ToList()
+            SubjectOptions = subjects.Select(ViewModelMapper.ToViewModel).ToList(),
+            TeacherBySubjectId = await BuildTeacherBySubjectIdAsync()
         });
     }
 
@@ -95,9 +98,22 @@ public class AdminController : Controller
     {
         var subjects = await _subjectService.GetSubjectsAsync();
         model.SubjectOptions = subjects.Select(ViewModelMapper.ToViewModel).ToList();
+        model.TeacherBySubjectId = await BuildTeacherBySubjectIdAsync();
 
         if (!ModelState.IsValid)
             return View(model);
+
+        if (model.RoleId == 2 && model.SubjectId.HasValue)
+        {
+            var (isAvailable, availabilityError) = await _userServices.ValidateTeacherSubjectAvailabilityAsync(
+                model.SubjectId.Value);
+
+            if (!isAvailable)
+            {
+                ModelState.AddModelError(nameof(model.SubjectId), availabilityError ?? "Môn học này đã có giảng viên phụ trách.");
+                return View(model);
+            }
+        }
 
         // Kiểm tra định dạng file
         var file = model.File!;
@@ -185,6 +201,17 @@ public class AdminController : Controller
     // ─────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────
+
+    private async Task<Dictionary<int, string>> BuildTeacherBySubjectIdAsync()
+    {
+        var users = await _userServices.GetAllUsersAsync();
+        return users
+            .Where(u => u.RoleId == 2 && u.SubjectId.HasValue)
+            .GroupBy(u => u.SubjectId!.Value)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().FullName ?? group.First().Username);
+    }
 
     private static UserListItemViewModel ToViewModel(UserListItemDto dto) => new()
     {

@@ -15,6 +15,7 @@ public interface IDocumentService
     Task<bool> DeleteDocumentAsync(int id, string storageRoot, string contentRoot, string webRoot);
     Task<(DocumentUploadResultDto? Result, string? Error)> ReindexDocumentAsync(
         int id,
+        int userId,
         string storageRoot,
         string contentRoot,
         string webRoot);

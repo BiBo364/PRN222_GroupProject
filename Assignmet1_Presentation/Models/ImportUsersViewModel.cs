@@ -17,6 +17,7 @@ public class ImportUsersViewModel
     public int? SubjectId { get; set; }
 
     public List<SubjectListItemViewModel> SubjectOptions { get; set; } = [];
+    public Dictionary<int, string> TeacherBySubjectId { get; set; } = [];
 
     // Kết quả import (sau khi POST)
     public ImportResultViewModel? Result { get; set; }

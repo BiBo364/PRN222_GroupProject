@@ -48,6 +48,10 @@ public class AccountController : Controller
         HttpContext.Session.SetString("Username", user.Username);
         HttpContext.Session.SetString("FullName", user.FullName ?? user.Username);
         HttpContext.Session.SetInt32("RoleId", user.RoleId);
+        if (user.SubjectId.HasValue)
+            HttpContext.Session.SetInt32("SubjectId", user.SubjectId.Value);
+        else
+            HttpContext.Session.Remove("SubjectId");
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return Redirect(returnUrl);

@@ -39,12 +39,13 @@ public class SubjectsController : Controller
             return NotFound();
 
         var roleId = HttpContext.Session.GetInt32("RoleId")!.Value;
+        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
         return View(new SubjectDetailViewModel
         {
             Subject = ViewModelMapper.ToViewModel(subject.Subject),
             Documents = subject.Documents.Select(ViewModelMapper.ToViewModel).ToList(),
-            CanCreateSubject = DocumentPermissions.CanUpload(roleId),
-            CanUploadDocument = DocumentPermissions.CanUpload(roleId)
+            CanCreateSubject = DocumentPermissions.CanManageSubjects(roleId),
+            CanUploadDocument = DocumentPermissions.CanUploadToSubject(roleId, userSubjectId, id)
         });
     }
 
@@ -160,6 +161,6 @@ public class SubjectsController : Controller
     private bool CanManageSubjects()
     {
         var roleId = HttpContext.Session.GetInt32("RoleId");
-        return roleId is not null && (roleId == 1 || roleId == 2 || roleId == 3);
+        return roleId is not null && DocumentPermissions.CanManageSubjects(roleId.Value);
     }
 }

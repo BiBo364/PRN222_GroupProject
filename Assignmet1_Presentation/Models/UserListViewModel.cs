@@ -4,6 +4,7 @@ public class UserListViewModel
 {
     public List<UserListItemViewModel> Users { get; set; } = [];
     public List<SubjectListItemViewModel> Subjects { get; set; } = [];
+    public Dictionary<int, string> TeacherBySubjectId { get; set; } = [];
 
     // Filter state
     public string? SearchTerm { get; set; }

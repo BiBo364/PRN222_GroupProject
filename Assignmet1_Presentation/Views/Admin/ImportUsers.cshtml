@@ -47,11 +47,7 @@
                             👤 Vai trò (áp dụng cho toàn bộ danh sách)
                         </label>
                         <select asp-for="RoleId" class="form-select form-select-lg">
-                            @if (Context.Session.GetInt32("RoleId") is int currentRole && currentRole == 1)
-                            {
-                                <option value="2">🛡️ Admin</option>
-                            }
-                            <option value="3">📚 Giảng viên</option>
+                            <option value="2">📚 Giảng viên</option>
                             <option value="4" selected>🎓 Sinh viên</option>
                         </select>
                         <div class="form-text">Tất cả tài khoản được tạo sẽ có vai trò này.</div>
@@ -62,11 +58,15 @@
                         <label asp-for="SubjectId" class="form-label fw-semibold">
                             📚 Gán môn học (tuỳ chọn)
                         </label>
-                        <select asp-for="SubjectId" class="form-select form-select-lg">
+                        <div class="form-text">Mỗi môn học chỉ được gán cho 1 giảng viên. Sinh viên vẫn có thể dùng chung môn với giảng viên.</div>
+                        <select asp-for="SubjectId" class="form-select form-select-lg" id="importSubjectSelect">
                             <option value="">— Không gán môn học —</option>
                             @foreach (var s in Model.SubjectOptions)
                             {
-                                <option value="@s.Id">@s.Code — @s.Name</option>
+                                var isTakenByTeacher = Model.TeacherBySubjectId.TryGetValue(s.Id, out var assignedTeacher);
+                                <option value="@s.Id" data-teacher-assigned="@isTakenByTeacher">
+                                    @s.Code — @s.Name@(isTakenByTeacher ? $" (đã có GV: {assignedTeacher})" : "")
+                                </option>
                             }
                         </select>
                     </div>

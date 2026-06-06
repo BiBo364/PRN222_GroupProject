@@ -69,6 +69,7 @@ public static class DtoMapper
     public static DocumentDetailDto ToDetailDto(Document document) => new()
     {
         Id = document.Id,
+        SubjectId = document.SubjectId,
         OriginalName = document.OriginalName,
         FileType = document.FileType,
         Status = document.Status,

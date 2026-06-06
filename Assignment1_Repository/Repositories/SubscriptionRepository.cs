@@ -41,6 +41,7 @@ public class SubscriptionRepository : ISubscriptionRepository
     {
         return _context.PaymentTickets
             .Include(t => t.Plan)
+            .Include(t => t.User)
             .Include(t => t.ReviewedByNavigation)
             .Where(t => t.UserId == userId)
             .OrderByDescending(t => t.CreatedAt)

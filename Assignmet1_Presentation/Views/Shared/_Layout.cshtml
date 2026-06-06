@@ -27,11 +27,11 @@
                             <li class="nav-item"><a class="nav-link" asp-controller="Documents" asp-action="Index">📄 Tài liệu</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Chat" asp-action="Index">💬 Chat AI</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Subscription" asp-action="Index">⭐ Gói học</a></li>
-                            @if (Context.Session.GetInt32("RoleId") is int rId && rId == 3)
+                            @if (Context.Session.GetInt32("RoleId") is int rId && rId == 1)
                             {
                                 <li class="nav-item"><a class="nav-link" asp-controller="Subjects" asp-action="Manage">📚 Quản lý môn học</a></li>
                             }
-                            @if (Context.Session.GetInt32("RoleId") is int roleId && (roleId == 1 || roleId == 2))
+                            @if (Context.Session.GetInt32("RoleId") is int roleId && roleId == 1)
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">

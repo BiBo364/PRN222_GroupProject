@@ -45,6 +45,18 @@ public class UserRepository : IUserReposity
             .ToListAsync();
     }
 
+    public Task<User?> GetTeacherAssignedToSubjectAsync(int subjectId, int? excludeUserId = null)
+    {
+        var query = _context.Users
+            .Include(u => u.Subject)
+            .Where(u => u.RoleId == 2 && u.SubjectId == subjectId);
+
+        if (excludeUserId.HasValue)
+            query = query.Where(u => u.Id != excludeUserId.Value);
+
+        return query.FirstOrDefaultAsync();
+    }
+
     public async Task<User> AddAsync(User user)
     {
         _context.Users.Add(user);

@@ -14,6 +14,7 @@ namespace Assignment1_Service.Services;
 public class UserServices : IUserServices
 {
     private const string DefaultPassword = "1234567";
+    private const int TeacherRoleId = 2;
     private const int StudentRoleId = 4;
 
     private readonly IUserReposity _userRepository;
@@ -51,7 +52,8 @@ public class UserServices : IUserServices
             Id = user.Id,
             Username = user.Username,
             FullName = user.FullName,
-            RoleId = user.RoleId
+            RoleId = user.RoleId,
+            SubjectId = user.SubjectId
         };
     }
 
@@ -118,6 +120,8 @@ public class UserServices : IUserServices
         {
             throw new Exception($"Lỗi khi phân tích file: {ex.Message}");
         }
+
+        var assignedTeacherSubjectsInBatch = new HashSet<int>();
 
         foreach (var rowResult in rows)
         {
@@ -188,6 +192,31 @@ public class UserServices : IUserServices
             // Đảm bảo username duy nhất
             username = await EnsureUniqueUsernameAsync(username);
             rowResult.Username = username;
+
+            if (roleId == TeacherRoleId && subjectId.HasValue)
+            {
+                if (!assignedTeacherSubjectsInBatch.Add(subjectId.Value))
+                {
+                    rowResult.Status = ImportRowStatus.Error;
+                    rowResult.Message = "Môn học này đã được chọn cho giảng viên khác trong cùng file import.";
+                    result.ErrorCount++;
+                    result.Rows.Add(rowResult);
+                    continue;
+                }
+
+                var (isAvailable, availabilityError) = await ValidateTeacherSubjectAssignmentAsync(
+                    subjectId.Value,
+                    excludeUserId: null);
+
+                if (!isAvailable)
+                {
+                    rowResult.Status = ImportRowStatus.Error;
+                    rowResult.Message = availabilityError!;
+                    result.ErrorCount++;
+                    result.Rows.Add(rowResult);
+                    continue;
+                }
+            }
 
             // Tạo user mới
             var newUser = new User
@@ -349,11 +378,39 @@ public class UserServices : IUserServices
             var subject = await _subjectRepository.GetByIdWithDetailsAsync(subjectId.Value);
             if (subject is null)
                 return (false, "Không tìm thấy môn học.");
+
+            if (user.RoleId == TeacherRoleId)
+            {
+                var (isAvailable, availabilityError) = await ValidateTeacherSubjectAssignmentAsync(
+                    subjectId.Value,
+                    excludeUserId: userId);
+
+                if (!isAvailable)
+                    return (false, availabilityError);
+            }
         }
 
         user.SubjectId = subjectId;
         await _userRepository.UpdateAsync(user);
         return (true, null);
+    }
+
+    public Task<(bool IsAvailable, string? Error)> ValidateTeacherSubjectAvailabilityAsync(
+        int subjectId,
+        int? excludeUserId = null)
+        => ValidateTeacherSubjectAssignmentAsync(subjectId, excludeUserId);
+
+    private async Task<(bool IsAvailable, string? Error)> ValidateTeacherSubjectAssignmentAsync(
+        int subjectId,
+        int? excludeUserId)
+    {
+        var existingTeacher = await _userRepository.GetTeacherAssignedToSubjectAsync(subjectId, excludeUserId);
+        if (existingTeacher is null)
+            return (true, null);
+
+        var teacherName = existingTeacher.FullName ?? existingTeacher.Username;
+        var subjectCode = existingTeacher.Subject?.Code ?? subjectId.ToString();
+        return (false, $"Môn học {subjectCode} đã được gán cho giảng viên {teacherName}.");
     }
 
     public async Task<(bool Success, string? Error)> ToggleUserStatusAsync(int userId)

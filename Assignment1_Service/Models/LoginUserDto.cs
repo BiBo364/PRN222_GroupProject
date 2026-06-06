@@ -6,4 +6,5 @@ public class LoginUserDto
     public string Username { get; set; } = string.Empty;
     public string? FullName { get; set; }
     public int RoleId { get; set; }
+    public int? SubjectId { get; set; }
 }

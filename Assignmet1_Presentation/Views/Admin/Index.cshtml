@@ -81,8 +81,8 @@
                 <select name="roleId" class="form-select">
                     <option value="">Tất cả vai trò</option>
                     <option value="1" selected="@(Model.FilterRoleId == 1)">SuperAdmin</option>
-                    <option value="2" selected="@(Model.FilterRoleId == 2)">Admin</option>
-                    <option value="3" selected="@(Model.FilterRoleId == 3)">Teacher</option>
+                    <option value="2" selected="@(Model.FilterRoleId == 2)">Giảng viên</option>
+                    <option value="3" selected="@(Model.FilterRoleId == 3)">Người upload</option>
                     <option value="4" selected="@(Model.FilterRoleId == 4)">Sinh viên</option>
                 </select>
             </div>
@@ -195,7 +195,16 @@
                                                             <option value="">— Bỏ môn học —</option>
                                                             @foreach (var s in Model.Subjects)
                                                             {
-                                                                <option value="@s.Id" selected="@(user.SubjectId == s.Id)">@s.Code — @s.Name</option>
+                                                                var isCurrentUserSubject = user.SubjectId == s.Id;
+                                                                Model.TeacherBySubjectId.TryGetValue(s.Id, out var assignedTeacher);
+                                                                var isTakenByOtherTeacher = user.RoleId == 2
+                                                                && assignedTeacher != null
+                                                                && !isCurrentUserSubject;
+                                                                <option value="@s.Id"
+                                                                        selected="@isCurrentUserSubject"
+                                                                        disabled="@isTakenByOtherTeacher">
+                                                                    @s.Code — @s.Name@(isTakenByOtherTeacher ? $" (đã gán: {assignedTeacher})" : "")
+                                                                </option>
                                                             }
                                                         </select>
                                                         <button type="submit" class="btn btn-primary btn-sm w-100" style="font-size:.8rem;padding:.35rem">

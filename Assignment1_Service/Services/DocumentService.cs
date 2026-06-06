@@ -12,17 +12,20 @@ public class DocumentService : IDocumentService
 {
     private readonly IDocumentRepository _documentRepository;
     private readonly ISubjectRepository _subjectRepository;
+    private readonly IUserReposity _userRepository;
     private readonly IEmbeddingService _embeddingService;
     private readonly ILogger<DocumentService> _logger;
 
     public DocumentService(
         IDocumentRepository documentRepository,
         ISubjectRepository subjectRepository,
+        IUserReposity userRepository,
         IEmbeddingService embeddingService,
         ILogger<DocumentService> logger)
     {
         _documentRepository = documentRepository;
         _subjectRepository = subjectRepository;
+        _userRepository = userRepository;
         _embeddingService = embeddingService;
         _logger = logger;
     }
@@ -52,6 +55,10 @@ public class DocumentService : IDocumentService
         fileType = fileType.Trim().ToLowerInvariant();
         if (fileType is not ("pdf" or "docx" or "pptx"))
             throw new ArgumentException("Unsupported file type.", nameof(fileType));
+
+        var (allowed, accessError) = await ValidateUploaderSubjectAccessAsync(userId, subjectId);
+        if (!allowed)
+            throw new InvalidOperationException(accessError);
 
         var subject = await _subjectRepository.GetByIdWithDetailsAsync(subjectId)
             ?? throw new InvalidOperationException("Selected subject not found.");
@@ -103,6 +110,7 @@ public class DocumentService : IDocumentService
 
     public async Task<(DocumentUploadResultDto? Result, string? Error)> ReindexDocumentAsync(
         int id,
+        int userId,
         string storageRoot,
         string contentRoot,
         string webRoot)
@@ -110,6 +118,13 @@ public class DocumentService : IDocumentService
         var document = await _documentRepository.GetByIdWithDetailsAsync(id);
         if (document is null)
             return (null, "Document not found.");
+
+        if (document.SubjectId.HasValue)
+        {
+            var (allowed, accessError) = await ValidateUploaderSubjectAccessAsync(userId, document.SubjectId.Value);
+            if (!allowed)
+                return (null, accessError);
+        }
 
         var filePath = DocumentPathResolver.Resolve(document, storageRoot, contentRoot, webRoot);
         if (filePath is null)
@@ -156,6 +171,10 @@ public class DocumentService : IDocumentService
     {
         if (!TextExtractor.IsAllowedExtension(originalFileName))
             return (null, "Only PDF, DOCX, and PPTX files are supported.");
+
+        var (allowed, accessError) = await ValidateUploaderSubjectAccessAsync(userId, subjectId);
+        if (!allowed)
+            return (null, accessError);
 
         var subject = await _subjectRepository.GetByIdWithDetailsAsync(subjectId);
         if (subject is null)
@@ -210,6 +229,29 @@ public class DocumentService : IDocumentService
             await _documentRepository.UpdateDocumentAsync(document);
             return (null, ex.Message);
         }
+    }
+
+    private async Task<(bool Allowed, string? Error)> ValidateUploaderSubjectAccessAsync(int userId, int subjectId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user is null)
+            return (false, "Không tìm thấy người dùng.");
+
+        if (user.RoleId == 1)
+            return (true, null);
+
+        if (user.RoleId == 2)
+        {
+            if (!user.SubjectId.HasValue)
+                return (false, "Bạn chưa được gán môn học.");
+
+            if (user.SubjectId.Value != subjectId)
+                return (false, "Bạn chỉ được phép upload tài liệu cho môn học được gán.");
+
+            return (true, null);
+        }
+
+        return (false, "Bạn không có quyền upload tài liệu.");
     }
 
     private async Task IndexDocumentContentAsync(Document document, string filePath, string webRoot)

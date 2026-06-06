@@ -36,7 +36,7 @@ public class DocumentsController : Controller
         return View(new DocumentListViewModel
         {
             Subjects = subjects.Select(ViewModelMapper.ToViewModel).ToList(),
-            CanCreateSubject = DocumentPermissions.CanUpload(roleId)
+            CanCreateSubject = DocumentPermissions.CanManageSubjects(roleId)
         });
     }
 
@@ -50,10 +50,12 @@ public class DocumentsController : Controller
             return NotFound();
 
         var roleId = HttpContext.Session.GetInt32("RoleId")!.Value;
+        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
         var viewModel = ViewModelMapper.ToDocumentDetailPage(document);
-        viewModel.CanUpload = DocumentPermissions.CanUpload(roleId);
+        viewModel.CanUpload = document.SubjectId.HasValue
+            && DocumentPermissions.CanUploadToSubject(roleId, userSubjectId, document.SubjectId.Value);
         viewModel.CanDelete = DocumentPermissions.CanDelete(roleId);
-        viewModel.CanReindex = DocumentPermissions.CanUpload(roleId);
+        viewModel.CanReindex = viewModel.CanUpload;
 
         return View(viewModel);
     }
@@ -62,9 +64,15 @@ public class DocumentsController : Controller
     [RequireDocumentUpload]
     public async Task<IActionResult> Create(int? subjectId = null)
     {
+        if (subjectId.HasValue && !CanUploadToSubject(subjectId.Value))
+        {
+            TempData["Error"] = "Bạn chỉ được phép upload tài liệu cho môn học được gán.";
+            return RedirectToAction(nameof(Index));
+        }
+
         var model = await BuildCreateViewModelAsync(subjectId, allowFallback: true);
         if (model.Subject is null)
-            TempData["Error"] = "No subject found in database. Please create a subject first.";
+            TempData["Error"] = GetSubjectAccessError() ?? "No subject found in database. Please create a subject first.";
 
         return View(model);
     }
@@ -81,7 +89,13 @@ public class DocumentsController : Controller
 
         if (model.Subject is null || !model.SubjectId.HasValue)
         {
-            ModelState.AddModelError(string.Empty, "No subject configured. Please create a subject first.");
+            ModelState.AddModelError(string.Empty, GetSubjectAccessError() ?? "No subject configured. Please create a subject first.");
+            return View(model);
+        }
+
+        if (!CanUploadToSubject(model.SubjectId.Value))
+        {
+            ModelState.AddModelError(string.Empty, "Bạn chỉ được phép upload tài liệu cho môn học được gán.");
             return View(model);
         }
 
@@ -114,9 +128,20 @@ public class DocumentsController : Controller
     [RequireDocumentUpload]
     public async Task<IActionResult> Reindex(int id)
     {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId is null)
+            return RedirectToAction("Login", "Account");
+
+        var document = await _documentService.GetDocumentByIdAsync(id);
+        if (document?.SubjectId is int subjectId && !CanUploadToSubject(subjectId))
+        {
+            TempData["Error"] = "Bạn chỉ được phép upload tài liệu cho môn học được gán.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         var paths = GetStoragePaths();
         var (result, error) = await _documentService.ReindexDocumentAsync(
-            id, paths.StorageRoot, paths.ContentRoot, paths.WebRoot);
+            id, userId.Value, paths.StorageRoot, paths.ContentRoot, paths.WebRoot);
 
         if (result is null)
         {
@@ -132,9 +157,15 @@ public class DocumentsController : Controller
     [RequireDocumentUpload]
     public async Task<IActionResult> Upload(int? subjectId = null)
     {
+        if (subjectId.HasValue && !CanUploadToSubject(subjectId.Value))
+        {
+            TempData["Error"] = "Bạn chỉ được phép upload tài liệu cho môn học được gán.";
+            return RedirectToAction(nameof(Index));
+        }
+
         var model = await BuildUploadViewModelAsync(subjectId, allowFallback: true);
         if (model.Subject is null)
-            TempData["Error"] = "No subject found in database. Please create a subject first.";
+            TempData["Error"] = GetSubjectAccessError() ?? "No subject found in database. Please create a subject first.";
 
         return View(model);
     }
@@ -151,10 +182,22 @@ public class DocumentsController : Controller
 
         if (model.Subject is null || !model.SubjectId.HasValue)
         {
-            ModelState.AddModelError(string.Empty, "No subject configured. Please create a subject first.");
+            var subjectError = GetSubjectAccessError() ?? "No subject configured. Please create a subject first.";
+            ModelState.AddModelError(string.Empty, subjectError);
 
             if (IsAjaxRequest())
-                return BadRequest(new { error = "No subject configured. Please create a subject first." });
+                return BadRequest(new { error = subjectError });
+
+            return View(model);
+        }
+
+        if (!CanUploadToSubject(model.SubjectId.Value))
+        {
+            const string accessError = "Bạn chỉ được phép upload tài liệu cho môn học được gán.";
+            ModelState.AddModelError(string.Empty, accessError);
+
+            if (IsAjaxRequest())
+                return BadRequest(new { error = accessError });
 
             return View(model);
         }
@@ -309,6 +352,21 @@ public class DocumentsController : Controller
 
     private async Task<SubjectViewModel?> ResolveSubjectAsync(int? subjectId, bool allowFallback)
     {
+        var roleId = HttpContext.Session.GetInt32("RoleId");
+        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
+
+        if (roleId == DocumentPermissions.TeacherRoleId)
+        {
+            if (!userSubjectId.HasValue)
+                return null;
+
+            if (subjectId.HasValue && subjectId.Value != userSubjectId.Value)
+                return null;
+
+            var assignedSubject = await _subjectService.GetSubjectAsync(userSubjectId.Value);
+            return assignedSubject is null ? null : ViewModelMapper.ToViewModel(assignedSubject.Subject);
+        }
+
         if (subjectId.HasValue)
         {
             var subject = await _subjectService.GetSubjectAsync(subjectId.Value);
@@ -327,6 +385,28 @@ public class DocumentsController : Controller
 
         var firstDetail = await _subjectService.GetSubjectAsync(firstSubject.Id);
         return firstDetail is null ? null : ViewModelMapper.ToViewModel(firstDetail.Subject);
+    }
+
+    private bool CanUploadToSubject(int subjectId)
+    {
+        var roleId = HttpContext.Session.GetInt32("RoleId");
+        if (roleId is null)
+            return false;
+
+        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
+        return DocumentPermissions.CanUploadToSubject(roleId.Value, userSubjectId, subjectId);
+    }
+
+    private string? GetSubjectAccessError()
+    {
+        var roleId = HttpContext.Session.GetInt32("RoleId");
+        if (roleId != DocumentPermissions.TeacherRoleId)
+            return null;
+
+        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
+        return userSubjectId.HasValue
+            ? null
+            : "Bạn chưa được gán môn học. Vui lòng liên hệ quản trị viên.";
     }
 
     private bool IsAjaxRequest()

@@ -1,6 +1,6 @@
+using Assignmet1_Presentation.Endpoints;
 using Assignmet1_Presentation.Filters;
 using Assignmet1_Presentation.Hubs;
-using Assignmet1_Presentation.Models;
 using Assignment1_Service;
 using Assignment1_Service.Models;
 using Assignment1_Service.Infrastructure;
@@ -8,9 +8,10 @@ using Assignment1_Repository.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews(options =>
+builder.Services.AddRazorPages(options =>
 {
-    options.Filters.Add<EnforcePasswordChangeAttribute>();
+    options.Conventions.ConfigureFilter(new EnforcePasswordChangeAttribute());
+    options.Conventions.AddPageRoute("/Account/Login", "");
 });
 builder.Services.AddSignalR();
 builder.Services.AddAssignment1Services(builder.Configuration);
@@ -37,19 +38,32 @@ using (var scope = app.Services.CreateScope())
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+if (!app.Environment.IsDevelopment())
+{
+    app.Use(async (ctx, next) =>
+    {
+        ctx.Response.Headers.Append(
+            "Content-Security-Policy",
+            "default-src 'self'; " +
+            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "img-src 'self' data:; " +
+            "connect-src 'self' wss: https://cdnjs.cloudflare.com;"
+        );
+        await next();
+    });
+}
+
 app.UseRouting();
 app.UseSession();
 app.UseAuthorization();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Account}/{action=Login}/{id?}");
+app.MapRazorPages();
+app.MapApiEndpoints();
 app.MapHub<AppHub>("/hubs/app");
-
 app.Run();

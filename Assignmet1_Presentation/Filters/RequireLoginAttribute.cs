@@ -9,7 +9,7 @@ public class RequireLoginAttribute : ActionFilterAttribute
     {
         if (context.HttpContext.Session.GetInt32("UserId") is null)
         {
-            context.Result = new RedirectToActionResult("Login", "Account", null);
+            context.Result = new RedirectToPageResult("/Account/Login");
             return;
         }
 

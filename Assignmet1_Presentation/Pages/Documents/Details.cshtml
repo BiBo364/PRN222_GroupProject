@@ -1,0 +1,139 @@
+@page "/Documents/Details/{id:int}"
+@model Assignmet1_Presentation.Pages.Documents.DetailsModel
+@{
+    ViewData["Title"] = Model.ViewModel.OriginalName;
+}
+
+<section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
+        <div>
+            <div class="hero-badge mb-3">Document detail</div>
+            <h1 class="page-title mb-2">@Model.ViewModel.OriginalName</h1>
+            <p class="page-subtitle mb-0">
+                <span class="status-chip badge-soft me-2">@Model.ViewModel.FileType.ToUpper()</span>
+                @if (Model.ViewModel.IsSlideDeck)
+                {
+                    <span class="status-chip badge-soft me-2">@Model.ViewModel.Chunks.Count slides</span>
+                }
+                @if (Model.ViewModel.ChapterNumber is not null)
+                {
+                    <span>Chapter @Model.ViewModel.ChapterNumber: @Model.ViewModel.ChapterTitle</span>
+                }
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-light" asp-page="/Documents/Index">Back to list</a>
+            @if (Model.ViewModel.CanReindex && Model.ViewModel.NeedsReindex)
+            {
+                <form asp-page-handler="Reindex" asp-route-id="@Model.ViewModel.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-warning">Re-index</button>
+                </form>
+            }
+            @if (Model.ViewModel.CanDelete)
+            {
+                <form asp-page-handler="Delete" asp-route-id="@Model.ViewModel.Id" method="post" class="d-inline"
+                      onsubmit="return confirm('Delete this document?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
+            }
+        </div>
+    </div>
+</section>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-value fs-6">@Model.ViewModel.Status</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">@(Model.ViewModel.IsSlideDeck ? "Slides" : "Chunks")</div>
+            <div class="stat-value fs-6">@Model.ViewModel.Chunks.Count</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Uploaded by</div>
+            <div class="stat-value fs-6">@(Model.ViewModel.UploadedByName ?? "—")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Indexed at</div>
+            <div class="stat-value fs-6">@(Model.ViewModel.IndexedAt?.ToString("g") ?? "—")</div>
+        </div>
+    </div>
+</div>
+
+<div class="surface-card mb-4">
+    <h4 class="mb-3">@(Model.ViewModel.IsSlideDeck ? "Slides" : "Indexed content")</h4>
+
+    @if (!Model.ViewModel.ChunkItems.Any())
+    {
+        <div class="alert alert-warning mb-0">
+            <strong>No indexed content.</strong>
+            @if (Model.ViewModel.CanReindex)
+            {
+                <span>Click <strong>Re-index</strong> or upload the file again.</span>
+            }
+        </div>
+    }
+    else
+    {
+        @foreach (var item in Model.ViewModel.ChunkItems)
+        {
+            var chunk = item.Chunk;
+            <div class="mini-panel mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    @if (item.IsSlide && item.SlideNumber.HasValue)
+                    {
+                        <div class="fw-semibold">Slide @item.SlideNumber</div>
+                    }
+                    else
+                    {
+                        <div class="fw-semibold">Chunk #@chunk.ChunkIndex</div>
+                    }
+                    <span class="status-chip badge-soft">@chunk.TokenCount tokens</span>
+                </div>
+
+                @if (item.ImageUrls.Any())
+                {
+                    <div class="row g-3 mb-3">
+                        @foreach (var imageUrl in item.ImageUrls)
+                        {
+                            var isBrowserImage = imageUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                                || imageUrl.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                                || imageUrl.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+                                || imageUrl.EndsWith(".gif", StringComparison.OrdinalIgnoreCase)
+                                || imageUrl.EndsWith(".webp", StringComparison.OrdinalIgnoreCase);
+
+                            @if (isBrowserImage)
+                            {
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="image-tile p-2">
+                                        <img src="@imageUrl" alt="Slide @item.SlideNumber image" class="img-fluid rounded" />
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+
+                <pre class="mb-0" style="white-space: pre-wrap;">@chunk.Content</pre>
+            </div>
+        }
+    }
+</div>

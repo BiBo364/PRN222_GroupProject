@@ -1,0 +1,19 @@
+@page "/Error"
+@model Assignmet1_Presentation.Pages.ErrorModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<div class="page-hero">
+    <div class="hero-badge mb-3">Something went wrong</div>
+    <h1 class="page-title text-danger">Error</h1>
+    <p class="page-subtitle">An error occurred while processing your request.</p>
+
+    @if (Model.ErrorViewModel.ShowRequestId)
+    {
+        <div class="mini-panel mt-4">
+            <div class="stat-label">Request ID</div>
+            <div class="fw-semibold">@Model.ErrorViewModel.RequestId</div>
+        </div>
+    }
+</div>

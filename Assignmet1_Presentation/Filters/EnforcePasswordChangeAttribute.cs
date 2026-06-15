@@ -25,17 +25,15 @@ public class EnforcePasswordChangeAttribute : ActionFilterAttribute
             return;
         }
 
-        var controller = context.RouteData.Values["controller"]?.ToString();
-        var action = context.RouteData.Values["action"]?.ToString();
+        var page = context.RouteData.Values["page"]?.ToString();
 
         var isAllowedRoute =
-            string.Equals(controller, "Account", StringComparison.OrdinalIgnoreCase)
-            && (string.Equals(action, "ChangePassword", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(action, "Logout", StringComparison.OrdinalIgnoreCase));
+            string.Equals(page, "/Account/ChangePassword", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(page, "/Account/Logout", StringComparison.OrdinalIgnoreCase);
 
         if (!isAllowedRoute)
         {
-            context.Result = new RedirectToActionResult("ChangePassword", "Account", null);
+            context.Result = new RedirectToPageResult("/Account/ChangePassword");
             return;
         }
 

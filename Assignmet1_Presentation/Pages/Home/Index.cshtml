@@ -1,0 +1,56 @@
+@page
+@model Assignmet1_Presentation.Pages.Home.IndexModel
+@{
+    ViewData["Title"] = "Home Page";
+    var userId = Model.UserId;
+    var displayName = Model.DisplayName;
+}
+
+<section class="page-hero mb-4">
+    <div class="hero-badge mb-3">RAG-powered learning workspace</div>
+    <div class="hero-grid align-items-center">
+        <div>
+            <h1 class="page-title">A focused workspace for documents, chat, and subscription control.</h1>
+            <p class="page-subtitle fs-5">
+                Browse indexed materials, ask questions with cited answers, and manage the payment workflow inside one MVC app.
+            </p>
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                @if (userId is not null)
+                {
+                    <a class="btn btn-primary" asp-page="/Documents/Index">Open documents</a>
+                    <a class="btn btn-outline-light" asp-page="/Chat/Index">Start chat</a>
+                    <a class="btn btn-outline-secondary" asp-page="/Subscription/Index">Subscription</a>
+                }
+                else
+                {
+                    <a class="btn btn-primary" asp-page="/Account/Login">Sign in</a>
+                    <a class="btn btn-outline-light" asp-page="/Home/Privacy">Learn more</a>
+                }
+            </div>
+        </div>
+        <div class="surface-card">
+            <div class="stat-label mb-2">Current status</div>
+            <div class="stat-value mb-2">@((userId is not null) ? "Workspace ready" : "Please sign in")</div>
+            <p class="page-subtitle mb-3">
+                @if (userId is not null)
+                {
+                    <span>Signed in as <strong>@displayName</strong>. Your documents, chat sessions, and payment tickets are ready.</span>
+                }
+                else
+                {
+                    <span>Login to access documents, chat, and subscription features.</span>
+                }
+            </p>
+            <div class="d-grid gap-2">
+                <div class="mini-panel">
+                    <div class="stat-label">Presentation</div>
+                    <div class="fw-semibold">MVC 3-layer architecture</div>
+                </div>
+                <div class="mini-panel">
+                    <div class="stat-label">Backend</div>
+                    <div class="fw-semibold">Service + Repository separation</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

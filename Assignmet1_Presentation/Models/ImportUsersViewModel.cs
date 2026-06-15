@@ -5,21 +5,19 @@ namespace Assignmet1_Presentation.Models;
 
 public class ImportUsersViewModel
 {
-    [Required(ErrorMessage = "Vui lòng chọn file (.xlsx, .csv).")]
-    [Display(Name = "File danh sách người dùng")]
+    [Required(ErrorMessage = "Vui long chon file (.xlsx, .csv).")]
+    [Display(Name = "File danh sach nguoi dung")]
     public IFormFile? File { get; set; }
 
-    [Display(Name = "Vai trò (áp dụng cho toàn bộ danh sách)")]
-    [Required(ErrorMessage = "Vui lòng chọn vai trò.")]
+    [Display(Name = "Vai tro")]
+    [Required(ErrorMessage = "Vui long chon vai tro.")]
     public int RoleId { get; set; }
 
-    [Display(Name = "Môn học (tuỳ chọn)")]
+    [Display(Name = "Mon hoc")]
     public int? SubjectId { get; set; }
 
     public List<SubjectListItemViewModel> SubjectOptions { get; set; } = [];
     public Dictionary<int, string> TeacherBySubjectId { get; set; } = [];
-
-    // Kết quả import (sau khi POST)
     public ImportResultViewModel? Result { get; set; }
 }
 
@@ -29,6 +27,8 @@ public class ImportResultViewModel
     public int CreatedCount { get; set; }
     public int SkippedDuplicateCount { get; set; }
     public int ErrorCount { get; set; }
+    public int NotificationSentCount { get; set; }
+    public int NotificationFailedCount { get; set; }
     public List<ImportRowResultViewModel> Rows { get; set; } = [];
 }
 
@@ -40,20 +40,22 @@ public class ImportRowResultViewModel
     public string? Username { get; set; }
     public ImportRowStatus Status { get; set; }
     public string? Message { get; set; }
+    public bool? NotificationSent { get; set; }
+    public string? NotificationMessage { get; set; }
 
     public string StatusLabel => Status switch
     {
-        ImportRowStatus.Created   => "Thành công",
-        ImportRowStatus.Duplicate => "Trùng lặp",
-        ImportRowStatus.Error     => "Lỗi",
-        _                         => "Không xác định"
+        ImportRowStatus.Created => "Thanh cong",
+        ImportRowStatus.Duplicate => "Trung lap",
+        ImportRowStatus.Error => "Loi",
+        _ => "Khong xac dinh"
     };
 
     public string StatusCssClass => Status switch
     {
-        ImportRowStatus.Created   => "badge-success",
+        ImportRowStatus.Created => "badge-success",
         ImportRowStatus.Duplicate => "badge-warning",
-        ImportRowStatus.Error     => "badge-danger",
-        _                         => "badge-secondary"
+        ImportRowStatus.Error => "badge-danger",
+        _ => "badge-secondary"
     };
 }

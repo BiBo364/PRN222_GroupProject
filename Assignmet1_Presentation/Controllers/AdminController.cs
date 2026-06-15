@@ -4,13 +4,9 @@ using Assignmet1_Presentation.Models;
 using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Assignmet1_Presentation.Controllers;
 
-/// <summary>
-/// Controller quản lý người dùng dành cho SuperAdmin (RoleId 1).
-/// </summary>
 [RequireAdmin]
 public class AdminController : Controller
 {
@@ -23,37 +19,29 @@ public class AdminController : Controller
         _subjectService = subjectService;
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // Danh sách Users
-    // ─────────────────────────────────────────────────────────────────
-
     public async Task<IActionResult> Index(string? search, int? roleId, int? subjectId, int page = 1)
     {
-        var allUsers   = await _userServices.GetAllUsersAsync();
+        var allUsers = await _userServices.GetAllUsersAsync();
         var allSubjects = await _subjectService.GetSubjectsAsync();
 
-        // Lọc theo từ khóa tìm kiếm
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim().ToLowerInvariant();
             allUsers = allUsers.Where(u =>
                 u.Username.ToLowerInvariant().Contains(term) ||
                 u.Email.ToLowerInvariant().Contains(term) ||
-                (u.FullName ?? "").ToLowerInvariant().Contains(term)).ToList();
+                (u.FullName ?? string.Empty).ToLowerInvariant().Contains(term)).ToList();
         }
 
-        // Lọc theo vai trò
         if (roleId.HasValue)
             allUsers = allUsers.Where(u => u.RoleId == roleId.Value).ToList();
 
-        // Lọc theo môn học
         if (subjectId.HasValue)
             allUsers = allUsers.Where(u => u.SubjectId == subjectId.Value).ToList();
 
-        // Phân trang
-        int pageSize = 10;
-        int totalItems = allUsers.Count;
-        int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+        const int pageSize = 10;
+        var totalItems = allUsers.Count;
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
         page = Math.Max(1, Math.Min(page, totalPages == 0 ? 1 : totalPages));
 
         var pagedUsers = allUsers.Skip((page - 1) * pageSize).Take(pageSize).ToList();
@@ -61,11 +49,11 @@ public class AdminController : Controller
 
         var model = new UserListViewModel
         {
-            Users      = pagedUsers.Select(ToViewModel).ToList(),
-            Subjects   = allSubjects.Select(ViewModelMapper.ToViewModel).ToList(),
+            Users = pagedUsers.Select(ToViewModel).ToList(),
+            Subjects = allSubjects.Select(ViewModelMapper.ToViewModel).ToList(),
             TeacherBySubjectId = teacherBySubjectId,
-            SearchTerm    = search,
-            FilterRoleId  = roleId,
+            SearchTerm = search,
+            FilterRoleId = roleId,
             FilterSubjectId = subjectId,
             CurrentPage = page,
             TotalPages = totalPages,
@@ -75,10 +63,6 @@ public class AdminController : Controller
 
         return View(model);
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Import người dùng từ Excel/CSV
-    // ─────────────────────────────────────────────────────────────────
 
     [HttpGet]
     public async Task<IActionResult> ImportUsers()
@@ -93,7 +77,7 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [RequestSizeLimit(10 * 1024 * 1024)] // 10 MB
+    [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> ImportUsers(ImportUsersViewModel model)
     {
         var subjects = await _subjectService.GetSubjectsAsync();
@@ -110,17 +94,16 @@ public class AdminController : Controller
 
             if (!isAvailable)
             {
-                ModelState.AddModelError(nameof(model.SubjectId), availabilityError ?? "Môn học này đã có giảng viên phụ trách.");
+                ModelState.AddModelError(nameof(model.SubjectId), availabilityError ?? "Mon hoc nay da co giang vien phu trach.");
                 return View(model);
             }
         }
 
-        // Kiểm tra định dạng file
         var file = model.File!;
-        var ext  = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (ext != ".xlsx" && ext != ".csv" && ext != ".json" && ext != ".txt")
         {
-            ModelState.AddModelError(nameof(model.File), "Chỉ hỗ trợ file .xlsx, .csv, .json hoặc .txt");
+            ModelState.AddModelError(nameof(model.File), "Chi ho tro file .xlsx, .csv, .json hoac .txt");
             return View(model);
         }
 
@@ -131,38 +114,38 @@ public class AdminController : Controller
 
             model.Result = new ImportResultViewModel
             {
-                TotalRows            = result.TotalRows,
-                CreatedCount         = result.CreatedCount,
+                TotalRows = result.TotalRows,
+                CreatedCount = result.CreatedCount,
                 SkippedDuplicateCount = result.SkippedDuplicateCount,
-                ErrorCount           = result.ErrorCount,
-                Rows                 = result.Rows.Select(r => new ImportRowResultViewModel
+                ErrorCount = result.ErrorCount,
+                NotificationSentCount = result.NotificationSentCount,
+                NotificationFailedCount = result.NotificationFailedCount,
+                Rows = result.Rows.Select(r => new ImportRowResultViewModel
                 {
                     RowNumber = r.RowNumber,
-                    FullName  = r.FullName,
-                    Email     = r.Email,
-                    Username  = r.Username,
-                    Status    = r.Status,
-                    Message   = r.Message
+                    FullName = r.FullName,
+                    Email = r.Email,
+                    Username = r.Username,
+                    Status = r.Status,
+                    Message = r.Message,
+                    NotificationSent = r.NotificationSent,
+                    NotificationMessage = r.NotificationMessage
                 }).ToList()
             };
 
             if (result.CreatedCount > 0)
-                TempData["Success"] = $"Import thành công {result.CreatedCount} tài khoản mới!";
+                TempData["Success"] = $"Import thanh cong {result.CreatedCount} tai khoan moi. Gui mail thanh cong: {result.NotificationSentCount}.";
 
-            if (result.ErrorCount > 0 || result.SkippedDuplicateCount > 0)
-                TempData["Warning"] = $"{result.SkippedDuplicateCount} trùng lặp, {result.ErrorCount} lỗi.";
+            if (result.ErrorCount > 0 || result.SkippedDuplicateCount > 0 || result.NotificationFailedCount > 0)
+                TempData["Warning"] = $"{result.SkippedDuplicateCount} trung lap, {result.ErrorCount} loi, {result.NotificationFailedCount} email chua gui duoc.";
         }
         catch (Exception ex)
         {
-            ModelState.AddModelError(string.Empty, $"Không thể đọc file: {ex.Message}");
+            ModelState.AddModelError(string.Empty, $"Khong the doc file: {ex.Message}");
         }
 
         return View(model);
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Phân công môn học
-    // ─────────────────────────────────────────────────────────────────
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -171,18 +154,14 @@ public class AdminController : Controller
         var (success, error) = await _userServices.AssignSubjectAsync(userId, subjectId);
 
         if (!success)
-            TempData["Error"] = error ?? "Phân công môn học thất bại.";
+            TempData["Error"] = error ?? "Phan cong mon hoc that bai.";
         else
             TempData["Success"] = subjectId.HasValue
-                ? "Phân công môn học thành công!"
-                : "Đã gỡ bỏ môn học khỏi người dùng này.";
+                ? "Phan cong mon hoc thanh cong!"
+                : "Da go bo mon hoc khoi nguoi dung nay.";
 
         return RedirectToAction(nameof(Index));
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Bật / Tắt tài khoản
-    // ─────────────────────────────────────────────────────────────────
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -191,16 +170,12 @@ public class AdminController : Controller
         var (success, error) = await _userServices.ToggleUserStatusAsync(userId);
 
         if (!success)
-            TempData["Error"] = error ?? "Thao tác thất bại.";
+            TempData["Error"] = error ?? "Thao tac that bai.";
         else
-            TempData["Success"] = "Cập nhật trạng thái tài khoản thành công!";
+            TempData["Success"] = "Cap nhat trang thai tai khoan thanh cong!";
 
         return RedirectToAction(nameof(Index));
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Helpers
-    // ─────────────────────────────────────────────────────────────────
 
     private async Task<Dictionary<int, string>> BuildTeacherBySubjectIdAsync()
     {
@@ -215,18 +190,18 @@ public class AdminController : Controller
 
     private static UserListItemViewModel ToViewModel(UserListItemDto dto) => new()
     {
-        Id          = dto.Id,
-        Username    = dto.Username,
-        Email       = dto.Email,
-        FullName    = dto.FullName,
-        RoleId      = dto.RoleId,
-        RoleName    = dto.RoleName,
-        RoleLabel   = dto.RoleLabel,
-        SubjectId   = dto.SubjectId,
+        Id = dto.Id,
+        Username = dto.Username,
+        Email = dto.Email,
+        FullName = dto.FullName,
+        RoleId = dto.RoleId,
+        RoleName = dto.RoleName,
+        RoleLabel = dto.RoleLabel,
+        SubjectId = dto.SubjectId,
         SubjectCode = dto.SubjectCode,
         SubjectName = dto.SubjectName,
-        IsActive    = dto.IsActive,
+        IsActive = dto.IsActive,
         LastLoginAt = dto.LastLoginAt,
-        CreatedAt   = dto.CreatedAt
+        CreatedAt = dto.CreatedAt
     };
 }

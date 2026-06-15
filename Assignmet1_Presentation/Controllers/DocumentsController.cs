@@ -1,10 +1,12 @@
 using Assignmet1_Presentation.Filters;
 using Assignmet1_Presentation.Helpers;
+using Assignmet1_Presentation.Hubs;
 using Assignmet1_Presentation.Mappings;
 using Assignmet1_Presentation.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Assignmet1_Presentation.Controllers;
 
@@ -14,15 +16,18 @@ public class DocumentsController : Controller
     private readonly IDocumentService _documentService;
     private readonly ISubjectService _subjectService;
     private readonly IWebHostEnvironment _environment;
+    private readonly IHubContext<AppHub> _appHub;
 
     public DocumentsController(
         IDocumentService documentService,
         ISubjectService subjectService,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        IHubContext<AppHub> appHub)
     {
         _documentService = documentService;
         _subjectService = subjectService;
         _environment = environment;
+        _appHub = appHub;
     }
 
     public async Task<IActionResult> Index()
@@ -119,6 +124,8 @@ public class DocumentsController : Controller
             return View(model);
         }
 
+        await BroadcastDocumentCreatedAsync(created);
+        await BroadcastCourseUpdatedAsync(created.SubjectId);
         TempData["Success"] = $"Created file entry: {created.OriginalName}";
         return RedirectToAction(nameof(Details), new { id = created.Id });
     }
@@ -149,6 +156,8 @@ public class DocumentsController : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        await BroadcastDocumentUpdatedAsync(result.Id);
+        await BroadcastCourseUpdatedAsync(document?.SubjectId);
         TempData["Success"] = $"Re-indexed: {result.OriginalName} ({result.ChunkCount} chunks).";
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -244,6 +253,8 @@ public class DocumentsController : Controller
             return View(model);
         }
 
+        await BroadcastDocumentCreatedAsync(result.Id);
+        await BroadcastCourseUpdatedAsync(model.SubjectId);
         if (IsAjaxRequest())
         {
             TempData["Success"] = $"Uploaded and indexed: {result.OriginalName}";
@@ -263,6 +274,7 @@ public class DocumentsController : Controller
     [RequireDocumentDelete]
     public async Task<IActionResult> Delete(int id)
     {
+        var document = await _documentService.GetDocumentByIdAsync(id);
         var paths = GetStoragePaths();
         var deleted = await _documentService.DeleteDocumentAsync(
             id, paths.StorageRoot, paths.ContentRoot, paths.WebRoot);
@@ -273,6 +285,8 @@ public class DocumentsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        await BroadcastDocumentDeletedAsync(id);
+        await BroadcastCourseUpdatedAsync(document?.SubjectId);
         TempData["Success"] = "Document deleted.";
         return RedirectToAction(nameof(Index));
     }
@@ -281,6 +295,7 @@ public class DocumentsController : Controller
     [RequireDocumentDelete]
     public async Task<IActionResult> DeleteApi(int id)
     {
+        var document = await _documentService.GetDocumentByIdAsync(id);
         var paths = GetStoragePaths();
         var deleted = await _documentService.DeleteDocumentAsync(
             id, paths.StorageRoot, paths.ContentRoot, paths.WebRoot);
@@ -288,6 +303,8 @@ public class DocumentsController : Controller
         if (!deleted)
             return NotFound(new { message = "Document not found." });
 
+        await BroadcastDocumentDeletedAsync(id);
+        await BroadcastCourseUpdatedAsync(document?.SubjectId);
         return NoContent();
     }
 
@@ -295,6 +312,46 @@ public class DocumentsController : Controller
     {
         var roleId = HttpContext.Session.GetInt32("RoleId");
         return roleId is not null && DocumentPermissions.CanView(roleId.Value);
+    }
+
+    private async Task BroadcastCourseUpdatedAsync(int? subjectId)
+    {
+        if (!subjectId.HasValue)
+            return;
+
+        var subject = await _subjectService.GetSubjectAsync(subjectId.Value);
+        if (subject is null)
+            return;
+
+        await _appHub.Clients.All.SendAsync("CourseUpdated", ViewModelMapper.ToListItemViewModel(subject));
+    }
+
+    private async Task BroadcastDocumentCreatedAsync(Assignment1_Service.Models.DocumentDetailDto document)
+    {
+        await _appHub.Clients.All.SendAsync("DocumentCreated", ViewModelMapper.ToListItemViewModel(document));
+    }
+
+    private async Task BroadcastDocumentCreatedAsync(int documentId)
+    {
+        var document = await _documentService.GetDocumentByIdAsync(documentId);
+        if (document is null)
+            return;
+
+        await BroadcastDocumentCreatedAsync(document);
+    }
+
+    private async Task BroadcastDocumentUpdatedAsync(int documentId)
+    {
+        var document = await _documentService.GetDocumentByIdAsync(documentId);
+        if (document is null)
+            return;
+
+        await _appHub.Clients.All.SendAsync("DocumentUpdated", ViewModelMapper.ToListItemViewModel(document));
+    }
+
+    private Task BroadcastDocumentDeletedAsync(int documentId)
+    {
+        return _appHub.Clients.All.SendAsync("DocumentDeleted", documentId);
     }
 
     private (string StorageRoot, string ContentRoot, string WebRoot) GetStoragePaths()

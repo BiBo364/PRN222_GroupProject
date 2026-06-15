@@ -28,44 +28,121 @@
     <div class="alert alert-danger">@error</div>
 }
 
-@if (!Model.Subjects.Any())
-{
-    <div class="content-panel text-center py-5">
-        <h3 class="h5 mb-2">No subjects yet</h3>
-        <p class="page-subtitle mb-0">Create the first subject to start organizing indexed documents.</p>
-    </div>
-}
-else
-{
-    <div class="row g-3">
-        @foreach (var subject in Model.Subjects)
-        {
-            <div class="col-12 col-md-6 col-xl-4">
-                <a class="surface-card d-block h-100 text-decoration-none text-reset" asp-controller="Subjects" asp-action="Details" asp-route-id="@subject.Id">
-                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                        <div>
-                            <div class="hero-badge mb-2">Subject</div>
-                            <h3 class="h5 mb-1">@subject.Code</h3>
-                            <div class="page-subtitle mb-0">@subject.Name</div>
-                        </div>
-                        <span class="status-chip badge-soft">@subject.IndexedDocumentCount indexed</span>
-                    </div>
+<div id="subject-empty-state" class="content-panel text-center py-5" style="display:none">
+    <h3 class="h5 mb-2">No subjects yet</h3>
+    <p class="page-subtitle mb-0">Create the first subject to start organizing indexed documents.</p>
+</div>
 
-                    @if (!string.IsNullOrWhiteSpace(subject.Description))
-                    {
-                        <p class="text-white-50 mb-3">@subject.Description</p>
-                    }
-
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <span class="status-chip badge-soft">@subject.ChapterCount chapters</span>
-                        <span class="status-chip badge-soft">@subject.DocumentCount docs</span>
+<div id="subject-grid" class="row g-3">
+    @foreach (var subject in Model.Subjects)
+    {
+        <div class="col-12 col-md-6 col-xl-4" data-subject-card data-subject-id="@subject.Id" data-subject-code="@subject.Code">
+            <a class="surface-card d-block h-100 text-decoration-none text-reset" asp-controller="Subjects" asp-action="Details" asp-route-id="@subject.Id">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <div class="hero-badge mb-2">Subject</div>
+                        <h3 class="h5 mb-1 subject-code">@subject.Code</h3>
+                        <div class="page-subtitle mb-0 subject-name">@subject.Name</div>
                     </div>
+                    <span class="status-chip badge-soft"><span class="subject-indexed-count">@subject.IndexedDocumentCount</span> indexed</span>
+                </div>
 
-                    <div class="d-flex justify-content-end">
-                        <span class="btn btn-outline-light btn-sm">Open</span>
-                    </div>
-                </a>
-            </div>
-        }
-    </div>
+                <p class="text-white-50 mb-3 subject-description">@subject.Description</p>
+
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <span class="status-chip badge-soft"><span class="subject-chapter-count">@subject.ChapterCount</span> chapters</span>
+                    <span class="status-chip badge-soft"><span class="subject-document-count">@subject.DocumentCount</span> docs</span>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <span class="btn btn-outline-light btn-sm">Open</span>
+                </div>
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const grid = document.getElementById("subject-grid");
+            if (!grid) {
+                return;
+            }
+
+            const emptyState = document.getElementById("subject-empty-state");
+
+            function cardHtml(subject) {
+                const description = subject.description ? subject.description : "";
+                return `
+                    <div class="col-12 col-md-6 col-xl-4" data-subject-card data-subject-id="${subject.id}" data-subject-code="${appHubRealtime.escapeHtml(subject.code)}">
+                        <a class="surface-card d-block h-100 text-decoration-none text-reset" href="/Subjects/Details/${subject.id}">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                                <div>
+                                    <div class="hero-badge mb-2">Subject</div>
+                                    <h3 class="h5 mb-1 subject-code">${appHubRealtime.escapeHtml(subject.code)}</h3>
+                                    <div class="page-subtitle mb-0 subject-name">${appHubRealtime.escapeHtml(subject.name)}</div>
+                                </div>
+                                <span class="status-chip badge-soft"><span class="subject-indexed-count">${subject.indexedDocumentCount ?? 0}</span> indexed</span>
+                            </div>
+                            <p class="text-white-50 mb-3 subject-description">${appHubRealtime.escapeHtml(description)}</p>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <span class="status-chip badge-soft"><span class="subject-chapter-count">${subject.chapterCount ?? 0}</span> chapters</span>
+                                <span class="status-chip badge-soft"><span class="subject-document-count">${subject.documentCount ?? 0}</span> docs</span>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <span class="btn btn-outline-light btn-sm">Open</span>
+                            </div>
+                        </a>
+                    </div>`;
+            }
+
+            function updateEmptyState() {
+                const cards = grid.querySelectorAll("[data-subject-card]");
+                if (emptyState) {
+                    emptyState.style.display = cards.length === 0 ? "block" : "none";
+                }
+            }
+
+            function sortCards() {
+                const cards = Array.from(grid.querySelectorAll("[data-subject-card]"));
+                cards.sort((a, b) => (a.getAttribute("data-subject-code") || "").localeCompare(b.getAttribute("data-subject-code") || ""));
+                cards.forEach(card => grid.appendChild(card));
+            }
+
+            function upsertSubject(subject) {
+                const existing = grid.querySelector(`[data-subject-card][data-subject-id="${subject.id}"]`);
+                if (existing) {
+                    existing.setAttribute("data-subject-code", subject.code || "");
+                    existing.querySelector(".subject-code").textContent = subject.code || "";
+                    existing.querySelector(".subject-name").textContent = subject.name || "";
+                    existing.querySelector(".subject-description").textContent = subject.description || "";
+                    existing.querySelector(".subject-indexed-count").textContent = String(subject.indexedDocumentCount ?? 0);
+                    existing.querySelector(".subject-chapter-count").textContent = String(subject.chapterCount ?? 0);
+                    existing.querySelector(".subject-document-count").textContent = String(subject.documentCount ?? 0);
+                } else {
+                    grid.insertAdjacentHTML("beforeend", cardHtml(subject));
+                }
+
+                sortCards();
+                updateEmptyState();
+            }
+
+            function removeSubject(id) {
+                const card = grid.querySelector(`[data-subject-card][data-subject-id="${id}"]`);
+                if (card) {
+                    card.remove();
+                }
+                updateEmptyState();
+            }
+
+            updateEmptyState();
+
+            window.appHubRealtime.createConnection({
+                CourseCreated: upsertSubject,
+                CourseUpdated: upsertSubject,
+                CourseDeleted: removeSubject
+            });
+        })();
+    </script>
 }

@@ -18,6 +18,21 @@
     </div>
 </section>
 
+@if (Model.QuotaStatus is not null)
+{
+    <div id="chatQuotaStatus" class="alert @(Model.QuotaStatus.IsPlus ? "alert-success" : Model.QuotaStatus.IsAllowed ? "alert-info" : "alert-warning")">
+        @Model.QuotaStatus.Message
+        @if (!Model.QuotaStatus.IsPlus)
+        {
+            <a class="ms-2" asp-controller="Subscription" asp-action="Index">Nang cap Plus</a>
+        }
+    </div>
+}
+else
+{
+    <div id="chatQuotaStatus" class="d-none"></div>
+}
+
 @if (TempData["Error"] is string error)
 {
     <div class="alert alert-danger">@error</div>
@@ -86,6 +101,7 @@
             const emptyState = document.getElementById("chatEmptyState");
             const errorBox = document.getElementById("chatError");
             const pendingHint = document.getElementById("chatPendingHint");
+            const quotaBox = document.getElementById("chatQuotaStatus");
 
             if (!form || !input || !submitButton || !messages) {
                 return;
@@ -116,6 +132,16 @@
 
                 errorBox.textContent = message;
                 errorBox.classList.remove("d-none");
+            };
+
+            const setQuotaStatus = (quota) => {
+                if (!quotaBox || !quota) {
+                    return;
+                }
+
+                quotaBox.classList.remove("d-none", "alert-success", "alert-info", "alert-warning");
+                quotaBox.classList.add(quota.isPlus ? "alert-success" : quota.isAllowed ? "alert-info" : "alert-warning");
+                quotaBox.textContent = quota.message || "";
             };
 
             const createMessageElement = (role, content, options = {}) => {
@@ -249,6 +275,10 @@
 
                     if (Array.isArray(payload.citations) && payload.citations.length > 0) {
                         appendCitations(assistantMessage.bubble, payload.citations);
+                    }
+
+                    if (payload.quota) {
+                        setQuotaStatus(payload.quota);
                     }
 
                     input.value = "";

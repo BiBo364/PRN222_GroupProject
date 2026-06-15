@@ -1,18 +1,16 @@
 @model SubjectDetailViewModel
 @{
     ViewData["Title"] = $"{Model.Subject.Code} - Subject";
+    var hasDocuments = Model.Documents.Any();
 }
 
 <section class="page-hero mb-4">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
         <div>
             <div class="hero-badge mb-3">Subject details</div>
-            <h1 class="page-title mb-2">@Model.Subject.Code</h1>
-            <p class="page-subtitle mb-0">@Model.Subject.Name</p>
-            @if (!string.IsNullOrWhiteSpace(Model.Subject.Description))
-            {
-                <p class="page-subtitle mt-2 mb-0">@Model.Subject.Description</p>
-            }
+            <h1 class="page-title mb-2" id="subject-code">@Model.Subject.Code</h1>
+            <p class="page-subtitle mb-0" id="subject-name">@Model.Subject.Name</p>
+            <p class="page-subtitle mt-2 mb-0" id="subject-description">@Model.Subject.Description</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             @if (Model.CanUploadDocument)
@@ -20,7 +18,7 @@
                 <a class="btn btn-primary" asp-controller="Documents" asp-action="Upload" asp-route-subjectId="@Model.Subject.Id">Upload document</a>
                 <a class="btn btn-outline-light" asp-controller="Documents" asp-action="Create" asp-route-subjectId="@Model.Subject.Id">Create file entry</a>
             }
-            <a class="btn btn-outline-light" asp-controller="Documents" asp-action="Index">Back to subjects</a>
+            <a class="btn btn-outline-light" asp-controller="Documents" asp-action="Index">Back to list</a>
         </div>
     </div>
 </section>
@@ -38,74 +36,214 @@
     <div class="col-12 col-md-4">
         <div class="surface-card h-100">
             <div class="text-white-50 small text-uppercase">Chapters</div>
-            <div class="display-6 fw-semibold">@Model.Subject.Chapters.Count</div>
+            <div class="display-6 fw-semibold" id="subject-chapter-count">@Model.Subject.Chapters.Count</div>
         </div>
     </div>
     <div class="col-12 col-md-4">
         <div class="surface-card h-100">
             <div class="text-white-50 small text-uppercase">Documents</div>
-            <div class="display-6 fw-semibold">@Model.Documents.Count</div>
+            <div class="display-6 fw-semibold" id="subject-document-count">@Model.Documents.Count</div>
         </div>
     </div>
     <div class="col-12 col-md-4">
         <div class="surface-card h-100">
             <div class="text-white-50 small text-uppercase">Indexed</div>
-            <div class="display-6 fw-semibold">@Model.Documents.Count(d => d.Status == "indexed")</div>
+            <div class="display-6 fw-semibold" id="subject-indexed-count">@Model.Documents.Count(d => d.Status == "indexed")</div>
         </div>
     </div>
 </div>
 
-@if (!Model.Documents.Any())
-{
-    <div class="content-panel text-center py-5">
-        <h3 class="h5 mb-2">No documents indexed yet</h3>
-        <p class="page-subtitle mb-0">Upload a file to start the indexing pipeline and make it searchable in Chat.</p>
+<div class="surface-card mb-4">
+    <h4 class="mb-3" id="documents-title">@(Model.Documents.Any() ? "Indexed documents" : "No documents yet")</h4>
+
+    <div id="document-empty-state" class="alert alert-warning mb-0" style="display:@(hasDocuments ? "none" : "block")">
+        <strong>No indexed content.</strong>
+        @if (Model.CanUploadDocument)
+        {
+            <span>Click <strong>Upload document</strong> to add the first file.</span>
+        }
     </div>
-}
-else
-{
-    <div class="surface-card p-0 overflow-hidden">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>File name</th>
-                        <th>Type</th>
-                        <th>Chapter</th>
-                        <th>Status</th>
-                        <th>Chunks</th>
-                        <th>Uploaded</th>
-                        <th>Indexed</th>
-                        <th></th>
+
+    <div class="table-responsive" id="document-table-wrapper" style="display:@(hasDocuments ? "block" : "none")">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>File name</th>
+                    <th>Type</th>
+                    <th>Chapter</th>
+                    <th>Status</th>
+                    <th>Chunks</th>
+                    <th>Uploaded</th>
+                    <th>Indexed</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="document-table-body">
+                @foreach (var doc in Model.Documents)
+                {
+                    <tr data-document-row data-document-id="@doc.Id" data-document-status="@doc.Status" data-document-subject-id="@doc.SubjectId">
+                        <td>
+                            <div class="fw-semibold doc-name">@doc.OriginalName</div>
+                            <div class="small">#@doc.Id</div>
+                        </td>
+                        <td><span class="status-chip badge-soft doc-type">@doc.FileType.ToUpper()</span></td>
+                        <td class="doc-chapter">@(doc.ChapterNumber is null ? "—" : $"Ch.{doc.ChapterNumber}: {doc.ChapterTitle}")</td>
+                        <td>
+                            <span class="status-chip badge-soft doc-status">@doc.Status</span>
+                            @if (doc.Status == "failed" && !string.IsNullOrEmpty(doc.ErrorMsg))
+                            {
+                                <div class="small text-danger doc-error">@doc.ErrorMsg</div>
+                            }
+                        </td>
+                        <td class="doc-chunks">@doc.ChunkCount</td>
+                        <td class="doc-created">@(doc.CreatedAt?.ToString("g") ?? "—")</td>
+                        <td class="doc-indexed">@(doc.IndexedAt?.ToString("g") ?? "—")</td>
+                        <td class="text-nowrap">
+                            <a class="btn btn-sm btn-outline-light" asp-controller="Documents" asp-action="Details" asp-route-id="@doc.Id">View</a>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var doc in Model.Documents)
-                    {
-                        <tr>
-                            <td>
-                                <div class="fw-semibold">@doc.OriginalName</div>
-                                <div class="small">#@doc.Id</div>
-                            </td>
-                            <td><span class="status-chip badge-soft">@doc.FileType.ToUpper()</span></td>
-                            <td>@(doc.ChapterNumber is null ? "—" : $"Ch.{doc.ChapterNumber}: {doc.ChapterTitle}")</td>
-                            <td>
-                                <span class="status-chip badge-soft">@doc.Status</span>
-                                @if (doc.Status == "failed" && !string.IsNullOrEmpty(doc.ErrorMsg))
-                                {
-                                    <div class="small text-danger">@doc.ErrorMsg</div>
-                                }
-                            </td>
-                            <td>@doc.ChunkCount</td>
-                            <td>@(doc.CreatedAt?.ToString("g") ?? "—")</td>
-                            <td>@(doc.IndexedAt?.ToString("g") ?? "—")</td>
-                            <td class="text-nowrap">
-                                <a class="btn btn-sm btn-outline-light" asp-controller="Documents" asp-action="Details" asp-route-id="@doc.Id">View</a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                }
+            </tbody>
+        </table>
     </div>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const subjectId = @Model.Subject.Id;
+            const documentTableBody = document.getElementById("document-table-body");
+            if (!documentTableBody) {
+                return;
+            }
+
+            const emptyState = document.getElementById("document-empty-state");
+            const tableWrapper = document.getElementById("document-table-wrapper");
+            const documentsTitle = document.getElementById("documents-title");
+
+            const subjectCode = document.getElementById("subject-code");
+            const subjectName = document.getElementById("subject-name");
+            const subjectDescription = document.getElementById("subject-description");
+            const chapterCount = document.getElementById("subject-chapter-count");
+            const documentCount = document.getElementById("subject-document-count");
+            const indexedCount = document.getElementById("subject-indexed-count");
+
+            function documentRowHtml(doc) {
+                const chapter = doc.chapterNumber ? `Ch.${doc.chapterNumber}: ${doc.chapterTitle || ""}` : "—";
+                const errorHtml = doc.status === "failed" && doc.errorMsg ? `<div class="small text-danger doc-error">${appHubRealtime.escapeHtml(doc.errorMsg)}</div>` : "";
+
+                return `
+                    <tr data-document-row data-document-id="${doc.id}" data-document-status="${appHubRealtime.escapeHtml(doc.status)}" data-document-subject-id="${doc.subjectId ?? ""}">
+                        <td>
+                            <div class="fw-semibold doc-name">${appHubRealtime.escapeHtml(doc.originalName)}</div>
+                            <div class="small">#${doc.id}</div>
+                        </td>
+                        <td><span class="status-chip badge-soft doc-type">${appHubRealtime.escapeHtml((doc.fileType || "").toUpperCase())}</span></td>
+                        <td class="doc-chapter">${appHubRealtime.escapeHtml(chapter)}</td>
+                        <td>
+                            <span class="status-chip badge-soft doc-status">${appHubRealtime.escapeHtml(doc.status)}</span>
+                            ${errorHtml}
+                        </td>
+                        <td class="doc-chunks">${doc.chunkCount ?? 0}</td>
+                        <td class="doc-created">${appHubRealtime.formatDateTime(doc.createdAt)}</td>
+                        <td class="doc-indexed">${appHubRealtime.formatDateTime(doc.indexedAt)}</td>
+                        <td class="text-nowrap">
+                            <a class="btn btn-sm btn-outline-light" href="/Documents/Details/${doc.id}">View</a>
+                        </td>
+                    </tr>`;
+            }
+
+            function refreshCounters() {
+                const rows = documentTableBody.querySelectorAll("[data-document-row]");
+                const total = rows.length;
+                const indexed = documentTableBody.querySelectorAll("[data-document-row][data-document-status='indexed']").length;
+
+                if (documentCount) {
+                    documentCount.textContent = String(total);
+                }
+                if (indexedCount) {
+                    indexedCount.textContent = String(indexed);
+                }
+                if (documentsTitle) {
+                    documentsTitle.textContent = total > 0 ? "Indexed documents" : "No documents yet";
+                }
+                if (emptyState && tableWrapper) {
+                    const showEmpty = total === 0;
+                    emptyState.style.display = showEmpty ? "block" : "none";
+                    tableWrapper.style.display = showEmpty ? "none" : "block";
+                }
+            }
+
+            function upsertDocument(doc) {
+                if (doc.subjectId && Number(doc.subjectId) !== Number(subjectId)) {
+                    return;
+                }
+
+                const existing = documentTableBody.querySelector(`[data-document-row][data-document-id="${doc.id}"]`);
+                if (existing) {
+                    existing.setAttribute("data-document-status", doc.status || "");
+                    existing.setAttribute("data-document-subject-id", doc.subjectId ?? "");
+                    existing.querySelector(".doc-name").textContent = doc.originalName || "";
+                    existing.querySelector(".doc-type").textContent = (doc.fileType || "").toUpperCase();
+                    existing.querySelector(".doc-chapter").textContent = doc.chapterNumber ? `Ch.${doc.chapterNumber}: ${doc.chapterTitle || ""}` : "—";
+                    existing.querySelector(".doc-status").textContent = doc.status || "";
+                    const errorNode = existing.querySelector(".doc-error");
+                    if (doc.status === "failed" && doc.errorMsg) {
+                        if (errorNode) {
+                            errorNode.textContent = doc.errorMsg;
+                        } else {
+                            existing.querySelector("td:nth-child(4)").insertAdjacentHTML("beforeend", `<div class="small text-danger doc-error">${appHubRealtime.escapeHtml(doc.errorMsg)}</div>`);
+                        }
+                    } else if (errorNode) {
+                        errorNode.remove();
+                    }
+                    existing.querySelector(".doc-chunks").textContent = String(doc.chunkCount ?? 0);
+                    existing.querySelector(".doc-created").textContent = appHubRealtime.formatDateTime(doc.createdAt);
+                    existing.querySelector(".doc-indexed").textContent = appHubRealtime.formatDateTime(doc.indexedAt);
+                } else {
+                    documentTableBody.insertAdjacentHTML("beforeend", documentRowHtml(doc));
+                }
+
+                refreshCounters();
+            }
+
+            function removeDocument(id) {
+                const row = documentTableBody.querySelector(`[data-document-row][data-document-id="${id}"]`);
+                if (row) {
+                    row.remove();
+                }
+                refreshCounters();
+            }
+
+            function updateSubject(subject) {
+                if (!subject || Number(subject.id) !== Number(subjectId)) {
+                    return;
+                }
+
+                if (subjectCode) subjectCode.textContent = subject.code || "";
+                if (subjectName) subjectName.textContent = subject.name || "";
+                if (subjectDescription) subjectDescription.textContent = subject.description || "";
+                if (chapterCount) chapterCount.textContent = String(subject.chapterCount ?? 0);
+            }
+
+            function removeSubject(id) {
+                if (Number(id) !== Number(subjectId)) {
+                    return;
+                }
+
+                alert("Mon hoc nay vua bi xoa.");
+                window.location.href = "/Documents";
+            }
+
+            refreshCounters();
+
+            window.appHubRealtime.createConnection({
+                DocumentCreated: upsertDocument,
+                DocumentUpdated: upsertDocument,
+                DocumentDeleted: removeDocument,
+                CourseUpdated: updateSubject,
+                CourseDeleted: removeSubject
+            });
+        })();
+    </script>
 }

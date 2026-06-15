@@ -1,9 +1,11 @@
 using Assignmet1_Presentation.Filters;
 using Assignmet1_Presentation.Helpers;
+using Assignmet1_Presentation.Hubs;
 using Assignmet1_Presentation.Mappings;
 using Assignmet1_Presentation.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Assignmet1_Presentation.Controllers;
 
@@ -11,10 +13,14 @@ namespace Assignmet1_Presentation.Controllers;
 public class SubjectsController : Controller
 {
     private readonly ISubjectService _subjectService;
+    private readonly IHubContext<AppHub> _appHub;
 
-    public SubjectsController(ISubjectService subjectService)
+    public SubjectsController(
+        ISubjectService subjectService,
+        IHubContext<AppHub> appHub)
     {
         _subjectService = subjectService;
+        _appHub = appHub;
     }
 
     public IActionResult Index()
@@ -67,7 +73,8 @@ public class SubjectsController : Controller
         try
         {
             var created = await _subjectService.CreateSubjectAsync(model.Code!, model.Name!, model.Description);
-            TempData["Success"] = $"Created subject {created.Subject.Code} — {created.Subject.Name}.";
+            await _appHub.Clients.All.SendAsync("CourseCreated", ViewModelMapper.ToListItemViewModel(created));
+            TempData["Success"] = $"Created subject {created.Subject.Code} - {created.Subject.Name}.";
             return RedirectToAction(nameof(Manage));
         }
         catch (Exception ex)
@@ -107,8 +114,9 @@ public class SubjectsController : Controller
 
         try
         {
-            await _subjectService.UpdateSubjectAsync(id, model.Code!, model.Name!, model.Description);
-            TempData["Success"] = $"Cập nhật môn học {model.Code} thành công.";
+            var updated = await _subjectService.UpdateSubjectAsync(id, model.Code!, model.Name!, model.Description);
+            await _appHub.Clients.All.SendAsync("CourseUpdated", ViewModelMapper.ToListItemViewModel(updated));
+            TempData["Success"] = $"Updated subject {model.Code} successfully.";
             return RedirectToAction(nameof(Manage));
         }
         catch (Exception ex)
@@ -125,9 +133,14 @@ public class SubjectsController : Controller
     {
         var (success, error) = await _subjectService.DeleteSubjectAsync(id);
         if (success)
-            TempData["Success"] = "Đã xóa môn học.";
+        {
+            await _appHub.Clients.All.SendAsync("CourseDeleted", id);
+            TempData["Success"] = "Deleted subject.";
+        }
         else
-            TempData["Error"] = error ?? "Lỗi khi xóa môn học.";
+        {
+            TempData["Error"] = error ?? "Error deleting subject.";
+        }
 
         return RedirectToAction(nameof(Manage));
     }
@@ -144,6 +157,7 @@ public class SubjectsController : Controller
         try
         {
             var created = await _subjectService.CreateSubjectAsync(model.Code!, model.Name!, model.Description);
+            await _appHub.Clients.All.SendAsync("CourseCreated", ViewModelMapper.ToListItemViewModel(created));
             return CreatedAtAction(nameof(Details), new { id = created.Subject.Id }, ViewModelMapper.ToViewModel(created));
         }
         catch (Exception ex)

@@ -303,6 +303,34 @@ option {
   font-weight: 600;
 }
 
+.force-password-nav {
+  color: #ffd98a !important;
+  background: rgba(246, 183, 60, 0.12);
+  border: 1px solid rgba(246, 183, 60, 0.18);
+}
+
+.change-password-shell .form-label {
+  color: #dce9ff;
+}
+
+.change-password-form .form-control::placeholder {
+  color: rgba(148, 163, 184, 0.82);
+}
+
+.change-password-note,
+.change-password-gate {
+  border-radius: 1rem;
+}
+
+.change-password-note {
+  background: rgba(246, 183, 60, 0.08);
+  border: 1px solid rgba(246, 183, 60, 0.22);
+}
+
+.change-password-form .input-group .btn {
+  min-width: 4.6rem;
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;

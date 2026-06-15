@@ -2,6 +2,7 @@ using Assignmet1_Presentation.Filters;
 using Assignmet1_Presentation.Helpers;
 using Assignmet1_Presentation.Mappings;
 using Assignmet1_Presentation.Models;
+using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,12 +23,9 @@ public class ChatController : Controller
     public async Task<IActionResult> Index(int? subjectId)
     {
         var userId = GetUserId();
-        if (userId is null)
+        var numericUserId = GetNumericUserId();
+        if (userId is null || numericUserId is null)
             return RedirectToAction("Login", "Account");
-
-        var access = await EnsureChatAccessAsync();
-        if (access is not null)
-            return access;
 
         var availableSubjects = await _chatService.GetAvailableSubjectsAsync();
         SubjectViewModel? selectedSubject = null;
@@ -53,11 +51,16 @@ public class ChatController : Controller
             ? await _chatService.GetSessionsAsync(userId, selectedSubjectId)
             : [];
 
+        var quotaStatus = selectedSubjectId.HasValue && !CanBypassSubscription()
+            ? await BuildQuotaStatusAsync(numericUserId.Value, selectedSubjectId.Value, selectedSubject)
+            : null;
+
         return View(new ChatIndexViewModel
         {
             Subject = selectedSubject,
             AvailableSubjects = availableSubjects.Select(ViewModelMapper.ToViewModel).ToList(),
             SelectedSubjectId = selectedSubjectId,
+            QuotaStatus = quotaStatus,
             Sessions = sessions.Select(ViewModelMapper.ToViewModel).ToList()
         });
     }
@@ -67,10 +70,6 @@ public class ChatController : Controller
         var userId = GetUserId();
         if (userId is null)
             return RedirectToAction("Login", "Account");
-
-        var access = await EnsureChatAccessAsync();
-        if (access is not null)
-            return access;
 
         if (!subjectId.HasValue || subjectId.Value <= 0)
         {
@@ -85,25 +84,32 @@ public class ChatController : Controller
     public async Task<IActionResult> Conversation(string id)
     {
         var userId = GetUserId();
-        if (userId is null)
+        var numericUserId = GetNumericUserId();
+        if (userId is null || numericUserId is null)
             return RedirectToAction("Login", "Account");
-
-        var access = await EnsureChatAccessAsync();
-        if (access is not null)
-            return access;
 
         var session = await _chatService.GetSessionAsync(id, userId);
         if (session is null)
             return NotFound();
 
-        return View(new ChatConversationViewModel
+        var viewModel = new ChatConversationViewModel
         {
             Session = ViewModelMapper.ToViewModel(session),
             AvailableSubjects = (await _chatService.GetAvailableSubjectsAsync())
                 .Select(ViewModelMapper.ToViewModel)
                 .ToList(),
             SelectedSubjectId = session.SubjectId
-        });
+        };
+
+        if (session.SubjectId.HasValue && !CanBypassSubscription())
+        {
+            viewModel.QuotaStatus = await BuildQuotaStatusAsync(
+                numericUserId.Value,
+                session.SubjectId.Value,
+                viewModel.AvailableSubjects.FirstOrDefault(subject => subject.Id == session.SubjectId.Value));
+        }
+
+        return View(viewModel);
     }
 
     [HttpPost]
@@ -111,12 +117,9 @@ public class ChatController : Controller
     public async Task<IActionResult> Ask(string id, ChatConversationViewModel model)
     {
         var userId = GetUserId();
-        if (userId is null)
+        var numericUserId = GetNumericUserId();
+        if (userId is null || numericUserId is null)
             return RedirectToAction("Login", "Account");
-
-        var access = await EnsureChatAccessAsync();
-        if (access is not null)
-            return access;
 
         id = id.Trim();
         var session = await _chatService.GetSessionAsync(id, userId);
@@ -132,6 +135,26 @@ public class ChatController : Controller
             .Select(ViewModelMapper.ToViewModel)
             .ToList();
 
+        if (session.SubjectId.HasValue && !CanBypassSubscription())
+        {
+            model.QuotaStatus = await BuildQuotaStatusAsync(
+                numericUserId.Value,
+                session.SubjectId.Value,
+                model.AvailableSubjects.FirstOrDefault(subject => subject.Id == session.SubjectId.Value));
+
+            if (model.QuotaStatus is not null && !model.QuotaStatus.IsAllowed)
+            {
+                var blockedMessage = model.QuotaStatus.Message
+                    ?? "Free quota da het. Vui long doi reset hoac nang cap Plus.";
+
+                if (IsAjaxRequest())
+                    return StatusCode(403, new { error = blockedMessage });
+
+                TempData["Error"] = blockedMessage;
+                return RedirectToAction(nameof(Conversation), new { id });
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(model.Question))
         {
             ModelState.AddModelError(nameof(model.Question), "Please enter a question.");
@@ -144,6 +167,14 @@ public class ChatController : Controller
         try
         {
             var reply = await _chatService.AskAsync(id, userId, model.Question);
+            ChatQuotaStatusDto? updatedQuota = null;
+
+            if (session.SubjectId.HasValue && !CanBypassSubscription())
+            {
+                updatedQuota = await _subscriptionService.RecordSuccessfulQuestionAsync(
+                    numericUserId.Value,
+                    session.SubjectId.Value);
+            }
 
             if (IsAjaxRequest())
             {
@@ -156,7 +187,21 @@ public class ChatController : Controller
                         documentName = citation.DocumentName,
                         slideNumber = citation.SlideNumber,
                         score = citation.Score
-                    })
+                    }),
+                    quota = updatedQuota is null
+                        ? null
+                        : new
+                        {
+                            isPlus = updatedQuota.IsPlus,
+                            isAllowed = updatedQuota.IsAllowed,
+                            questionLimit = updatedQuota.QuestionLimit,
+                            questionsUsed = updatedQuota.QuestionsUsed,
+                            questionsRemaining = updatedQuota.QuestionsRemaining,
+                            currentPlanName = updatedQuota.CurrentPlanName,
+                            currentPackageName = updatedQuota.CurrentPackageName,
+                            message = updatedQuota.Message,
+                            windowEndText = updatedQuota.WindowEndAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        }
                 });
             }
 
@@ -177,19 +222,29 @@ public class ChatController : Controller
         return HttpContext.Session.GetInt32("UserId")?.ToString();
     }
 
-    private async Task<IActionResult?> EnsureChatAccessAsync()
+    private int? GetNumericUserId()
+    {
+        return HttpContext.Session.GetInt32("UserId");
+    }
+
+    private bool CanBypassSubscription()
     {
         var roleId = HttpContext.Session.GetInt32("RoleId");
-        if (roleId is not null && SubscriptionPermissions.CanBypassSubscription(roleId.Value))
-            return null;
-
-        var numericUserId = HttpContext.Session.GetInt32("UserId")!.Value;
-        if (await _subscriptionService.HasActiveSubscriptionAsync(numericUserId))
-            return null;
-
-        TempData["Error"] = "Bạn cần subscription đang hoạt động để dùng Chat. Vui lòng tạo ticket thanh toán.";
-        return RedirectToAction("Index", "Subscription");
+        return roleId is not null && SubscriptionPermissions.CanBypassSubscription(roleId.Value);
     }
+
+    private async Task<QuotaStatusViewModel> BuildQuotaStatusAsync(
+        int userId,
+        int subjectId,
+        SubjectViewModel? subject)
+    {
+        var quota = await _subscriptionService.GetChatQuotaStatusAsync(userId, subjectId);
+        var viewModel = ViewModelMapper.ToViewModel(quota);
+        viewModel.SubjectCode = subject?.Code;
+        viewModel.SubjectName = subject?.Name;
+        return viewModel;
+    }
+
     private bool IsAjaxRequest()
     {
         return string.Equals(

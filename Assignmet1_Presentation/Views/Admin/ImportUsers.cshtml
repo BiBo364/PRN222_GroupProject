@@ -1,333 +1,198 @@
 @model ImportUsersViewModel
-@using Assignmet1_Presentation.Models
 @using Assignment1_Service.Models
 @{
-    ViewData["Title"] = "Import người dùng";
+    ViewData["Title"] = "Import nguoi dung";
 }
 
 <div class="d-flex flex-column gap-4">
-
-    @* ── HERO ──────────────────────────────────────────────── *@
     <div class="page-hero d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3">
         <div>
-            <div class="hero-badge mb-2">📥 Nhập dữ liệu hàng loạt</div>
-            <h1 class="page-title mb-1">Import người dùng</h1>
+            <div class="hero-badge mb-2">Nhap du lieu hang loat</div>
+            <h1 class="page-title mb-1">Import nguoi dung</h1>
             <p class="page-subtitle mb-0">
-                Upload file <strong>.xlsx, .csv, .json, .txt</strong> chứa danh sách người dùng. Hệ thống sẽ tự động tạo tài khoản
-                với mật khẩu mặc định <code style="color:#f6b73c;background:rgba(246,183,60,.1);padding:2px 6px;border-radius:4px">1234567</code>.
+                Upload file <strong>.xlsx, .csv, .json, .txt</strong>. He thong se tao tai khoan voi
+                mat khau mac dinh <code>1234567</code> va se gui email thong bao neu SMTP da duoc cau hinh.
             </p>
         </div>
-        <a asp-action="Index" class="btn btn-outline-secondary flex-shrink-0">
-            ← Quay lại danh sách
-        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary flex-shrink-0">Quay lai danh sach</a>
     </div>
 
-    @* ── INSTRUCTIONS + FORM ─────────────────────────────── *@
     <div class="row g-4">
-
-        @* LEFT: Form *@
         <div class="col-lg-6">
             <div class="surface-card h-100">
-                <h2 class="h5 fw-semibold mb-4">📋 Tải lên danh sách</h2>
+                <h2 class="h5 fw-semibold mb-4">Tai len danh sach</h2>
 
                 <form asp-action="ImportUsers" method="post" enctype="multipart/form-data" id="importForm">
                     @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" style="display:none"></div>
+
                     @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
                     {
-                        <div class="alert alert-danger d-flex gap-2 mb-4">
-                            <span>❌</span>
+                        <div class="alert alert-danger mb-4">
                             <div asp-validation-summary="All"></div>
                         </div>
                     }
 
-                    @* Role selector *@
                     <div class="mb-4">
-                        <label asp-for="RoleId" class="form-label fw-semibold">
-                            👤 Vai trò (áp dụng cho toàn bộ danh sách)
-                        </label>
+                        <label asp-for="RoleId" class="form-label fw-semibold"></label>
                         <select asp-for="RoleId" class="form-select form-select-lg">
-                            <option value="2">📚 Giảng viên</option>
-                            <option value="4" selected>🎓 Sinh viên</option>
+                            <option value="2">Giang vien</option>
+                            <option value="4" selected>Sinh vien</option>
                         </select>
-                        <div class="form-text">Tất cả tài khoản được tạo sẽ có vai trò này.</div>
                     </div>
 
-                    @* Subject selector *@
                     <div class="mb-4">
-                        <label asp-for="SubjectId" class="form-label fw-semibold">
-                            📚 Gán môn học (tuỳ chọn)
-                        </label>
-                        <div class="form-text">Mỗi môn học chỉ được gán cho 1 giảng viên. Sinh viên vẫn có thể dùng chung môn với giảng viên.</div>
-                        <select asp-for="SubjectId" class="form-select form-select-lg" id="importSubjectSelect">
-                            <option value="">— Không gán môn học —</option>
+                        <label asp-for="SubjectId" class="form-label fw-semibold"></label>
+                        <select asp-for="SubjectId" class="form-select form-select-lg">
+                            <option value="">Khong gan mon hoc</option>
                             @foreach (var s in Model.SubjectOptions)
                             {
                                 var isTakenByTeacher = Model.TeacherBySubjectId.TryGetValue(s.Id, out var assignedTeacher);
-                                <option value="@s.Id" data-teacher-assigned="@isTakenByTeacher">
-                                    @s.Code — @s.Name@(isTakenByTeacher ? $" (đã có GV: {assignedTeacher})" : "")
+                                <option value="@s.Id">
+                                    @s.Code - @s.Name@(isTakenByTeacher ? $" (da co GV: {assignedTeacher})" : "")
                                 </option>
                             }
                         </select>
                     </div>
 
-                    @* File picker *@
                     <div class="mb-4">
-                        <label asp-for="File" class="form-label fw-semibold">📄 File danh sách (.xlsx, .csv, .json, .txt)</label>
-                        <div class="drop-zone" id="dropZone"
-                             style="border:2px dashed rgba(96,165,250,.35);border-radius:1rem;
-                                    padding:2.5rem;text-align:center;cursor:pointer;
-                                    transition:all .2s ease;background:rgba(96,165,250,.04)">
-                            <div id="dropZoneContent">
-                                <div style="font-size:2.5rem;margin-bottom:.5rem">📊</div>
-                                <p class="mb-1 fw-semibold" style="color:#93c5fd">Kéo thả file vào đây</p>
-                                <p class="text-muted small mb-3">hoặc nhấn để chọn file</p>
-                                <button type="button" class="btn btn-outline-primary btn-sm"
-                                        onclick="document.getElementById('fileInput').click()">
-                                    Chọn file
-                                </button>
-                            </div>
-                            <div id="fileSelected" style="display:none">
-                                <div style="font-size:2rem;margin-bottom:.5rem">✅</div>
-                                <p class="fw-semibold" style="color:#34d399" id="fileName"></p>
-                                <p class="text-muted small" id="fileSize"></p>
-                                <button type="button" class="btn btn-outline-secondary btn-sm mt-1"
-                                        onclick="clearFile()">Chọn file khác</button>
-                            </div>
-                        </div>
-                        <input type="file" asp-for="File" id="fileInput" accept=".xlsx,.xls,.csv,.json,.txt"
-                               class="d-none" onchange="handleFileSelect(this)" />
-                        <span asp-validation-for="File" class="text-danger small mt-1 d-block"></span>
+                        <label asp-for="File" class="form-label fw-semibold"></label>
+                        <input type="file" asp-for="File" accept=".xlsx,.xls,.csv,.json,.txt" class="form-control" />
+                        <span asp-validation-for="File" class="text-danger small"></span>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
-                        📥 Bắt đầu Import
-                    </button>
+                    <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">Bat dau Import</button>
                 </form>
             </div>
         </div>
 
-        @* RIGHT: Instructions *@
         <div class="col-lg-6">
             <div class="surface-card h-100">
-                <h2 class="h5 fw-semibold mb-4">📖 Hướng dẫn định dạng file</h2>
-
-                <div class="mb-4">
-                    <p class="text-muted small mb-3">Hỗ trợ các định dạng: Excel (.xlsx), CSV, TXT (cách nhau bởi tab hoặc dấu phẩy), JSON.</p>
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm mb-0" style="font-size:.85rem">
-                            <thead>
-                                <tr style="background:rgba(96,165,250,.1)">
-                                    <th class="text-center" style="color:#93c5fd">Cột 1</th>
-                                    <th class="text-center" style="color:#93c5fd">Cột 2</th>
-                                    <th class="text-center" style="color:#94a3b8">Cột 3 (tuỳ chọn)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr style="background:rgba(246,183,60,.05)">
-                                    <td class="fw-semibold text-center" style="color:#fbbf24">FullName</td>
-                                    <td class="fw-semibold text-center" style="color:#fbbf24">Email</td>
-                                    <td class="text-center text-muted">Username</td>
-                                </tr>
-                                <tr>
-                                    <td>Nguyễn Văn An</td>
-                                    <td>an.nv&#64;fpt.edu.vn</td>
-                                    <td class="text-muted">annv (để trống → tự sinh)</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <h2 class="h5 fw-semibold mb-4">Huong dan</h2>
+                <div class="d-flex flex-column gap-3">
+                    <div class="mini-panel">
+                        <div class="fw-semibold small">Dinh dang file</div>
+                        <div class="text-muted small">Cot 1: FullName, cot 2: Email hop le, cot 3: Username (tuy chon).</div>
                     </div>
-                </div>
-
-                <div class="d-flex flex-column gap-2">
-                    <div class="mini-panel d-flex align-items-start gap-3">
-                        <span style="font-size:1.3rem;flex-shrink:0">🔑</span>
-                        <div>
-                            <div class="fw-semibold small">Mật khẩu mặc định</div>
-                            <div class="text-muted small">Tất cả tài khoản mới sẽ có mật khẩu <strong style="color:#f6b73c">1234567</strong>. Người dùng có thể đổi sau khi đăng nhập.</div>
-                        </div>
+                    <div class="mini-panel">
+                        <div class="fw-semibold small">Mat khau mac dinh</div>
+                        <div class="text-muted small">Tai khoan moi se duoc tao voi mat khau <strong>1234567</strong>.</div>
                     </div>
-                    <div class="mini-panel d-flex align-items-start gap-3">
-                        <span style="font-size:1.3rem;flex-shrink:0">🔁</span>
-                        <div>
-                            <div class="fw-semibold small">Email trùng lặp</div>
-                            <div class="text-muted small">Nếu email đã tồn tại, dòng đó sẽ bị bỏ qua. Tài khoản cũ không bị ảnh hưởng.</div>
-                        </div>
+                    <div class="mini-panel">
+                        <div class="fw-semibold small">Doi mat khau lan dau</div>
+                        <div class="text-muted small">Nguoi dung dang nhap bang mat khau mac dinh se bi dieu huong sang man doi mat khau.</div>
                     </div>
-                    <div class="mini-panel d-flex align-items-start gap-3">
-                        <span style="font-size:1.3rem;flex-shrink:0">📧</span>
-                        <div>
-                            <div class="fw-semibold small">Quy tắc tên miền Email</div>
-                            <div class="text-muted small">Sinh viên phải sử dụng email <strong style="color:#60a5fa">@@fpt.edu.vn</strong>. Giảng viên và Admin phải sử dụng email <strong style="color:#60a5fa">@@edu.vn</strong>.</div>
-                        </div>
-                    </div>
-                    <div class="mini-panel d-flex align-items-start gap-3">
-                        <span style="font-size:1.3rem;flex-shrink:0">👤</span>
-                        <div>
-                            <div class="fw-semibold small">Username tự động</div>
-                            <div class="text-muted small">Nếu để trống, username được tự động sinh từ email.</div>
-                        </div>
+                    <div class="mini-panel">
+                        <div class="fw-semibold small">Email thong bao</div>
+                        <div class="text-muted small">Neu SMTP da cau hinh, he thong gui email chua username va mat khau tam toi tung user moi tao, khong gioi han duoi email.</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    @* ── IMPORT RESULT ─────────────────────────────────────── *@
     @if (Model.Result is { } result)
     {
         <div class="surface-card mt-4">
-            <h2 class="h5 fw-semibold mb-4">📊 Kết quả import</h2>
+            <h2 class="h5 fw-semibold mb-4">Ket qua import</h2>
 
-            @* Summary cards *@
             <div class="row g-3 mb-4">
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="stat-card text-center">
-                        <div class="stat-value" style="color:#94a3b8">@result.TotalRows</div>
-                        <div class="stat-label">Tổng dòng dữ liệu</div>
+                        <div class="stat-value">@result.TotalRows</div>
+                        <div class="stat-label">Tong dong</div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="stat-card text-center">
-                        <div class="stat-value" style="color:#34d399">@result.CreatedCount</div>
-                        <div class="stat-label">Tạo thành công</div>
+                        <div class="stat-value">@result.CreatedCount</div>
+                        <div class="stat-label">Tao OK</div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="stat-card text-center">
-                        <div class="stat-value" style="color:#f6b73c">@result.SkippedDuplicateCount</div>
-                        <div class="stat-label">Trùng lặp (bỏ qua)</div>
+                        <div class="stat-value">@result.SkippedDuplicateCount</div>
+                        <div class="stat-label">Trung lap</div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="stat-card text-center">
-                        <div class="stat-value" style="color:#f87171">@result.ErrorCount</div>
-                        <div class="stat-label">Lỗi</div>
+                        <div class="stat-value">@result.ErrorCount</div>
+                        <div class="stat-label">Loi</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="stat-card text-center">
+                        <div class="stat-value">@result.NotificationSentCount</div>
+                        <div class="stat-label">Mail OK</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="stat-card text-center">
+                        <div class="stat-value">@result.NotificationFailedCount</div>
+                        <div class="stat-label">Mail loi</div>
                     </div>
                 </div>
             </div>
 
-            @* Detail table *@
             <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle" style="font-size:.88rem">
+                <table class="table table-hover mb-0 align-middle">
                     <thead>
                         <tr>
-                            <th style="width:60px" class="text-center">Dòng</th>
-                            <th>Họ tên</th>
+                            <th>Dong</th>
+                            <th>Ho ten</th>
                             <th>Email</th>
                             <th>Username</th>
-                            <th style="width:110px" class="text-center">Trạng thái</th>
-                            <th>Ghi chú</th>
+                            <th>Trang thai</th>
+                            <th>Email TB</th>
+                            <th>Ghi chu</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var row in result.Rows)
                         {
-                            <tr class="@(row.Status == ImportRowStatus.Error ? "table-danger-soft" : row.Status == ImportRowStatus.Duplicate ? "table-warning-soft" : "")">
-                                <td class="text-center text-muted">@row.RowNumber</td>
-                                <td>@(row.FullName ?? "—")</td>
-                                <td>@(row.Email ?? "—")</td>
+                            <tr>
+                                <td>@row.RowNumber</td>
+                                <td>@(row.FullName ?? "-")</td>
+                                <td>@(row.Email ?? "-")</td>
+                                <td>@(row.Username ?? "-")</td>
+                                <td>@row.StatusLabel</td>
                                 <td>
-                                    @if (!string.IsNullOrEmpty(row.Username))
+                                    @if (row.NotificationSent is true)
                                     {
-                                        <code style="color:#93c5fd;font-size:.82rem">@row.Username</code>
+                                        <span>Da gui</span>
+                                    }
+                                    else if (row.NotificationSent is false)
+                                    {
+                                        <span>Chua gui</span>
                                     }
                                     else
                                     {
-                                        <span class="text-muted">—</span>
+                                        <span>-</span>
                                     }
                                 </td>
-                                <td class="text-center">
-                                    @{
-                                        var (badgeStyle, icon) = row.Status switch {
-                                            ImportRowStatus.Created   => ("background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.3);color:#6ee7b7", "✅"),
-                                            ImportRowStatus.Duplicate => ("background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.3);color:#fcd34d", "🔁"),
-                                            _                         => ("background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3);color:#fca5a5", "❌")
-                                        };
+                                <td>
+                                    @row.Message
+                                    @if (!string.IsNullOrWhiteSpace(row.NotificationMessage))
+                                    {
+                                        <div class="text-muted small">@row.NotificationMessage</div>
                                     }
-                                    <span class="status-chip" style="@badgeStyle">
-                                        @icon @row.StatusLabel
-                                    </span>
                                 </td>
-                                <td class="text-muted small">@row.Message</td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-
-            @if (result.CreatedCount > 0)
-            {
-                <div class="mt-4 d-flex justify-content-end">
-                    <a asp-action="Index" class="btn btn-primary">
-                        👥 Xem danh sách người dùng →
-                    </a>
-                </div>
-            }
         </div>
     }
 </div>
 
 @section Scripts {
+<partial name="_ValidationScriptsPartial" />
 <script>
-    // ── Drag & Drop ──────────────────────────────────────────────────
-    const dropZone   = document.getElementById('dropZone');
-    const fileInput  = document.getElementById('fileInput');
-    const submitBtn  = document.getElementById('submitBtn');
-
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.style.borderColor = 'rgba(96,165,250,.8)';
-        dropZone.style.background  = 'rgba(96,165,250,.08)';
-    });
-
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.style.borderColor = 'rgba(96,165,250,.35)';
-        dropZone.style.background  = 'rgba(96,165,250,.04)';
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.style.borderColor = 'rgba(96,165,250,.35)';
-        dropZone.style.background  = 'rgba(96,165,250,.04)';
-        const file = e.dataTransfer.files[0];
-        if (file) assignFile(file);
-    });
-
-    dropZone.addEventListener('click', (e) => {
-        if (!e.target.closest('button')) fileInput.click();
-    });
-
-    function handleFileSelect(input) {
-        if (input.files.length > 0) assignFile(input.files[0]);
-    }
-
-    function assignFile(file) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fileInput.files = dt.files;
-
-        document.getElementById('dropZoneContent').style.display = 'none';
-        document.getElementById('fileSelected').style.display    = 'block';
-        document.getElementById('fileName').textContent = file.name;
-        document.getElementById('fileSize').textContent = formatBytes(file.size);
-    }
-
-    function clearFile() {
-        fileInput.value = '';
-        document.getElementById('dropZoneContent').style.display = 'block';
-        document.getElementById('fileSelected').style.display    = 'none';
-    }
-
-    function formatBytes(bytes) {
-        if (bytes < 1024)       return bytes + ' B';
-        if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / 1048576).toFixed(1) + ' MB';
-    }
-
     document.getElementById('importForm').addEventListener('submit', function () {
-        submitBtn.disabled    = true;
-        submitBtn.innerHTML   = '⏳ Đang xử lý…';
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = 'Dang xu ly...';
     });
 </script>
 }

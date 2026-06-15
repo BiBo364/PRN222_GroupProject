@@ -38,6 +38,21 @@ public static class ViewModelMapper
         CreatedAt = dto.CreatedAt
     };
 
+    public static QuotaStatusViewModel ToViewModel(ChatQuotaStatusDto dto) => new()
+    {
+        SubjectId = dto.SubjectId,
+        IsPlus = dto.IsPlus,
+        IsAllowed = dto.IsAllowed,
+        QuestionLimit = dto.QuestionLimit,
+        QuestionsUsed = dto.QuestionsUsed,
+        QuestionsRemaining = dto.QuestionsRemaining,
+        WindowStartAt = dto.WindowStartAt,
+        WindowEndAt = dto.WindowEndAt,
+        CurrentPlanName = dto.CurrentPlanName,
+        CurrentPackageName = dto.CurrentPackageName,
+        Message = dto.Message
+    };
+
     public static SubjectViewModel ToViewModel(SubjectDto dto) => new()
     {
         Id = dto.Id,
@@ -64,6 +79,17 @@ public static class ViewModelMapper
         Documents = dto.Documents.Select(ToViewModel).ToList()
     };
 
+    public static SubjectListItemViewModel ToListItemViewModel(SubjectDetailDto dto) => new()
+    {
+        Id = dto.Subject.Id,
+        Code = dto.Subject.Code,
+        Name = dto.Subject.Name,
+        Description = dto.Subject.Description,
+        ChapterCount = dto.Subject.Chapters.Count,
+        DocumentCount = dto.Documents.Count,
+        IndexedDocumentCount = dto.Documents.Count(document => document.Status == "indexed")
+    };
+
     public static ChapterViewModel ToViewModel(ChapterDto dto) => new()
     {
         Id = dto.Id,
@@ -79,6 +105,21 @@ public static class ViewModelMapper
         Status = dto.Status,
         ErrorMsg = dto.ErrorMsg,
         ChunkCount = dto.ChunkCount,
+        SubjectId = dto.SubjectId,
+        ChapterNumber = dto.ChapterNumber,
+        ChapterTitle = dto.ChapterTitle,
+        CreatedAt = dto.CreatedAt,
+        IndexedAt = dto.IndexedAt
+    };
+
+    public static DocumentListItemViewModel ToListItemViewModel(DocumentDetailDto dto) => new()
+    {
+        Id = dto.Id,
+        OriginalName = dto.OriginalName,
+        FileType = dto.FileType,
+        Status = dto.Status,
+        ErrorMsg = dto.ErrorMsg,
+        ChunkCount = dto.Chunks.Count,
         SubjectId = dto.SubjectId,
         ChapterNumber = dto.ChapterNumber,
         ChapterTitle = dto.ChapterTitle,

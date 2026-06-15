@@ -1,103 +1,188 @@
 @model List<SubjectListItemViewModel>
-@using Assignmet1_Presentation.Models
 @{
-    ViewData["Title"] = "Quản lý môn học";
+    ViewData["Title"] = "Quan ly mon hoc";
 }
 
 <div class="d-flex flex-column gap-4">
-
-    @* ── HERO ──────────────────────────────────────────────── *@
+    <form id="subjects-antiforgery" method="post" class="d-none">
+        @Html.AntiForgeryToken()
+    </form>
     <div class="page-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
         <div>
-            <div class="hero-badge mb-2">📚 Giảng viên</div>
-            <h1 class="page-title mb-1">Quản lý môn học</h1>
-            <p class="page-subtitle">Tạo, cập nhật, và xóa thông tin các môn học.</p>
+            <div class="hero-badge mb-2">Giang vien</div>
+            <h1 class="page-title mb-1">Quan ly mon hoc</h1>
+            <p class="page-subtitle">Tao, cap nhat, va xoa thong tin cac mon hoc.</p>
         </div>
         <div class="d-flex gap-2 flex-shrink-0">
-            <a asp-action="Create" class="btn btn-primary">
-                ➕ Thêm môn học
-            </a>
+            <a asp-action="Create" class="btn btn-primary">+ Them mon hoc</a>
         </div>
     </div>
 
-    @* ── ALERT MESSAGES ───────────────────────────────────── *@
     @if (TempData["Success"] is string success)
     {
         <div class="alert alert-success d-flex align-items-center gap-2 mb-0" role="alert">
-            <span>✅</span> @success
+            <span>OK</span> @success
         </div>
     }
     @if (TempData["Error"] is string error)
     {
         <div class="alert alert-danger d-flex align-items-center gap-2 mb-0" role="alert">
-            <span>❌</span> @error
+            <span>X</span> @error
         </div>
     }
 
-    @* ── TABLE ────────────────────────────────────────────── *@
     <div class="surface-card p-0 overflow-hidden">
         <div class="px-4 py-3 d-flex align-items-center justify-content-between" style="border-bottom:1px solid rgba(255,255,255,.08)">
-            <h2 class="h6 mb-0 fw-semibold">Danh sách môn học (@Model.Count)</h2>
+            <h2 class="h6 mb-0 fw-semibold">Danh sach mon hoc (<span id="subject-count">@Model.Count</span>)</h2>
         </div>
 
-        @if (Model.Count == 0)
-        {
-            <div class="text-center py-5 text-muted">
-                <div style="font-size:3rem">📚</div>
-                <p class="mt-2">Chưa có môn học nào được tạo.</p>
-                <a asp-action="Create" class="btn btn-outline-primary mt-2">Tạo môn học đầu tiên</a>
-            </div>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead>
-                        <tr>
-                            <th class="ps-4">Mã môn</th>
-                            <th>Tên môn</th>
-                            <th>Tài liệu</th>
-                            <th class="pe-4 text-end">Hành động</th>
+        <div id="subject-empty-state" class="text-center py-5 text-muted" style="display:@(Model.Count == 0 ? "block" : "none")">
+            <div style="font-size:3rem">📚</div>
+            <p class="mt-2">Chua co mon hoc nao duoc tao.</p>
+            <a asp-action="Create" class="btn btn-outline-primary mt-2">Tao mon hoc dau tien</a>
+        </div>
+        <div id="subject-table-wrapper" class="table-responsive" style="display:@(Model.Count == 0 ? "none" : "block")">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Ma mon</th>
+                        <th>Ten mon</th>
+                        <th>Toan tu lieu</th>
+                        <th class="pe-4 text-end">Hanh dong</th>
+                    </tr>
+                </thead>
+                <tbody id="subject-table-body">
+                    @foreach (var subject in Model)
+                    {
+                        <tr data-subject-row data-subject-id="@subject.Id" data-subject-code="@subject.Code">
+                            <td class="ps-4">
+                                <div class="fw-semibold">@subject.Code</div>
+                            </td>
+                            <td>
+                                <div class="subject-name">@subject.Name</div>
+                                <div class="text-muted small subject-description">@subject.Description</div>
+                            </td>
+                            <td>
+                                <span class="status-chip" style="background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.25);color:#93c5fd">
+                                    📄 <span class="subject-document-count">@subject.DocumentCount</span>
+                                </span>
+                            </td>
+                            <td class="pe-4 text-end">
+                                <a asp-action="Details" asp-route-id="@subject.Id" class="btn btn-sm btn-outline-info" style="font-size:.78rem;padding:.3rem .7rem;border-radius:.5rem">👁 Xem</a>
+                                <a asp-action="Edit" asp-route-id="@subject.Id" class="btn btn-sm btn-outline-primary" style="font-size:.78rem;padding:.3rem .7rem;border-radius:.5rem">✏ Sua</a>
+                                <form asp-action="Delete" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@subject.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:.78rem;padding:.3rem .7rem;border-radius:.5rem" onclick="return confirm('Ban co chac muon xoa mon hoc nay khong?')">
+                                        🗑 Xoa
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var subject in Model)
-                        {
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="fw-semibold">@subject.Code</div>
-                                </td>
-                                <td>
-                                    <div>@subject.Name</div>
-                                    <div class="text-muted small">@subject.Description</div>
-                                </td>
-                                <td>
-                                    <span class="status-chip" style="background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.25);color:#93c5fd">
-                                        📄 @subject.DocumentCount
-                                    </span>
-                                </td>
-                                <td class="pe-4 text-end">
-                                    <a asp-action="Details" asp-route-id="@subject.Id" class="btn btn-sm btn-outline-info" title="Xem chi tiết & Upload" style="font-size:.78rem;padding:.3rem .7rem;border-radius:.5rem">
-                                        👁️ Xem
-                                    </a>
-                                    <a asp-action="Edit" asp-route-id="@subject.Id" class="btn btn-sm btn-outline-primary" style="font-size:.78rem;padding:.3rem .7rem;border-radius:.5rem">
-                                        ✏️ Sửa
-                                    </a>
-                                    <form asp-action="Delete" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@subject.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" 
-                                                style="font-size:.78rem;padding:.3rem .7rem;border-radius:.5rem"
-                                                onclick="return confirm('Bạn có chắc chắn muốn xóa môn học @subject.Code này không? (Không thể xóa nếu đã có tài liệu hoặc sinh viên)')">
-                                            🗑️ Xóa
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const grid = document.getElementById("subject-table-body");
+            if (!grid) {
+                return;
+            }
+
+            const emptyState = document.getElementById("subject-empty-state");
+            const tableWrapper = document.getElementById("subject-table-wrapper");
+            const countNode = document.getElementById("subject-count");
+            const tokenInput = document.querySelector("#subjects-antiforgery input[name='__RequestVerificationToken']");
+            const requestToken = tokenInput ? tokenInput.value : "";
+
+            function subjectRowHtml(subject) {
+                const description = subject.description ? subject.description : "";
+                return `
+                    <tr data-subject-row data-subject-id="${subject.id}" data-subject-code="${appHubRealtime.escapeHtml(subject.code)}">
+                        <td class="ps-4"><div class="fw-semibold">${appHubRealtime.escapeHtml(subject.code)}</div></td>
+                        <td>
+                            <div class="subject-name">${appHubRealtime.escapeHtml(subject.name)}</div>
+                            <div class="text-muted small subject-description">${appHubRealtime.escapeHtml(description)}</div>
+                        </td>
+                        <td>
+                            <span class="status-chip" style="background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.25);color:#93c5fd">
+                                📄 <span class="subject-document-count">${subject.documentCount ?? 0}</span>
+                            </span>
+                        </td>
+                        <td class="pe-4 text-end">
+                            <a href="/Subjects/Details/${subject.id}" class="btn btn-sm btn-outline-info" style="font-size:.78rem;padding:.3rem .7rem;border-radius:.5rem">👁 Xem</a>
+                            <a href="/Subjects/Edit/${subject.id}" class="btn btn-sm btn-outline-primary" style="font-size:.78rem;padding:.3rem .7rem;border-radius:.5rem">✏ Sua</a>
+                            <form method="post" action="/Subjects/Delete" class="d-inline">
+                                <input type="hidden" name="__RequestVerificationToken" value="${requestToken}" />
+                                <input type="hidden" name="id" value="${subject.id}" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:.78rem;padding:.3rem .7rem;border-radius:.5rem" onclick="return confirm('Ban co chac muon xoa mon hoc nay khong?')">🗑 Xoa</button>
+                            </form>
+                        </td>
+                    </tr>`;
+            }
+
+            function updateEmptyState() {
+                const rows = grid.querySelectorAll("[data-subject-row]");
+                if (emptyState) {
+                    emptyState.style.display = rows.length === 0 ? "block" : "none";
+                }
+                if (tableWrapper) {
+                    tableWrapper.style.display = rows.length === 0 ? "none" : "block";
+                }
+                if (countNode) {
+                    countNode.textContent = rows.length.toString();
+                }
+            }
+
+            function sortRows() {
+                const rows = Array.from(grid.querySelectorAll("[data-subject-row]"));
+                rows.sort((a, b) => {
+                    const aCode = a.getAttribute("data-subject-code") || "";
+                    const bCode = b.getAttribute("data-subject-code") || "";
+                    return aCode.localeCompare(bCode);
+                });
+                rows.forEach(row => grid.appendChild(row));
+            }
+
+            function upsertSubject(subject) {
+                const existing = grid.querySelector(`[data-subject-row][data-subject-id="${subject.id}"]`);
+                if (existing) {
+                    existing.setAttribute("data-subject-code", subject.code || "");
+                    existing.querySelector(".subject-name").textContent = subject.name || "";
+                    existing.querySelector(".subject-description").textContent = subject.description || "";
+                    const docCount = existing.querySelector(".subject-document-count");
+                    if (docCount) {
+                        docCount.textContent = String(subject.documentCount ?? 0);
+                    }
+                } else {
+                    grid.insertAdjacentHTML("beforeend", subjectRowHtml(subject));
+                }
+                sortRows();
+                updateEmptyState();
+            }
+
+            function removeSubject(id) {
+                const row = grid.querySelector(`[data-subject-row][data-subject-id="${id}"]`);
+                if (row) {
+                    row.remove();
+                }
+                updateEmptyState();
+            }
+
+            updateEmptyState();
+
+            const realtime = window.appHubRealtime.createConnection({
+                CourseCreated: upsertSubject,
+                CourseUpdated: upsertSubject,
+                CourseDeleted: removeSubject
+            });
+
+            window.subjectRealtime = realtime;
+        })();
+    </script>
+}

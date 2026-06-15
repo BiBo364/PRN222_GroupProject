@@ -7,33 +7,30 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Assignment1_Service.Services;
 
 public class UserServices : IUserServices
 {
-    private const string DefaultPassword = "1234567";
+    public const string DefaultPassword = "1234567";
     private const int TeacherRoleId = 2;
-    private const int StudentRoleId = 4;
 
     private readonly IUserReposity _userRepository;
     private readonly ISubjectRepository _subjectRepository;
     private readonly RagEduContext _context;
+    private readonly IAccountNotificationService _accountNotificationService;
 
     public UserServices(
         IUserReposity userRepository,
         ISubjectRepository subjectRepository,
-        RagEduContext context)
+        RagEduContext context,
+        IAccountNotificationService accountNotificationService)
     {
         _userRepository = userRepository;
         _subjectRepository = subjectRepository;
         _context = context;
+        _accountNotificationService = accountNotificationService;
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Auth
-    // ─────────────────────────────────────────────────────────────────
 
     public async Task<LoginUserDto?> LoginAsync(string username, string password)
     {
@@ -53,13 +50,12 @@ public class UserServices : IUserServices
             Username = user.Username,
             FullName = user.FullName,
             RoleId = user.RoleId,
-            SubjectId = user.SubjectId
+            SubjectId = user.SubjectId,
+            RequirePasswordChange = IsDefaultPassword(user.Password)
         };
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // Admin — Quản lý users
-    // ─────────────────────────────────────────────────────────────────
+    public bool IsDefaultPassword(string password) => password == DefaultPassword;
 
     public async Task<List<UserListItemDto>> GetAllUsersAsync()
     {
@@ -82,43 +78,27 @@ public class UserServices : IUserServices
         }).ToList();
     }
 
-    /// <summary>
-    /// Đọc file (Excel/CSV) và tạo tài khoản hàng loạt.
-    /// Cấu trúc: Cột A = FullName, Cột B = Email, Cột C = Username (tuỳ chọn).
-    /// </summary>
     public async Task<ImportUsersResultDto> ImportUsersFromFileAsync(Stream stream, string fileName, int? subjectId, int roleId)
     {
         var result = new ImportUsersResultDto();
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
 
-        List<ImportRowResultDto> rows = [];
+        List<ImportRowResultDto> rows;
 
         try
         {
-            if (ext == ".xlsx" || ext == ".xls")
+            rows = ext switch
             {
-                rows = ParseExcel(stream);
-            }
-            else if (ext == ".csv")
-            {
-                rows = ParseCsv(stream);
-            }
-            else if (ext == ".json")
-            {
-                rows = ParseJson(stream);
-            }
-            else if (ext == ".txt")
-            {
-                rows = ParseTxt(stream);
-            }
-            else
-            {
-                throw new InvalidOperationException("Định dạng file không được hỗ trợ.");
-            }
+                ".xlsx" or ".xls" => ParseExcel(stream),
+                ".csv" => ParseCsv(stream),
+                ".json" => ParseJson(stream),
+                ".txt" => ParseTxt(stream),
+                _ => throw new InvalidOperationException("Dinh dang file khong duoc ho tro.")
+            };
         }
         catch (Exception ex)
         {
-            throw new Exception($"Lỗi khi phân tích file: {ex.Message}");
+            throw new Exception($"Loi khi phan tich file: {ex.Message}");
         }
 
         var assignedTeacherSubjectsInBatch = new HashSet<int>();
@@ -127,69 +107,38 @@ public class UserServices : IUserServices
         {
             result.TotalRows++;
 
-            // Kiểm tra dữ liệu bắt buộc
             if (string.IsNullOrWhiteSpace(rowResult.Email))
             {
-                rowResult.Status  = ImportRowStatus.Error;
-                rowResult.Message = "Email không được để trống.";
-                result.ErrorCount++;
-                result.Rows.Add(rowResult);
+                MarkError(rowResult, result, "Email khong duoc de trong.");
                 continue;
             }
 
             if (!IsValidEmail(rowResult.Email))
             {
-                rowResult.Status  = ImportRowStatus.Error;
-                rowResult.Message = $"Email '{rowResult.Email}' không hợp lệ.";
-                result.ErrorCount++;
-                result.Rows.Add(rowResult);
-                continue;
-            }
-
-            // Kiểm tra quy tắc tên miền email theo vai trò
-            if (roleId == 4 && !rowResult.Email.EndsWith("@fpt.edu.vn", StringComparison.OrdinalIgnoreCase))
-            {
-                rowResult.Status  = ImportRowStatus.Error;
-                rowResult.Message = "Sinh viên phải sử dụng email có đuôi @fpt.edu.vn.";
-                result.ErrorCount++;
-                result.Rows.Add(rowResult);
-                continue;
-            }
-            else if ((roleId == 1 || roleId == 2 || roleId == 3) && !rowResult.Email.EndsWith("@edu.vn", StringComparison.OrdinalIgnoreCase))
-            {
-                rowResult.Status  = ImportRowStatus.Error;
-                rowResult.Message = "Giảng viên/Admin phải sử dụng email có đuôi @edu.vn.";
-                result.ErrorCount++;
-                result.Rows.Add(rowResult);
+                MarkError(rowResult, result, $"Email '{rowResult.Email}' khong hop le.");
                 continue;
             }
 
             if (string.IsNullOrWhiteSpace(rowResult.FullName))
             {
-                rowResult.Status  = ImportRowStatus.Error;
-                rowResult.Message = "Họ tên không được để trống.";
-                result.ErrorCount++;
-                result.Rows.Add(rowResult);
+                MarkError(rowResult, result, "Ho ten khong duoc de trong.");
                 continue;
             }
 
-            // Kiểm tra email đã tồn tại
             var existing = await _userRepository.GetByEmailAsync(rowResult.Email);
             if (existing is not null)
             {
-                rowResult.Status  = ImportRowStatus.Duplicate;
-                rowResult.Message = $"Email '{rowResult.Email}' đã tồn tại (username: {existing.Username}).";
+                rowResult.Status = ImportRowStatus.Duplicate;
+                rowResult.Message = $"Email '{rowResult.Email}' da ton tai (username: {existing.Username}).";
                 result.SkippedDuplicateCount++;
                 result.Rows.Add(rowResult);
                 continue;
             }
 
-            // Sinh username từ email nếu không cung cấp
-            var username = rowResult.Username;
-            if (string.IsNullOrWhiteSpace(username))
-                username = GenerateUsername(rowResult.Email);
+            var username = string.IsNullOrWhiteSpace(rowResult.Username)
+                ? GenerateUsername(rowResult.Email)
+                : rowResult.Username;
 
-            // Đảm bảo username duy nhất
             username = await EnsureUniqueUsernameAsync(username);
             rowResult.Username = username;
 
@@ -197,10 +146,7 @@ public class UserServices : IUserServices
             {
                 if (!assignedTeacherSubjectsInBatch.Add(subjectId.Value))
                 {
-                    rowResult.Status = ImportRowStatus.Error;
-                    rowResult.Message = "Môn học này đã được chọn cho giảng viên khác trong cùng file import.";
-                    result.ErrorCount++;
-                    result.Rows.Add(rowResult);
+                    MarkError(rowResult, result, "Mon hoc nay da duoc chon cho giang vien khac trong cung file import.");
                     continue;
                 }
 
@@ -210,32 +156,48 @@ public class UserServices : IUserServices
 
                 if (!isAvailable)
                 {
-                    rowResult.Status = ImportRowStatus.Error;
-                    rowResult.Message = availabilityError!;
-                    result.ErrorCount++;
-                    result.Rows.Add(rowResult);
+                    MarkError(rowResult, result, availabilityError ?? "Mon hoc da co giang vien phu trach.");
                     continue;
                 }
             }
 
-            // Tạo user mới
             var newUser = new User
             {
-                Username  = username,
-                Email     = rowResult.Email.ToLowerInvariant(),
-                FullName  = rowResult.FullName,
-                Password  = DefaultPassword,
-                RoleId    = roleId,
+                Username = username,
+                Email = rowResult.Email.ToLowerInvariant(),
+                FullName = rowResult.FullName,
+                Password = DefaultPassword,
+                RoleId = roleId,
                 SubjectId = subjectId,
-                IsActive  = true,
+                IsActive = true,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
 
             await _userRepository.AddAsync(newUser);
 
-            rowResult.Status  = ImportRowStatus.Created;
-            rowResult.Message = $"Tạo tài khoản thành công (username: {username}).";
+            rowResult.Status = ImportRowStatus.Created;
+            rowResult.Message = $"Tao tai khoan thanh cong (username: {username}).";
+
+            var notificationResult = await _accountNotificationService.SendAccountCreatedEmailAsync(
+                newUser.Email,
+                newUser.FullName ?? newUser.Username,
+                newUser.Username,
+                DefaultPassword);
+
+            rowResult.NotificationSent = notificationResult.IsSuccess;
+            rowResult.NotificationMessage = notificationResult.Message;
+
+            if (notificationResult.IsSuccess)
+            {
+                result.NotificationSentCount++;
+            }
+            else
+            {
+                result.NotificationFailedCount++;
+                rowResult.Message = $"{rowResult.Message} Tuy nhien, email thong bao chua gui duoc.";
+            }
+
             result.CreatedCount++;
             result.Rows.Add(rowResult);
         }
@@ -250,18 +212,18 @@ public class UserServices : IUserServices
         var worksheet = workbook.Worksheets.First();
         var lastRowUsed = worksheet.LastRowUsed()?.RowNumber() ?? 1;
 
-        // Bỏ qua dòng 1 (header)
         for (int rowNum = 2; rowNum <= lastRowUsed; rowNum++)
         {
             var row = worksheet.Row(rowNum);
             rows.Add(new ImportRowResultDto
             {
                 RowNumber = rowNum,
-                FullName  = row.Cell(1).GetString()?.Trim(),
-                Email     = row.Cell(2).GetString()?.Trim(),
-                Username  = row.Cell(3).GetString()?.Trim()
+                FullName = row.Cell(1).GetString()?.Trim(),
+                Email = row.Cell(2).GetString()?.Trim(),
+                Username = row.Cell(3).GetString()?.Trim()
             });
         }
+
         return rows;
     }
 
@@ -277,7 +239,7 @@ public class UserServices : IUserServices
             BadDataFound = null
         });
 
-        int rowNum = 2;
+        var rowNum = 2;
         if (csv.Read())
         {
             csv.ReadHeader();
@@ -286,45 +248,31 @@ public class UserServices : IUserServices
                 rows.Add(new ImportRowResultDto
                 {
                     RowNumber = rowNum++,
-                    FullName  = csv.GetField(0),
-                    Email     = csv.GetField(1),
-                    Username  = csv.TryGetField(2, out string? username) ? username : null
+                    FullName = csv.GetField(0),
+                    Email = csv.GetField(1),
+                    Username = csv.TryGetField(2, out string? username) ? username : null
                 });
             }
         }
+
         return rows;
     }
 
     private List<ImportRowResultDto> ParseJson(Stream stream)
     {
-        var rows = new List<ImportRowResultDto>();
-        try
-        {
-            using var reader = new StreamReader(stream);
-            var json = reader.ReadToEnd();
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var data = JsonSerializer.Deserialize<List<JsonImportRow>>(json, options);
+        using var reader = new StreamReader(stream);
+        var json = reader.ReadToEnd();
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var data = JsonSerializer.Deserialize<List<JsonImportRow>>(json, options) ?? [];
 
-            if (data != null)
-            {
-                int rowNum = 2; // Assuming row 1 is structural representation
-                foreach (var item in data)
-                {
-                    rows.Add(new ImportRowResultDto
-                    {
-                        RowNumber = rowNum++,
-                        FullName = item.FullName,
-                        Email = item.Email,
-                        Username = item.Username
-                    });
-                }
-            }
-        }
-        catch (JsonException ex)
+        var rowNum = 2;
+        return data.Select(item => new ImportRowResultDto
         {
-            throw new InvalidOperationException($"Lỗi phân tích JSON: {ex.Message}", ex);
-        }
-        return rows;
+            RowNumber = rowNum++,
+            FullName = item.FullName,
+            Email = item.Email,
+            Username = item.Username
+        }).ToList();
     }
 
     private class JsonImportRow
@@ -338,30 +286,31 @@ public class UserServices : IUserServices
     {
         var rows = new List<ImportRowResultDto>();
         using var reader = new StreamReader(stream);
-        
-        string? headerLine = reader.ReadLine();
-        if (headerLine == null) return rows;
 
-        // Try to detect separator
-        char separator = headerLine.Contains('\t') ? '\t' : (headerLine.Contains('|') ? '|' : ',');
+        var headerLine = reader.ReadLine();
+        if (headerLine is null)
+            return rows;
 
-        int rowNum = 2;
+        var separator = headerLine.Contains('\t') ? '\t' : headerLine.Contains('|') ? '|' : ',';
+        var rowNum = 2;
+
         while (!reader.EndOfStream)
         {
             var line = reader.ReadLine();
-            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
 
             var parts = line.Split(separator);
-            if (parts.Length >= 2)
+            if (parts.Length < 2)
+                continue;
+
+            rows.Add(new ImportRowResultDto
             {
-                rows.Add(new ImportRowResultDto
-                {
-                    RowNumber = rowNum++,
-                    FullName = parts[0].Trim(),
-                    Email = parts[1].Trim(),
-                    Username = parts.Length > 2 ? parts[2].Trim() : null
-                });
-            }
+                RowNumber = rowNum++,
+                FullName = parts[0].Trim(),
+                Email = parts[1].Trim(),
+                Username = parts.Length > 2 ? parts[2].Trim() : null
+            });
         }
 
         return rows;
@@ -371,13 +320,13 @@ public class UserServices : IUserServices
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user is null)
-            return (false, "Không tìm thấy người dùng.");
+            return (false, "Khong tim thay nguoi dung.");
 
         if (subjectId.HasValue)
         {
             var subject = await _subjectRepository.GetByIdWithDetailsAsync(subjectId.Value);
             if (subject is null)
-                return (false, "Không tìm thấy môn học.");
+                return (false, "Khong tim thay mon hoc.");
 
             if (user.RoleId == TeacherRoleId)
             {
@@ -400,6 +349,56 @@ public class UserServices : IUserServices
         int? excludeUserId = null)
         => ValidateTeacherSubjectAssignmentAsync(subjectId, excludeUserId);
 
+    public async Task<(bool Success, string? Error)> ToggleUserStatusAsync(int userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user is null)
+            return (false, "Khong tim thay nguoi dung.");
+
+        user.IsActive = !(user.IsActive ?? true);
+        await _userRepository.UpdateAsync(user);
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> ChangePasswordAsync(
+        int userId,
+        string currentPassword,
+        string newPassword)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user is null)
+            return (false, "Khong tim thay tai khoan.");
+
+        if (user.Password != currentPassword)
+            return (false, "Mat khau hien tai khong dung.");
+
+        var validationError = ValidateNewPassword(newPassword, user.Password);
+        if (validationError is not null)
+            return (false, validationError);
+
+        user.Password = newPassword;
+        await _userRepository.UpdateAsync(user);
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> ChangeDefaultPasswordAsync(int userId, string newPassword)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user is null)
+            return (false, "Khong tim thay tai khoan.");
+
+        if (!IsDefaultPassword(user.Password))
+            return (false, "Tai khoan nay khong con dung mat khau mac dinh.");
+
+        var validationError = ValidateNewPassword(newPassword, user.Password);
+        if (validationError is not null)
+            return (false, validationError);
+
+        user.Password = newPassword;
+        await _userRepository.UpdateAsync(user);
+        return (true, null);
+    }
+
     private async Task<(bool IsAvailable, string? Error)> ValidateTeacherSubjectAssignmentAsync(
         int subjectId,
         int? excludeUserId)
@@ -410,49 +409,19 @@ public class UserServices : IUserServices
 
         var teacherName = existingTeacher.FullName ?? existingTeacher.Username;
         var subjectCode = existingTeacher.Subject?.Code ?? subjectId.ToString();
-        return (false, $"Môn học {subjectCode} đã được gán cho giảng viên {teacherName}.");
+        return (false, $"Mon hoc {subjectCode} da duoc gan cho giang vien {teacherName}.");
     }
 
-    public async Task<(bool Success, string? Error)> ToggleUserStatusAsync(int userId)
+    private static void MarkError(ImportRowResultDto rowResult, ImportUsersResultDto result, string message)
     {
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user is null)
-            return (false, "Không tìm thấy người dùng.");
-
-        user.IsActive = !(user.IsActive ?? true);
-        await _userRepository.UpdateAsync(user);
-        return (true, null);
+        rowResult.Status = ImportRowStatus.Error;
+        rowResult.Message = message;
+        result.ErrorCount++;
+        result.Rows.Add(rowResult);
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Student — Tự quản lý
-    // ─────────────────────────────────────────────────────────────────
-
-    public async Task<(bool Success, string? Error)> ChangePasswordAsync(
-        int userId, string currentPassword, string newPassword)
-    {
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user is null)
-            return (false, "Không tìm thấy tài khoản.");
-
-        if (user.Password != currentPassword)
-            return (false, "Mật khẩu hiện tại không đúng.");
-
-        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-            return (false, "Mật khẩu mới phải có ít nhất 6 ký tự.");
-
-        user.Password = newPassword;
-        await _userRepository.UpdateAsync(user);
-        return (true, null);
-    }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Helpers
-    // ─────────────────────────────────────────────────────────────────
 
     private static string GenerateUsername(string email)
     {
-        // Lấy phần trước @ và loại bỏ ký tự không hợp lệ
         var local = email.Split('@')[0]
             .ToLowerInvariant()
             .Replace(".", "")
@@ -466,11 +435,13 @@ public class UserServices : IUserServices
     {
         var candidate = baseUsername;
         var counter = 1;
+
         while (await _userRepository.GetByUsernameAsync(candidate) is not null)
         {
             candidate = $"{baseUsername}{counter}";
             counter++;
         }
+
         return candidate;
     }
 
@@ -486,5 +457,15 @@ public class UserServices : IUserServices
             return false;
         }
     }
-}
 
+    private static string? ValidateNewPassword(string newPassword, string currentPassword)
+    {
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            return "Mat khau moi phai co it nhat 6 ky tu.";
+
+        if (newPassword == currentPassword)
+            return "Mat khau moi khong duoc trung voi mat khau hien tai.";
+
+        return null;
+    }
+}

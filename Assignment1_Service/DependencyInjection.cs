@@ -22,6 +22,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserReposity, UserRepository>();
         services.AddScoped<IUserServices, UserServices>();
+        services.AddScoped<IAccountNotificationService, AccountNotificationService>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<ISubjectRepository, SubjectRepository>();
         services.AddScoped<IChatRepository, ChatRepository>();
@@ -32,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IChatService, ChatService>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddHttpClient<IMomoPaymentService, MomoPaymentService>();
 
         return services;
     }

@@ -10,15 +10,17 @@ public interface ISubscriptionService
 
     Task<bool> HasActiveSubscriptionAsync(int userId);
 
+    Task<ChatQuotaStatusDto> GetChatQuotaStatusAsync(int userId, int subjectId);
+
+    Task<List<ChatQuotaStatusDto>> GetChatQuotaStatusesAsync(int userId, IEnumerable<int> subjectIds);
+
+    Task<ChatQuotaStatusDto> RecordSuccessfulQuestionAsync(int userId, int subjectId);
+
     Task<List<PaymentTicketDto>> GetUserTicketsAsync(int userId);
 
     Task<List<PaymentTicketDto>> GetAllTicketsAsync(string? status = null);
 
     Task<int> GetPendingTicketCountAsync();
 
-    Task<string?> CreateTicketAsync(int userId, int planId);
-
-    Task<(bool Success, string? Error)> ApproveTicketAsync(int ticketId, int adminUserId, string? adminNote);
-
-    Task<(bool Success, string? Error)> RejectTicketAsync(int ticketId, int adminUserId, string? adminNote);
+    Task<(bool Success, string? Error)> CompleteTicketAsync(int ticketId, string? note = null);
 }

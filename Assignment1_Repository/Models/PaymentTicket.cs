@@ -14,6 +14,22 @@ public partial class PaymentTicket
 
     public string? TransferReference { get; set; }
 
+    public string? PaymentMethod { get; set; }
+
+    public string? MomoOrderId { get; set; }
+
+    public string? MomoRequestId { get; set; }
+
+    public string? MomoTransId { get; set; }
+
+    public string? MomoPayUrl { get; set; }
+
+    public string? MomoResponseJson { get; set; }
+
+    public string? MomoIpnJson { get; set; }
+
+    public int? MomoResultCode { get; set; }
+
     public string Status { get; set; } = PaymentTicketStatus.Pending;
 
     public string? AdminNote { get; set; }

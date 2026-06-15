@@ -7,4 +7,5 @@ public class LoginUserDto
     public string? FullName { get; set; }
     public int RoleId { get; set; }
     public int? SubjectId { get; set; }
+    public bool RequirePasswordChange { get; set; }
 }

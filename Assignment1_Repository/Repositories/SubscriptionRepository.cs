@@ -32,9 +32,16 @@ public class SubscriptionRepository : ISubscriptionRepository
         var now = DateTime.UtcNow;
         return _context.UserSubscriptions
             .Include(s => s.Plan)
-            .Where(s => s.UserId == userId && s.IsActive && s.EndAt > now)
+            .Where(s => s.UserId == userId && s.IsActive && s.StartAt <= now && s.EndAt > now)
             .OrderByDescending(s => s.EndAt)
             .FirstOrDefaultAsync();
+    }
+
+    public Task<UserSubscription?> GetSubscriptionByPaymentTicketIdAsync(int ticketId)
+    {
+        return _context.UserSubscriptions
+            .Include(s => s.Plan)
+            .FirstOrDefaultAsync(s => s.PaymentTicketId == ticketId);
     }
 
     public Task<List<PaymentTicket>> GetTicketsByUserAsync(int userId)
@@ -57,7 +64,19 @@ public class SubscriptionRepository : ISubscriptionRepository
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(t => t.Status == status);
+        {
+            if (string.Equals(status, PaymentTicketStatus.Pending, StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(t =>
+                    t.Status == PaymentTicketStatus.MomoPending ||
+                    (t.Status == PaymentTicketStatus.Pending &&
+                     t.PaymentMethod == "momo"));
+            }
+            else
+            {
+                query = query.Where(t => t.Status == status);
+            }
+        }
 
         return query
             .OrderByDescending(t => t.CreatedAt)
@@ -69,15 +88,43 @@ public class SubscriptionRepository : ISubscriptionRepository
         return _context.PaymentTickets
             .Include(t => t.User)
             .Include(t => t.Plan)
+            .Include(t => t.ReviewedByNavigation)
             .FirstOrDefaultAsync(t => t.Id == ticketId);
     }
 
-    public Task<bool> HasPendingTicketAsync(int userId, int planId)
+    public Task<PaymentTicket?> GetTicketByOrderIdAsync(string orderId)
     {
-        return _context.PaymentTickets.AnyAsync(t =>
+        return _context.PaymentTickets
+            .Include(t => t.User)
+            .Include(t => t.Plan)
+            .Include(t => t.ReviewedByNavigation)
+            .FirstOrDefaultAsync(t => t.MomoOrderId == orderId);
+    }
+
+    public Task<PaymentTicket?> GetTicketByRequestIdAsync(string requestId)
+    {
+        return _context.PaymentTickets
+            .Include(t => t.User)
+            .Include(t => t.Plan)
+            .Include(t => t.ReviewedByNavigation)
+            .FirstOrDefaultAsync(t => t.MomoRequestId == requestId);
+    }
+
+    public Task<bool> HasPendingTicketAsync(int userId, int planId, DateTime? createdAfterUtc = null)
+    {
+        var query = _context.PaymentTickets.Where(t =>
             t.UserId == userId &&
             t.PlanId == planId &&
-            t.Status == PaymentTicketStatus.Pending);
+            (t.Status == PaymentTicketStatus.MomoPending ||
+             (t.Status == PaymentTicketStatus.Pending &&
+              t.PaymentMethod == "momo")));
+
+        if (createdAfterUtc.HasValue)
+        {
+            query = query.Where(t => t.CreatedAt.HasValue && t.CreatedAt.Value >= createdAfterUtc.Value);
+        }
+
+        return query.AnyAsync();
     }
 
     public async Task<PaymentTicket> AddTicketAsync(PaymentTicket ticket)
@@ -105,6 +152,46 @@ public class SubscriptionRepository : ISubscriptionRepository
     public async Task UpdateSubscriptionAsync(UserSubscription subscription)
     {
         _context.UserSubscriptions.Update(subscription);
+        await _context.SaveChangesAsync();
+    }
+
+    public Task<StudentChatUsage?> GetChatUsageAsync(int userId, int subjectId, DateTime windowStart)
+    {
+        return _context.StudentChatUsages.FirstOrDefaultAsync(usage =>
+            usage.UserId == userId &&
+            usage.SubjectId == subjectId &&
+            usage.WindowStart == windowStart);
+    }
+
+    public Task<List<StudentChatUsage>> GetChatUsagesAsync(
+        int userId,
+        IReadOnlyCollection<int> subjectIds,
+        DateTime windowStart)
+    {
+        if (subjectIds.Count == 0)
+            return Task.FromResult(new List<StudentChatUsage>());
+
+        return _context.StudentChatUsages
+            .Where(usage =>
+                usage.UserId == userId &&
+                subjectIds.Contains(usage.SubjectId) &&
+                usage.WindowStart == windowStart)
+            .ToListAsync();
+    }
+
+    public async Task<StudentChatUsage> AddChatUsageAsync(StudentChatUsage usage)
+    {
+        usage.CreatedAt = DateTime.UtcNow;
+        usage.UpdatedAt = DateTime.UtcNow;
+        _context.StudentChatUsages.Add(usage);
+        await _context.SaveChangesAsync();
+        return usage;
+    }
+
+    public async Task UpdateChatUsageAsync(StudentChatUsage usage)
+    {
+        usage.UpdatedAt = DateTime.UtcNow;
+        _context.StudentChatUsages.Update(usage);
         await _context.SaveChangesAsync();
     }
 

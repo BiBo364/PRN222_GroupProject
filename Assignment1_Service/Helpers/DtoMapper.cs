@@ -73,9 +73,11 @@ public static class DtoMapper
         OriginalName = document.OriginalName,
         FileType = document.FileType,
         Status = document.Status,
+        ErrorMsg = document.ErrorMsg,
         ChapterNumber = document.Chapter?.Number,
         ChapterTitle = document.Chapter?.Title,
         UploadedByName = document.UploadedByNavigation?.FullName ?? document.UploadedByNavigation?.Username,
+        CreatedAt = document.CreatedAt,
         IndexedAt = document.IndexedAt,
         Chunks = document.Chunks
             .OrderBy(c => c.ChunkIndex)
@@ -95,6 +97,8 @@ public static class DtoMapper
 
     public static DocumentUploadResultDto ToUploadResult(Document document) => new()
     {
+        Id = document.Id,
+        SubjectId = document.SubjectId,
         OriginalName = document.OriginalName,
         ChunkCount = document.Chunks.Count
     };

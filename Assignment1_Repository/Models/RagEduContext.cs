@@ -59,6 +59,8 @@ public partial class RagEduContext : DbContext
 
     public virtual DbSet<UserSubscription> UserSubscriptions { get; set; }
 
+    public virtual DbSet<StudentChatUsage> StudentChatUsages { get; set; }
+
     
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -722,6 +724,11 @@ public partial class RagEduContext : DbContext
 
             entity.HasIndex(e => e.UserId, "idx_payment_tickets_user");
             entity.HasIndex(e => e.Status, "idx_payment_tickets_status");
+            entity.HasIndex(e => e.MomoRequestId, "idx_payment_tickets_momo_request_id")
+                .HasFilter("[momo_request_id] IS NOT NULL");
+            entity.HasIndex(e => e.MomoOrderId, "UQ_payment_tickets_momo_order_id")
+                .IsUnique()
+                .HasFilter("[momo_order_id] IS NOT NULL");
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
@@ -732,6 +739,24 @@ public partial class RagEduContext : DbContext
             entity.Property(e => e.TransferReference)
                 .HasMaxLength(500)
                 .HasColumnName("transfer_reference");
+            entity.Property(e => e.PaymentMethod)
+                .HasMaxLength(20)
+                .HasColumnName("payment_method");
+            entity.Property(e => e.MomoOrderId)
+                .HasMaxLength(100)
+                .HasColumnName("momo_order_id");
+            entity.Property(e => e.MomoRequestId)
+                .HasMaxLength(100)
+                .HasColumnName("momo_request_id");
+            entity.Property(e => e.MomoTransId)
+                .HasMaxLength(100)
+                .HasColumnName("momo_trans_id");
+            entity.Property(e => e.MomoPayUrl)
+                .HasMaxLength(1000)
+                .HasColumnName("momo_pay_url");
+            entity.Property(e => e.MomoResponseJson).HasColumnName("momo_response_json");
+            entity.Property(e => e.MomoIpnJson).HasColumnName("momo_ipn_json");
+            entity.Property(e => e.MomoResultCode).HasColumnName("momo_result_code");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValue(PaymentTicketStatus.Pending)
@@ -795,6 +820,44 @@ public partial class RagEduContext : DbContext
             entity.HasOne(d => d.PaymentTicket).WithOne(p => p.UserSubscription)
                 .HasForeignKey<UserSubscription>(d => d.PaymentTicketId)
                 .HasConstraintName("FK_user_subscriptions_ticket");
+        });
+
+        modelBuilder.Entity<StudentChatUsage>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_student_chat_usages");
+
+            entity.ToTable("student_chat_usages");
+
+            entity.HasIndex(e => new { e.UserId, e.SubjectId, e.WindowStart }, "UQ_student_chat_usages_window")
+                .IsUnique();
+
+            entity.HasIndex(e => e.UserId, "idx_student_chat_usages_user");
+
+            entity.HasIndex(e => e.SubjectId, "idx_student_chat_usages_subject");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+            entity.Property(e => e.WindowStart).HasColumnName("window_start");
+            entity.Property(e => e.QuestionCount)
+                .HasDefaultValue(0)
+                .HasColumnName("question_count");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.User).WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_student_chat_usages_user");
+
+            entity.HasOne(d => d.Subject).WithMany()
+                .HasForeignKey(d => d.SubjectId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_student_chat_usages_subject");
         });
 
         OnModelCreatingPartial(modelBuilder);

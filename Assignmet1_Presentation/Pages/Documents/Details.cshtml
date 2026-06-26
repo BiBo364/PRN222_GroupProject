@@ -77,8 +77,20 @@
     </div>
 </div>
 
-<div class="surface-card mb-4">
-    <h4 class="mb-3 fw-semibold">@(Model.ViewModel.IsSlideDeck ? "Nội dung slide" : "Nội dung lập chỉ mục")</h4>
+<section class="document-reader mb-4">
+    <div class="document-reader-header">
+        <div>
+            <div class="reader-kicker">
+                <i data-lucide="book-open-text" class="icon-sm"></i>
+                @(Model.ViewModel.IsSlideDeck ? "Slide deck" : "Indexed content")
+            </div>
+            <h4 class="reader-title mb-0">@(Model.ViewModel.IsSlideDeck ? "Nội dung slide" : "Nội dung lập chỉ mục")</h4>
+        </div>
+        <div class="reader-summary">
+            <span class="status-chip badge-soft">@Model.ViewModel.ChunkItems.Count khối hiển thị</span>
+            <span class="status-chip badge-soft">@Model.ViewModel.Chunks.Count chunks</span>
+        </div>
+    </div>
 
     @if (!Model.ViewModel.ChunkItems.Any())
     {
@@ -92,51 +104,58 @@
     }
     else
     {
-        @foreach (var item in Model.ViewModel.ChunkItems)
-        {
-            var chunk = item.Chunk;
-            <div class="mini-panel mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    @if (item.IsSlide && item.SlideNumber.HasValue)
-                    {
-                        <div class="fw-semibold text-primary"><i data-lucide="image" class="icon-sm me-1"></i> Slide @item.SlideNumber</div>
-                    }
-                    else
-                    {
-                        <div class="fw-semibold text-primary"><i data-lucide="file-text" class="icon-sm me-1"></i> Chunk #@chunk.ChunkIndex</div>
-                    }
-                    <span class="status-chip badge-soft">@chunk.TokenCount tokens</span>
-                </div>
+        <div class="document-content-list">
+            @foreach (var item in Model.ViewModel.ChunkItems)
+            {
+                var title = item.IsSlide
+                    ? $"Slide {item.SlideNumber ?? item.DisplayIndex}"
+                    : item.PageNumber.HasValue
+                        ? $"Trang {item.PageNumber}"
+                        : $"Đoạn {item.DisplayIndex}";
+                var icon = item.IsSlide ? "presentation" : "file-text";
+                var chunkLabel = item.ChunkCount > 1 ? $"{item.ChunkCount} chunks" : "1 chunk";
 
-                @if (item.ImageUrls.Any())
-                {
-                    <div class="row g-3 mb-3">
-                        @foreach (var imageUrl in item.ImageUrls)
+                <article class="document-content-block @(item.IsSlide ? "is-slide" : "is-page")">
+                    <aside class="content-block-marker">
+                        <div class="marker-icon"><i data-lucide="@icon" class="icon-sm"></i></div>
+                        <div>
+                            <div class="marker-title">@title</div>
+                            <div class="marker-meta">@chunkLabel</div>
+                        </div>
+                    </aside>
+
+                    <div class="content-block-body">
+                        <div class="content-block-toolbar">
+                            <span class="status-chip badge-soft">@item.TokenCount tokens</span>
+                        </div>
+
+                        @if (item.ImageUrls.Any())
                         {
-                            var isBrowserImage = imageUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
-                                || imageUrl.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
-                                || imageUrl.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
-                                || imageUrl.EndsWith(".gif", StringComparison.OrdinalIgnoreCase)
-                                || imageUrl.EndsWith(".webp", StringComparison.OrdinalIgnoreCase);
+                            <div class="reader-image-grid">
+                                @foreach (var imageUrl in item.ImageUrls)
+                                {
+                                    var isBrowserImage = imageUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                                        || imageUrl.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                                        || imageUrl.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+                                        || imageUrl.EndsWith(".gif", StringComparison.OrdinalIgnoreCase)
+                                        || imageUrl.EndsWith(".webp", StringComparison.OrdinalIgnoreCase);
 
-                            @if (isBrowserImage)
-                            {
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="image-tile p-2 border rounded" style="background: rgba(255,255,255,0.02)">
-                                        <img src="@imageUrl" alt="Slide @item.SlideNumber image" class="img-fluid rounded shadow-sm" />
-                                    </div>
-                                </div>
-                            }
+                                    @if (isBrowserImage)
+                                    {
+                                        <figure class="reader-image-frame">
+                                            <img src="@imageUrl" alt="@title" />
+                                        </figure>
+                                    }
+                                }
+                            </div>
                         }
-                    </div>
-                }
 
-                <div class="p-3 bg-dark bg-opacity-10 border rounded">
-                    <pre class="mb-0 text-body" style="white-space: pre-wrap; font-family: inherit; font-size: 0.95rem;">@chunk.Content</pre>
-                </div>
-            </div>
-        }
+                        <pre class="document-text-block">@item.Content</pre>
+                    </div>
+                </article>
+            }
+        </div>
     }
-</div>
+</section>
 
 

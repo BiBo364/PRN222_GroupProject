@@ -258,11 +258,15 @@ public class ChatService : IChatService
         return chunks.Select(chunk =>
         {
             var slideMeta = SlideChunkMetadata.FromJson(chunk.Chunk.Metadata);
+            var pageNumber = chunk.Chunk.PageNumber.GetValueOrDefault() > 0
+                ? chunk.Chunk.PageNumber
+                : null;
+
             return new ChatCitationDto
             {
                 ChunkId = chunk.Chunk.Id,
                 DocumentName = chunk.Document.OriginalName,
-                SlideNumber = slideMeta?.SlideNumber ?? chunk.Chunk.PageNumber,
+                SlideNumber = slideMeta?.EffectiveSlideNumber ?? pageNumber,
                 Excerpt = Truncate(chunk.Chunk.Content, 200),
                 Score = Math.Round(chunk.Score, 3)
             };

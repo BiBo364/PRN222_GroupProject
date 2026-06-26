@@ -41,7 +41,7 @@ public static class TextChunker
             if (nextStart <= start)
                 nextStart = end;
 
-            start = nextStart;
+            start = FindReadableStart(normalized, nextStart, end);
         }
 
         return results;
@@ -65,5 +65,35 @@ public static class TextChunker
         }
 
         return windowEnd;
+    }
+
+    private static int FindReadableStart(string text, int proposedStart, int previousEnd)
+    {
+        if (proposedStart <= 0 || proposedStart >= text.Length)
+            return Math.Clamp(proposedStart, 0, text.Length);
+
+        if (char.IsWhiteSpace(text[proposedStart]))
+            return SkipWhitespace(text, proposedStart);
+
+        if (char.IsWhiteSpace(text[proposedStart - 1]))
+            return proposedStart;
+
+        var searchLimit = Math.Min(previousEnd, proposedStart + 80);
+        for (var i = proposedStart; i < searchLimit; i++)
+        {
+            if (char.IsWhiteSpace(text[i]))
+                return SkipWhitespace(text, i);
+        }
+
+        return proposedStart;
+    }
+
+    private static int SkipWhitespace(string text, int start)
+    {
+        var index = start;
+        while (index < text.Length && char.IsWhiteSpace(text[index]))
+            index++;
+
+        return index;
     }
 }

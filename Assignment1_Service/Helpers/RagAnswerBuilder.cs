@@ -18,11 +18,15 @@ public static class RagAnswerBuilder
         var citations = chunks.Select((c, i) =>
         {
             var slideMeta = SlideChunkMetadata.FromJson(c.Chunk.Metadata);
+            var pageNumber = c.Chunk.PageNumber.GetValueOrDefault() > 0
+                ? c.Chunk.PageNumber
+                : null;
+
             return new ChatCitationDto
             {
                 ChunkId = c.Chunk.Id,
                 DocumentName = c.Document.OriginalName,
-                SlideNumber = slideMeta?.SlideNumber ?? c.Chunk.PageNumber,
+                SlideNumber = slideMeta?.EffectiveSlideNumber ?? pageNumber,
                 Excerpt = Truncate(c.Chunk.Content, 200),
                 Score = Math.Round(c.Score, 3)
             };
@@ -67,7 +71,7 @@ public static class RagAnswerBuilder
     private static string FormatSource(RetrievedChunk chunk, int index)
     {
         var slideMeta = SlideChunkMetadata.FromJson(chunk.Chunk.Metadata);
-        if (slideMeta?.SlideNumber is int slideNum)
+        if (slideMeta?.EffectiveSlideNumber is int slideNum)
             return $"Source {index}: {chunk.Document.OriginalName}, slide {slideNum}";
 
         return $"Source {index}: {chunk.Document.OriginalName}";

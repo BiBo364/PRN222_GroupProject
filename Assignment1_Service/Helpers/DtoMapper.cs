@@ -95,6 +95,8 @@ public static class DtoMapper
         Content = chunk.Content,
         Metadata = chunk.Metadata,
         PageNumber = chunk.PageNumber,
+        CharStart = chunk.CharStart,
+        CharEnd = chunk.CharEnd,
         TokenCount = chunk.TokenCount
     };
 
@@ -133,11 +135,14 @@ public static class DtoMapper
     public static ChatCitationDto ToCitationDto(MessageCitation citation)
     {
         var slideMeta = SlideChunkMetadata.FromJson(citation.Chunk.Metadata);
+        var pageNumber = citation.Chunk.PageNumber.GetValueOrDefault() > 0
+            ? citation.Chunk.PageNumber
+            : null;
         return new ChatCitationDto
         {
             ChunkId = citation.ChunkId,
             DocumentName = citation.Chunk.Document.OriginalName,
-            SlideNumber = slideMeta?.SlideNumber ?? citation.Chunk.PageNumber,
+            SlideNumber = slideMeta?.EffectiveSlideNumber ?? pageNumber,
             Excerpt = citation.Chunk.Content.Length > 120
                 ? citation.Chunk.Content[..120] + "…"
                 : citation.Chunk.Content,

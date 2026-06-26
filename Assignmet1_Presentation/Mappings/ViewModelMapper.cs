@@ -135,6 +135,8 @@ public static class ViewModelMapper
     public static DocumentDetailViewModel ToDocumentDetailPage(DocumentDetailDto dto)
     {
         var chunks = dto.Chunks.Select(ToViewModel).ToList();
+        var isSlideDeck = dto.FileType == "pptx";
+
         return new DocumentDetailViewModel
         {
             Id = dto.Id,
@@ -146,8 +148,8 @@ public static class ViewModelMapper
             UploadedByName = dto.UploadedByName,
             IndexedAt = dto.IndexedAt,
             Chunks = chunks,
-            ChunkItems = chunks.Select(ChunkDisplayItem.FromChunk).ToList(),
-            IsSlideDeck = dto.FileType == "pptx"
+            ChunkItems = ChunkDisplayItem.Build(chunks, isSlideDeck),
+            IsSlideDeck = isSlideDeck
         };
     }
 
@@ -158,6 +160,8 @@ public static class ViewModelMapper
         Content = dto.Content,
         Metadata = dto.Metadata,
         PageNumber = dto.PageNumber,
+        CharStart = dto.CharStart,
+        CharEnd = dto.CharEnd,
         TokenCount = dto.TokenCount
     };
 

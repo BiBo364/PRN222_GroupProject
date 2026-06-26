@@ -70,9 +70,14 @@ public class ChunkDisplayItem
 
     private static List<ChunkDisplayItem> BuildPageItems(IReadOnlyList<ChunkViewModel> chunks)
     {
+        // N?u KHÔNG có chunk nào có PageNumber -> m?i chunk là 1 "?o?n" riêng (group theo ChunkIndex)
+        var hasPageNumbers = chunks.Any(chunk => NormalizeNumber(chunk.PageNumber).HasValue);
+
         return chunks
-            .GroupBy(chunk => NormalizeNumber(chunk.PageNumber) ?? 0)
-            .OrderBy(group => group.Key == 0 ? int.MaxValue : group.Key)
+            .GroupBy(chunk => hasPageNumbers
+                ? (NormalizeNumber(chunk.PageNumber) ?? 0)
+                : chunk.ChunkIndex) // fallback: m?i chunk thành 1 group riêng
+            .OrderBy(group => group.Key == 0 && hasPageNumbers ? int.MaxValue : group.Key)
             .ThenBy(group => group.Min(chunk => chunk.ChunkIndex))
             .Select((group, index) =>
             {
@@ -88,7 +93,7 @@ public class ChunkDisplayItem
                     Chunks = groupChunks,
                     IsSlide = false,
                     DisplayIndex = index + 1,
-                    PageNumber = NormalizeNumber(group.Key),
+                    PageNumber = hasPageNumbers ? NormalizeNumber(group.Key) : null,
                     Content = content,
                     TokenCount = CountTokens(content),
                     ImageUrls = []

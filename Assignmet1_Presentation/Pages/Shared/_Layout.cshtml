@@ -125,6 +125,14 @@
                                     <i data-lucide="message-square" class="icon-sm"></i> Chat AI
                                 </a>
                             </li>
+                            @if (sessionRoleId != 1)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-page="/Subscription/Index">
+                                        <i data-lucide="sparkles" class="icon-sm"></i> Subcription
+                                    </a>
+                                </li>
+                            }
 
                             @* Recycle bin for Lecturer (own subject docs) *@
                             @if (sessionRoleId == 2)
@@ -241,6 +249,15 @@
                                         }
                                     </li>
                                     <li><hr class="dropdown-divider" /></li>
+                                    @if (sessionRoleId == 3)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-page="/Subscription/Index">
+                                                <i data-lucide="sparkles" class="icon-sm"></i> Goi Plus cua toi
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                    }
                                     <li>
                                         <a class="dropdown-item" asp-page="/Account/ChangePassword">
                                             <i data-lucide="key-round" class="icon-sm"></i> Doi mat khau

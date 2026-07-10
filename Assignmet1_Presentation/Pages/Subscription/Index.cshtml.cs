@@ -29,8 +29,15 @@ public class IndexModel : PageModel
 
     public SubscriptionIndexViewModel ViewModel { get; set; } = new();
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(DateTime? fromDate, DateTime? toDate)
     {
+        var roleId = HttpContext.Session.GetInt32("RoleId");
+        if (roleId == 1)
+        {
+            await BuildAdminViewModelAsync(fromDate, toDate);
+            return Page();
+        }
+
         var userId = HttpContext.Session.GetInt32("UserId")!.Value;
         var plans = (await _subscriptionService.GetActivePlansAsync())
             .Where(plan => plan.Price > 0)
@@ -54,6 +61,8 @@ public class IndexModel : PageModel
             })
             .ToList();
 
+        var freeQuotas = subjectQuotas.Where(quota => !quota.IsPlus).ToList();
+
         ViewModel = new SubscriptionIndexViewModel
         {
             Plans = plans.Select(ViewModelMapper.ToViewModel).ToList(),
@@ -64,9 +73,104 @@ public class IndexModel : PageModel
             FreeQuotaWindowHours = _quotaSettings.FreeQuotaWindowHours > 0 ? _quotaSettings.FreeQuotaWindowHours : 24,
             ActiveSubscription = active is null ? null : ViewModelMapper.ToViewModel(active),
             SubjectQuotas = subjectQuotas,
-            Tickets = tickets.Select(ViewModelMapper.ToViewModel).ToList()
+            Tickets = tickets.Select(ViewModelMapper.ToViewModel).ToList(),
+            SubjectCount = subjectQuotas.Count,
+            SubjectsOutOfQuotaCount = freeQuotas.Count(quota => !quota.IsAllowed),
+            TotalQuestionsRemaining = active is null ? freeQuotas.Sum(quota => quota.QuestionsRemaining) : int.MaxValue,
+            LowestQuestionsRemaining = active is null && freeQuotas.Count > 0 ? freeQuotas.Min(quota => quota.QuestionsRemaining) : int.MaxValue,
+            NextResetAt = active is null
+                ? freeQuotas
+                    .Select(quota => (DateTime?)quota.WindowEndAt)
+                    .OrderBy(windowEnd => windowEnd)
+                    .FirstOrDefault()
+                : active?.EndAt
         };
 
         return Page();
+    }
+
+    private async Task BuildAdminViewModelAsync(DateTime? fromDate, DateTime? toDate)
+    {
+        var plans = (await _subscriptionService.GetActivePlansAsync())
+            .Where(plan => plan.Price > 0)
+            .OrderBy(plan => plan.Price)
+            .ToList();
+
+        var approvedTickets = (await _subscriptionService.GetAllTicketsAsync(PaymentTicketStatuses.Approved))
+            .Where(ticket => ticket.CreatedAt.HasValue)
+            .ToList();
+
+        if (fromDate.HasValue)
+        {
+            var fromBoundary = fromDate.Value.Date;
+            approvedTickets = approvedTickets
+                .Where(ticket => ticket.CreatedAt!.Value >= fromBoundary)
+                .ToList();
+        }
+
+        if (toDate.HasValue)
+        {
+            var toBoundaryExclusive = toDate.Value.Date.AddDays(1);
+            approvedTickets = approvedTickets
+                .Where(ticket => ticket.CreatedAt!.Value < toBoundaryExclusive)
+                .ToList();
+        }
+
+        var totalPurchaseCount = approvedTickets.Count;
+        var totalRevenue = approvedTickets.Sum(ticket => ticket.Amount);
+        var groupedByPlan = approvedTickets
+            .GroupBy(ticket => ticket.PlanName)
+            .ToDictionary(
+                group => group.Key,
+                group => new
+                {
+                    PurchaseCount = group.Count(),
+                    Revenue = group.Sum(ticket => ticket.Amount)
+                },
+                StringComparer.OrdinalIgnoreCase);
+
+        var planReports = plans
+            .Select(plan =>
+            {
+                groupedByPlan.TryGetValue(plan.Name, out var summary);
+                var purchaseCount = summary?.PurchaseCount ?? 0;
+                var revenue = summary?.Revenue ?? 0m;
+
+                return new AdminSubscriptionPlanReportViewModel
+                {
+                    Id = plan.Id,
+                    Name = plan.Name,
+                    Description = plan.Description,
+                    Price = plan.Price,
+                    DurationDays = plan.DurationDays,
+                    PurchaseCount = purchaseCount,
+                    Revenue = revenue,
+                    PurchaseSharePercent = totalPurchaseCount == 0
+                        ? 0
+                        : Math.Round((decimal)purchaseCount * 100m / totalPurchaseCount, 1)
+                };
+            })
+            .OrderByDescending(report => report.PurchaseCount)
+            .ThenByDescending(report => report.Revenue)
+            .ThenBy(report => report.Price)
+            .ToList();
+
+        var topPlan = planReports.FirstOrDefault(report => report.PurchaseCount > 0);
+
+        ViewModel = new SubscriptionIndexViewModel
+        {
+            IsAdminView = true,
+            Plans = plans.Select(ViewModelMapper.ToViewModel).ToList(),
+            FilterFromDate = fromDate?.Date,
+            FilterToDate = toDate?.Date,
+            AdminTotalRevenue = totalRevenue,
+            AdminSuccessfulOrders = totalPurchaseCount,
+            AdminTopPlanName = topPlan?.Name ?? "Chua co giao dich",
+            AdminTopPlanCount = topPlan?.PurchaseCount ?? 0,
+            AdminAverageOrderValue = totalPurchaseCount == 0
+                ? 0
+                : Math.Round(totalRevenue / totalPurchaseCount, 0, MidpointRounding.AwayFromZero),
+            AdminPlanReports = planReports
+        };
     }
 }

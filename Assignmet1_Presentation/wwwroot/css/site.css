@@ -895,6 +895,27 @@ a:hover { color: var(--primary-dk); }
   gap: 0.35rem;
 }
 
+.chat-filter-form {
+  color-scheme: light;
+}
+
+.chat-filter-form .btn-load-chats {
+  border: 1.5px solid rgba(99, 102, 241, 0.45);
+  color: var(--indigo-dk) !important;
+  background: rgba(99, 102, 241, 0.1);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-filter-form .btn-load-chats:hover,
+.chat-filter-form .btn-load-chats:focus {
+  background: var(--grad-primary);
+  border-color: transparent;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  transform: translateY(-1px);
+}
+
 .form-text {
   font-size: 0.8rem;
   color: var(--text-muted);

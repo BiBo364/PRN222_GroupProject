@@ -200,4 +200,92 @@ public static class ViewModelMapper
         SlideNumber = dto.SlideNumber,
         Score = dto.Score
     };
+
+    public static BenchmarkRunListItemViewModel ToViewModel(BenchmarkRunListItemDto dto) => new()
+    {
+        Id = dto.Id,
+        Name = dto.Name,
+        Description = dto.Description,
+        Status = dto.Status,
+        LlmModel = dto.LlmModel,
+        TopK = dto.TopK,
+        UseReranker = dto.UseReranker,
+        EmbeddingModelName = dto.EmbeddingModelName,
+        ChunkingConfigName = dto.ChunkingConfigName,
+        StartedAt = dto.StartedAt,
+        FinishedAt = dto.FinishedAt,
+        CreatedAt = dto.CreatedAt,
+        Summary = dto.Summary is null ? null : ToViewModel(dto.Summary)
+    };
+
+    public static BenchmarkRunDetailViewModel ToViewModel(BenchmarkRunDetailDto dto) => new()
+    {
+        Id = dto.Id,
+        Name = dto.Name,
+        Description = dto.Description,
+        Status = dto.Status,
+        LlmModel = dto.LlmModel,
+        TopK = dto.TopK,
+        UseReranker = dto.UseReranker,
+        EmbeddingModelName = dto.EmbeddingModelName,
+        ChunkingConfigName = dto.ChunkingConfigName,
+        StartedAt = dto.StartedAt,
+        FinishedAt = dto.FinishedAt,
+        CreatedAt = dto.CreatedAt,
+        Summary = dto.Summary is null ? null : ToViewModel(dto.Summary),
+        Results = dto.Results.Select(ToViewModel).ToList()
+    };
+
+    public static BenchmarkResultViewModel ToViewModel(BenchmarkResultDto dto) => new()
+    {
+        Id = dto.Id,
+        QuestionId = dto.QuestionId,
+        Question = dto.Question,
+        GroundTruth = dto.GroundTruth,
+        SubjectCode = dto.SubjectCode,
+        GeneratedAnswer = dto.GeneratedAnswer,
+        RetrievedChunkIds = dto.RetrievedChunkIds,
+        LatencyMs = dto.LatencyMs,
+        Faithfulness = dto.Faithfulness,
+        AnswerRelevancy = dto.AnswerRelevancy,
+        ContextPrecision = dto.ContextPrecision,
+        ContextRecall = dto.ContextRecall,
+        AnswerCorrectness = dto.AnswerCorrectness,
+        ErrorMsg = dto.ErrorMsg
+    };
+
+    public static BenchmarkSummaryViewModel ToViewModel(BenchmarkSummaryDto dto) => new()
+    {
+        TotalQuestions = dto.TotalQuestions,
+        AvgFaithfulness = dto.AvgFaithfulness,
+        AvgAnswerRelevancy = dto.AvgAnswerRelevancy,
+        AvgContextPrecision = dto.AvgContextPrecision,
+        AvgContextRecall = dto.AvgContextRecall,
+        AvgAnswerCorrectness = dto.AvgAnswerCorrectness,
+        AvgLatencyMs = dto.AvgLatencyMs,
+        P95LatencyMs = dto.P95LatencyMs,
+        ComputedAt = dto.ComputedAt
+    };
+
+    public static TestQuestionViewModel ToViewModel(TestQuestionDto dto) => new()
+    {
+        Id = dto.Id,
+        SubjectId = dto.SubjectId,
+        SubjectCode = dto.SubjectCode,
+        SubjectName = dto.SubjectName,
+        Question = dto.Question,
+        GroundTruth = dto.GroundTruth,
+        GroundTruthChunks = dto.GroundTruthChunks,
+        Difficulty = dto.Difficulty,
+        Category = dto.Category,
+        CreatedBy = dto.CreatedBy,
+        CreatedAt = dto.CreatedAt
+    };
+
+    public static BenchmarkConfigOptionViewModel ToViewModel(BenchmarkConfigOptionDto dto) => new()
+    {
+        Id = dto.Id,
+        Name = dto.Name,
+        Description = dto.Description
+    };
 }

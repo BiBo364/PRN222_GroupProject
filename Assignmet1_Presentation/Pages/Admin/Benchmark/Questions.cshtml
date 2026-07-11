@@ -1,0 +1,306 @@
+@page "/Admin/Benchmark/Questions"
+@model Assignmet1_Presentation.Pages.Admin.Benchmark.QuestionsModel
+@{
+    ViewData["Title"] = "Ngan hang cau hoi RAG";
+}
+
+<div class="d-flex flex-column gap-4">
+    <!-- ── HERO ──────────────────────────────────────────────────── -->
+    <div class="page-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <div class="hero-badge mb-2">
+                <i data-lucide="shield-check" class="icon-sm"></i> Quan tri he thong
+            </div>
+            <h1 class="page-title mb-1">Ngan hang cau hoi test</h1>
+            <p class="page-subtitle">Dung lam tap kiem thu tieu chuan de do luong va lap lai chat luong tra loi cua RAG.</p>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0">
+            <a asp-page="/Admin/Benchmark/Index" class="btn btn-outline-secondary">
+                <i data-lucide="arrow-left" class="icon-sm"></i> Lich su danh gia
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#questionModal">
+                <i data-lucide="plus" class="icon-sm"></i> Them cau hoi moi
+            </button>
+        </div>
+    </div>
+
+    <!-- ── FILTER BAR ────────────────────────────────────────────── -->
+    <div class="surface-card p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-auto">
+                <label class="col-form-label fw-semibold text-sec" style="font-size: .88rem">Loc theo mon hoc:</label>
+            </div>
+            <div class="col-md-4">
+                <select name="subjectId" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- Tat ca cac mon hoc --</option>
+                    @foreach (var subject in Model.ViewModel.Subjects)
+                    {
+                        if (Model.ViewModel.FilterSubjectId == subject.Id)
+                        {
+                            <option value="@subject.Id" selected="selected">@subject.Code - @subject.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@subject.Id">@subject.Code - @subject.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            @if (Model.ViewModel.FilterSubjectId.HasValue)
+            {
+                <div class="col-auto">
+                    <a asp-page="/Admin/Benchmark/Questions" class="btn btn-outline-secondary btn-sm" style="padding: .5rem 1rem">
+                        <i data-lucide="x" class="icon-sm"></i> Xoa bo loc
+                    </a>
+                </div>
+            }
+        </form>
+    </div>
+
+    <!-- ── QUESTIONS TABLE CARD ──────────────────────────────────── -->
+    <div class="surface-card p-0 overflow-hidden">
+        <div class="card-header-row">
+            <h2 class="card-header-title">
+                <i data-lucide="help-circle" class="icon-sm me-1" style="color:var(--primary)"></i>
+                Danh sach cau hoi kiem thu —
+                <span>@Model.ViewModel.Questions.Count</span> cau
+            </h2>
+            <button type="button" class="btn btn-primary btn-sm d-none d-md-inline-flex" data-bs-toggle="modal" data-bs-target="#questionModal">
+                <i data-lucide="plus" class="icon-sm"></i> Them moi
+            </button>
+        </div>
+
+        @if (Model.ViewModel.Questions.Count == 0)
+        {
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i data-lucide="help-circle" style="width:56px;height:56px;color:var(--text-faint)"></i>
+                </div>
+                <div class="empty-state-title">Chua co cau hoi kiem thu nao</div>
+                <div class="empty-state-desc">Hay them cac cau hoi khao sat va dap an dung tuong ung de he thong doi chieu luc benchmark.</div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#questionModal">
+                    <i data-lucide="plus" class="icon-sm"></i> Tao cau hoi kiem thu dau tien
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th class="ps-4" style="width: 25%">Cau hoi kiem thu</th>
+                            <th style="width: 15%">Mon hoc</th>
+                            <th style="width: 25%">Dap an chuan (Ground Truth)</th>
+                            <th style="width: 12%">Chunk doi chieu</th>
+                            <th style="width: 10%">Do kho</th>
+                            <th class="pe-4 text-end" style="width: 13%">Hanh dong</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var q in Model.ViewModel.Questions)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-semibold text-truncate-2" style="color: var(--text); font-size: .88rem; max-height: 2.5rem; line-height: 1.4" title="@q.Question">
+                                        @q.Question
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(q.Category))
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary-emphasis mt-1" style="font-size: .65rem">
+                                            @q.Category
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="status-chip info" style="font-size: .75rem; padding: .15rem .5rem">
+                                        @q.SubjectCode
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="text-muted text-truncate-2 small" style="max-height: 2.5rem; line-height: 1.4" title="@q.GroundTruth">
+                                        @q.GroundTruth
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(q.GroundTruthChunks))
+                                    {
+                                        var ids = q.GroundTruthChunks.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                        foreach (var id in ids)
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary-emphasis me-1" style="font-size: .7rem">#@id</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-faint small">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (string.Equals(q.Difficulty, "easy", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="status-chip success" style="font-size: .72rem; padding: .1rem .45rem">De</span>
+                                    }
+                                    else if (string.Equals(q.Difficulty, "hard", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="status-chip danger" style="font-size: .72rem; padding: .1rem .45rem">Kho</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-chip warning" style="font-size: .72rem; padding: .1rem .45rem">Trung binh</span>
+                                    }
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <div class="action-btn-group">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#questionModal"
+                                                data-id="@q.Id"
+                                                data-question="@q.Question"
+                                                data-groundtruth="@q.GroundTruth"
+                                                data-chunks="@q.GroundTruthChunks"
+                                                data-subjectid="@q.SubjectId"
+                                                data-difficulty="@q.Difficulty"
+                                                data-category="@q.Category"
+                                                title="Chinh sua cau hoi">
+                                            <i data-lucide="pencil" class="icon-sm"></i>
+                                        </button>
+                                        <form asp-page-handler="Delete" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@q.Id" />
+                                            <input type="hidden" name="filterSubjectId" value="@Model.ViewModel.FilterSubjectId" />
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger btn-delete-confirm"
+                                                    data-item-name="cau hoi: '@(q.Question.Length > 30 ? q.Question.Substring(0, 30) + "..." : q.Question)'"
+                                                    data-item-type="cau hoi test"
+                                                    data-can-restore="false"
+                                                    title="Xoa cau hoi kiem thu">
+                                                <i data-lucide="trash-2" class="icon-sm"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ── CREATE/EDIT MODAL ─────────────────────────────────────── -->
+<div class="modal fade" id="questionModal" tabindex="-1" aria-labelledby="questionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--radius-lg); border: 1px solid var(--surface-border); background: var(--surface-solid); box-shadow: var(--shadow-xl);">
+            <div class="modal-header border-bottom-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="modal-title fw-bold" id="questionModalLabel" style="color: var(--text)">Them cau hoi kiem thu moi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="Save">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="form-question-id" name="Form.Id" value="" />
+                
+                <div class="modal-body px-4 py-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-sec" style="font-size: .88rem">Mon hoc *</label>
+                            <select id="form-subjectid" name="Form.SubjectId" class="form-select" required="required">
+                                <option value="">-- Chon mon hoc --</option>
+                                @foreach (var subject in Model.ViewModel.Subjects)
+                                {
+                                    <option value="@subject.Id">@subject.Code - @subject.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold text-sec" style="font-size: .88rem">Do kho</label>
+                            <select id="form-difficulty" name="Form.Difficulty" class="form-select">
+                                <option value="easy">De</option>
+                                <option value="medium" selected="selected">Trung binh</option>
+                                <option value="hard">Kho</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold text-sec" style="font-size: .88rem">Phan loai</label>
+                            <input type="text" id="form-category" name="Form.Category" class="form-control" placeholder="vd: ly thuyet, code" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-sec" style="font-size: .88rem">Noi dung cau hoi *</label>
+                            <textarea id="form-question" name="Form.Question" rows="3" class="form-control" placeholder="Nhap cau hoi khao sat tai lieu..." required="required"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-sec" style="font-size: .88rem">Dap an chuan (Ground Truth) *</label>
+                            <textarea id="form-groundtruth" name="Form.GroundTruth" rows="4" class="form-control" placeholder="Nhap dap an chuan xac tuyet doi dung de doi chieu voi cau tra loi cua AI..." required="required"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-sec" style="font-size: .88rem">Danh sach chunk tham chieu (Optional)</label>
+                            <input type="text" id="form-chunks" name="Form.GroundTruthChunks" class="form-control" placeholder="vd: 12, 15, 18 (ID cua cac chunk chua thong tin dung de tra loi)" />
+                            <div class="form-text text-muted" style="font-size: .78rem">
+                                Nhap cac ID cua chunk cach nhau bang dau phay de tinh toan chinh xac cac chi so Context Precision va Context Recall.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-top-0 pb-4 px-4 d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Huy bo</button>
+                    <button type="submit" class="btn btn-primary">Luu cau hoi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const questionModal = document.getElementById('questionModal');
+            if (questionModal) {
+                questionModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    
+                    // If triggered by action button, we have data attributes
+                    const id = button.getAttribute('data-id');
+                    const question = button.getAttribute('data-question');
+                    const groundTruth = button.getAttribute('data-groundtruth');
+                    const chunks = button.getAttribute('data-chunks');
+                    const subjectId = button.getAttribute('data-subjectid');
+                    const difficulty = button.getAttribute('data-difficulty');
+                    const category = button.getAttribute('data-category');
+
+                    const modalTitle = questionModal.querySelector('.modal-title');
+                    const formId = questionModal.querySelector('#form-question-id');
+                    const formQuestion = questionModal.querySelector('#form-question');
+                    const formGroundTruth = questionModal.querySelector('#form-groundtruth');
+                    const formChunks = questionModal.querySelector('#form-chunks');
+                    const formSubject = questionModal.querySelector('#form-subjectid');
+                    const formDifficulty = questionModal.querySelector('#form-difficulty');
+                    const formCategory = questionModal.querySelector('#form-category');
+
+                    if (id) {
+                        modalTitle.textContent = 'Cap nhat cau hoi kiem thu';
+                        formId.value = id;
+                        formQuestion.value = question;
+                        formGroundTruth.value = groundTruth;
+                        formChunks.value = chunks || '';
+                        formSubject.value = subjectId;
+                        formDifficulty.value = difficulty || 'medium';
+                        formCategory.value = category || '';
+                    } else {
+                        modalTitle.textContent = 'Them cau hoi kiem thu moi';
+                        formId.value = '';
+                        formQuestion.value = '';
+                        formGroundTruth.value = '';
+                        formChunks.value = '';
+                        // Set subject to current filter value if selected
+                        formSubject.value = '@(Model.ViewModel.FilterSubjectId.HasValue ? Model.ViewModel.FilterSubjectId.Value.ToString() : "")';
+                        formDifficulty.value = 'medium';
+                        formCategory.value = '';
+                    }
+                });
+            }
+        });
+    </script>
+}

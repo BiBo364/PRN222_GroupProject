@@ -1,0 +1,197 @@
+@page "/Admin/Benchmark/Run"
+@model Assignmet1_Presentation.Pages.Admin.Benchmark.RunModel
+@{
+    ViewData["Title"] = "Cau hinh benchmark RAG";
+}
+
+<div class="d-flex flex-column gap-4">
+    <!-- ── HERO ──────────────────────────────────────────────────── -->
+    <div class="page-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <div class="hero-badge mb-2">
+                <i data-lucide="shield-check" class="icon-sm"></i> Quan tri he thong
+            </div>
+            <h1 class="page-title mb-1">Chay dot danh gia moi</h1>
+            <p class="page-subtitle">Thiet lap cac tham so truy van, chon embedding, chunking va chay danh gia tu dong.</p>
+        </div>
+        <div>
+            <a asp-page="/Admin/Benchmark/Index" class="btn btn-outline-secondary">
+                <i data-lucide="arrow-left" class="icon-sm"></i> Tro ve lich su
+            </a>
+        </div>
+    </div>
+
+    <!-- ── FORM CARD ──────────────────────────────────────────────── -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="surface-card">
+                <form id="benchmark-run-form" method="post">
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="d-flex flex-column gap-4">
+                        <!-- Ten dot kiem thu -->
+                        <div>
+                            <label asp-for="Form.Name" class="form-label fw-bold text-sec" style="font-size: .95rem">
+                                Ten dot danh gia *
+                            </label>
+                            <input asp-for="Form.Name" class="form-control form-control-lg fw-semibold" 
+                                   placeholder="vd: Danh gia chat luong thang 7" required="required" />
+                            <span asp-validation-for="Form.Name" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Mo ta -->
+                        <div>
+                            <label asp-for="Form.Description" class="form-label fw-bold text-sec" style="font-size: .95rem">
+                                Mo ta kiem thu (Tuy chon)
+                            </label>
+                            <textarea asp-for="Form.Description" rows="2" class="form-control" 
+                                      placeholder="Mo ta muc tieu, vi du: Test chat luong sau khi nang cap chunk size..."></textarea>
+                        </div>
+
+                        <hr class="my-1" style="border-color: var(--surface-border)" />
+
+                        <div class="row g-3">
+                            <!-- Mon hoc -->
+                            <div class="col-md-12">
+                                <label asp-for="Form.SubjectId" class="form-label fw-bold text-sec" style="font-size: .95rem">
+                                    Mon hoc khao sat *
+                                </label>
+                                <select asp-for="Form.SubjectId" class="form-select" required="required">
+                                    <option value="">-- Chon mon hoc co cau hoi khao sat --</option>
+                                    @foreach (var subject in Model.Form.Subjects)
+                                    {
+                                        <option value="@subject.Id">@subject.Name</option>
+                                    }
+                                </select>
+                                <div class="form-text text-muted" style="font-size: .78rem">
+                                    He thong se lay toan bo cau hoi test duoc thiet lap cho mon hoc nay de gui len RAG.
+                                </div>
+                            </div>
+
+                            <!-- Model Embedding -->
+                            <div class="col-md-6">
+                                <label asp-for="Form.EmbeddingModelId" class="form-label fw-bold text-sec" style="font-size: .95rem">
+                                    Model Embedding (De cu)
+                                </label>
+                                <select asp-for="Form.EmbeddingModelId" class="form-select">
+                                    <option value="">-- Su dung cau hinh mac dinh --</option>
+                                    @foreach (var emb in Model.Form.EmbeddingModels)
+                                    {
+                                        <option value="@emb.Id">@emb.Name (@emb.Description)</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Chunking Config -->
+                            <div class="col-md-6">
+                                <label asp-for="Form.ChunkingConfigId" class="form-label fw-bold text-sec" style="font-size: .95rem">
+                                    Cau hinh Chunking (De cu)
+                                </label>
+                                <select asp-for="Form.ChunkingConfigId" class="form-select">
+                                    <option value="">-- Su dung cau hinh mac dinh --</option>
+                                    @foreach (var config in Model.Form.ChunkingConfigs)
+                                    {
+                                        <option value="@config.Id">@config.Name (@config.Description)</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Top K -->
+                            <div class="col-md-6">
+                                <label asp-for="Form.TopK" class="form-label fw-bold text-sec" style="font-size: .95rem">
+                                    So luong chunk truy van (Top K)
+                                </label>
+                                <input asp-for="Form.TopK" type="number" class="form-control" min="1" max="20" required="required" />
+                                <div class="form-text text-muted" style="font-size: .78rem">
+                                    So luong tai lieu context toi da gui vao prompt cho LLM tra loi.
+                                </div>
+                            </div>
+
+                            <!-- Hybrid Rerank -->
+                            <div class="col-md-6 d-flex align-items-center">
+                                <div class="form-check form-switch mt-md-4">
+                                    <input asp-for="Form.UseReranker" type="checkbox" class="form-check-input" id="useRerankerSwitch" />
+                                    <label class="form-check-label fw-bold text-sec" for="useRerankerSwitch" style="font-size: .95rem; margin-left: .5rem">
+                                        Kich hoat Keyword Reranker
+                                    </label>
+                                    <div class="form-text text-muted" style="font-size: .78rem">
+                                        Ket hop lay thong tin vector va cham diem tan suat tu khoa tuong dong.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-1" style="border-color: var(--surface-border)" />
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-end gap-2 pt-2">
+                            <a asp-page="/Admin/Benchmark/Index" class="btn btn-outline-secondary">
+                                Huy bo
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i data-lucide="play" class="icon-sm"></i> Bat dau chay kiem thu
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── LOADING OVERLAY ───────────────────────────────────────── -->
+<div id="loading-overlay" class="loading-overlay d-none">
+    <div class="text-center text-white px-4" style="max-width: 550px">
+        <div class="spinner-border text-primary" style="width: 4rem; height: 4rem; border-width: .4rem;" role="status"></div>
+        <h3 class="mt-4 fw-bold">Dang tien hanh danh gia RAG...</h3>
+        <p class="text-white-50 mt-2" style="font-size: .92rem; line-height: 1.6">
+            He thong dang gui cac cau hoi kiem thu, ket noi voi dong co tim kiem chunk va goi LLM sinh cau tra loi. 
+            Cac chi so nhu Faithfulness, Correctness va Latency dang duoc danh gia song song. 
+            Qua trinh nay co the mat tu 10 giay toi vai phut.
+        </p>
+        <span class="badge bg-warning text-dark fw-bold mt-2 py-2 px-3 animated-pulse-slow">
+            Vui long khong tai lai trang hoac bam nut quay lai
+        </span>
+    </div>
+</div>
+
+<style>
+    .loading-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.88);
+        backdrop-filter: blur(10px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    @@keyframes pulse-slow {
+        0% { opacity: 0.7; }
+        50% { opacity: 1; }
+        100% { opacity: 0.7; }
+    }
+    
+    .animated-pulse-slow {
+        animation: pulse-slow 3s infinite ease-in-out;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("benchmark-run-form");
+            const overlay = document.getElementById("loading-overlay");
+
+            if (form && overlay) {
+                form.addEventListener("submit", function () {
+                    // Check standard validation before displaying the overlay
+                    if (form.checkValidity()) {
+                        overlay.classList.remove("d-none");
+                    }
+                });
+            }
+        });
+    </script>
+}

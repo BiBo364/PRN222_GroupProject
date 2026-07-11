@@ -370,7 +370,7 @@ public class DocumentService : IDocumentService
             if (pages.Count == 0)
                 throw new InvalidOperationException("No text could be extracted from the file.");
 
-            var chunkSize = chunkingConfig?.ChunkSize ?? 800;
+            var chunkSize = chunkingConfig?.ChunkSize ?? 450;
             var overlap = chunkingConfig?.ChunkOverlap ?? 100;
             chunkEntities = new List<Chunk>();
 

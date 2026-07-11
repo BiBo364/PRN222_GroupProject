@@ -144,9 +144,9 @@
                     ? $"Slide {item.SlideNumber ?? item.DisplayIndex}"
                     : item.PageNumber.HasValue
                         ? $"Trang {item.PageNumber}"
-                        : $"Đoạn {item.DisplayIndex}";
+                        : $"Chunk {item.DisplayIndex}";
                 var icon = item.IsSlide ? "presentation" : "file-text";
-                var chunkLabel = item.ChunkCount > 1 ? $"{item.ChunkCount} chunks" : "1 chunk";
+                var chunkLabel = $"Chunk {item.Chunk.ChunkIndex + 1}";
 
                 <article class="document-content-block @(item.IsSlide ? "is-slide" : "is-page")">
                     <aside class="content-block-marker">

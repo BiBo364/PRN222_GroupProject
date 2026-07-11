@@ -39,32 +39,36 @@
 
 
 <div class="surface-card mb-4">
-    <form method="get" asp-page="/Chat/Index" class="row g-3 align-items-end">
+    <form method="get" asp-page="/Chat/Index" class="row g-3 align-items-end chat-filter-form">
         <div class="col-12 col-md-8">
             <label class="form-label" for="subjectId">Subject</label>
             <select class="form-select form-select-lg" id="subjectId" name="subjectId">
                 <option value="">Select a subject</option>
                 @foreach (var subject in Model.ViewModel.AvailableSubjects)
                 {
-                    <option value="@subject.Id" selected="@(subject.Id == Model.ViewModel.SelectedSubjectId)">@subject.Code - @subject.Name</option>
+                    if (subject.Id == Model.ViewModel.SelectedSubjectId)
+                    {
+                        <option value="@subject.Id" selected>@subject.Code - @subject.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@subject.Id">@subject.Code - @subject.Name</option>
+                    }
                 }
             </select>
         </div>
         <div class="col-12 col-md-4 d-grid">
-            <button type="submit" class="btn btn-outline-light btn-lg">Load chats</button>
+            <button type="submit" class="btn btn-outline-primary btn-lg btn-load-chats">Load chats</button>
         </div>
     </form>
 </div>
 
 <div class="d-flex justify-content-end mb-3">
-    @if (Model.ViewModel.SelectedSubjectId.HasValue)
-    {
-        <a class="btn btn-primary" asp-page="/Chat/New" asp-route-subjectId="@Model.ViewModel.SelectedSubjectId">New conversation</a>
-    }
-    else
-    {
-        <button class="btn btn-primary" type="button" disabled>New conversation</button>
-    }
+    <a id="newChatBtn"
+       class="btn btn-primary @(Model.ViewModel.SelectedSubjectId.HasValue ? null : "disabled")"
+       asp-page="/Chat/New"
+       asp-route-subjectId="@Model.ViewModel.SelectedSubjectId"
+       aria-disabled="@(Model.ViewModel.SelectedSubjectId.HasValue ? "false" : "true")">chat mới</a>
 </div>
 
 @if (!Model.ViewModel.Sessions.Any())
@@ -96,4 +100,40 @@ else
             </a>
         }
     </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const subjectSelect = document.getElementById('subjectId');
+            const newChatBtn = document.getElementById('newChatBtn');
+            const newChatBaseUrl = '@Url.Page("/Chat/New")';
+
+            function updateNewChatButton() {
+                const subjectId = subjectSelect.value;
+                if (subjectId) {
+                    newChatBtn.href = `${newChatBaseUrl}?subjectId=${encodeURIComponent(subjectId)}`;
+                    newChatBtn.classList.remove('disabled');
+                    newChatBtn.setAttribute('aria-disabled', 'false');
+                } else {
+                    newChatBtn.removeAttribute('href');
+                    newChatBtn.classList.add('disabled');
+                    newChatBtn.setAttribute('aria-disabled', 'true');
+                }
+            }
+
+            subjectSelect.addEventListener('change', () => {
+                updateNewChatButton();
+                subjectSelect.form?.submit();
+            });
+
+            newChatBtn.addEventListener('click', (event) => {
+                if (!subjectSelect.value) {
+                    event.preventDefault();
+                }
+            });
+
+            updateNewChatButton();
+        });
+    </script>
 }

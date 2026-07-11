@@ -1,0 +1,393 @@
+@page "/Admin/Benchmark/Detail"
+@model Assignmet1_Presentation.Pages.Admin.Benchmark.DetailModel
+@{
+    ViewData["Title"] = "Ket qua danh gia RAG";
+    var run = Model.ViewModel;
+    var duration = run.FinishedAt.HasValue && run.StartedAt.HasValue 
+        ? run.FinishedAt.Value - run.StartedAt.Value 
+        : TimeSpan.Zero;
+}
+
+<div class="d-flex flex-column gap-4">
+    <!-- ── HERO ──────────────────────────────────────────────────── -->
+    <div class="page-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <div class="hero-badge mb-2">
+                <i data-lucide="gauge" class="icon-sm"></i> Chi tiet kiem thu
+            </div>
+            <h1 class="page-title mb-1">@run.Name</h1>
+            <p class="page-subtitle">Thoi gian chay: @run.CreatedAt?.ToString("dd/MM/yyyy HH:mm:ss")</p>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0">
+            <a asp-page="/Admin/Benchmark/Index" class="btn btn-outline-secondary">
+                <i data-lucide="arrow-left" class="icon-sm"></i> Danh sach lich su
+            </a>
+            <a asp-page="/Admin/Benchmark/Run" class="btn btn-primary">
+                <i data-lucide="play" class="icon-sm"></i> Danh gia moi
+            </a>
+        </div>
+    </div>
+
+    <!-- ── CONFIG & INFO CARDS ────────────────────────────────────── -->
+    <div class="row g-3">
+        <!-- Configuration Card -->
+        <div class="col-lg-4">
+            <div class="surface-card h-100">
+                <h3 class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--text)">Thong so cau hinh</h3>
+                <div class="d-flex flex-column gap-2 text-sec" style="font-size: .88rem">
+                    <div class="d-flex justify-content-between pb-2 border-bottom" style="border-color: rgba(99, 102, 241, 0.06) !important">
+                        <span>Mo hinh LLM:</span>
+                        <strong class="text-primary">@run.LlmModel</strong>
+                    </div>
+                    <div class="d-flex justify-content-between pb-2 border-bottom" style="border-color: rgba(99, 102, 241, 0.06) !important">
+                        <span>Embedding Model:</span>
+                        <strong class="text-end">@(run.EmbeddingModelName ?? "Mac dinh")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between pb-2 border-bottom" style="border-color: rgba(99, 102, 241, 0.06) !important">
+                        <span>Chunking Config:</span>
+                        <strong class="text-end">@(run.ChunkingConfigName ?? "Mac dinh")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between pb-2 border-bottom" style="border-color: rgba(99, 102, 241, 0.06) !important">
+                        <span>So tai lieu lay ra (Top K):</span>
+                        <strong>Top @run.TopK</strong>
+                    </div>
+                    <div class="d-flex justify-content-between pb-2 border-bottom" style="border-color: rgba(99, 102, 241, 0.06) !important">
+                        <span>Sử dụng Reranker:</span>
+                        <span class="status-chip @(run.UseReranker == true ? "success" : "info") py-0" style="font-size: .75rem">
+                            @(run.UseReranker == true ? "Kich hoat" : "Bo qua")
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between pb-2 border-bottom" style="border-color: rgba(99, 102, 241, 0.06) !important">
+                        <span>Tong thoi gian chay:</span>
+                        <strong>@(duration.TotalSeconds > 0 ? $"{duration.TotalSeconds:N1} giay" : "N/A")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Trang thai dot chay:</span>
+                        <span class="status-chip @(string.Equals(run.Status, "completed", StringComparison.OrdinalIgnoreCase) ? "success" : "danger") py-0" style="font-size: .75rem">
+                            @run.Status
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Dashboard -->
+        <div class="col-lg-8">
+            <div class="surface-card h-100">
+                <h3 class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--text)">Chi so hieu nang (RAG Triet de)</h3>
+                
+                @if (run.Summary == null)
+                {
+                    <div class="d-flex align-items-center justify-content-center h-75 text-muted">
+                        <i data-lucide="alert-circle" class="me-2"></i> Chua co thong tin tong hop (Co the dot test bi loi)
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        <!-- Latency Statistics -->
+                        <div class="col-12 col-md-6 mb-2">
+                            <div class="p-3 rounded bg-light-subtle border" style="border-color: rgba(99, 102, 241, 0.08) !important">
+                                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: .7rem; letter-spacing: .05em">Tre phan hoi (Latency)</div>
+                                <div class="d-flex align-items-baseline gap-3">
+                                    <div>
+                                        <div class="fs-4 fw-bold text-primary">@(run.Summary.AvgLatencyMs?.ToString("N0") ?? "N/A")ms</div>
+                                        <div class="text-muted" style="font-size: .7rem">Trung binh</div>
+                                    </div>
+                                    <div class="border-start ps-3" style="border-color: rgba(99, 102, 241, 0.15) !important">
+                                        <div class="fs-4 fw-bold text-sec">@(run.Summary.P95LatencyMs?.ToString("N0") ?? "N/A")ms</div>
+                                        <div class="text-muted" style="font-size: .7rem">p95 Latency</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 col-md-6 mb-2">
+                            <div class="p-3 rounded bg-light-subtle border" style="border-color: rgba(99, 102, 241, 0.08) !important">
+                                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: .7rem; letter-spacing: .05em">Tong so cau hoi kiem thu</div>
+                                <div class="fs-4 fw-bold text-dark">@run.Summary.TotalQuestions cau hoi</div>
+                                <div class="text-muted" style="font-size: .7rem">Tap mau danh gia kiem thu</div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Metrics Grid -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold text-sec" style="font-size: .85rem">Do trung thuc (Faithfulness)</span>
+                                    <span class="fw-bold text-success" style="font-size: .85rem">
+                                        @(run.Summary.AvgFaithfulness.HasValue ? $"{run.Summary.AvgFaithfulness.Value * 100:N1}%" : "N/A")
+                                    </span>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(99, 102, 241, 0.08);">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: @(run.Summary.AvgFaithfulness.HasValue ? $"{run.Summary.AvgFaithfulness.Value * 100}%" : "0%")"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold text-sec" style="font-size: .85rem">Do chinh xac (Answer Correctness)</span>
+                                    <span class="fw-bold text-primary" style="font-size: .85rem">
+                                        @(run.Summary.AvgAnswerCorrectness.HasValue ? $"{run.Summary.AvgAnswerCorrectness.Value * 100:N1}%" : "N/A")
+                                    </span>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(99, 102, 241, 0.08);">
+                                    <div class="progress-bar bg-primary" role="progressbar" 
+                                         style="width: @(run.Summary.AvgAnswerCorrectness.HasValue ? $"{run.Summary.AvgAnswerCorrectness.Value * 100}%" : "0%")"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold text-sec" style="font-size: .85rem">Do phu hop cau tra loi (Answer Relevancy)</span>
+                                    <span class="fw-bold text-warning" style="font-size: .85rem">
+                                        @(run.Summary.AvgAnswerRelevancy.HasValue ? $"{run.Summary.AvgAnswerRelevancy.Value * 100:N1}%" : "N/A")
+                                    </span>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(99, 102, 241, 0.08);">
+                                    <div class="progress-bar bg-warning" role="progressbar" 
+                                         style="width: @(run.Summary.AvgAnswerRelevancy.HasValue ? $"{run.Summary.AvgAnswerRelevancy.Value * 100}%" : "0%")"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold text-sec" style="font-size: .85rem">Context Precision (Chinh xac)</span>
+                                    <span class="fw-bold text-info" style="font-size: .85rem">
+                                        @(run.Summary.AvgContextPrecision.HasValue ? $"{run.Summary.AvgContextPrecision.Value * 100:N1}%" : "N/A")
+                                    </span>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(99, 102, 241, 0.08);">
+                                    <div class="progress-bar bg-info" role="progressbar" 
+                                         style="width: @(run.Summary.AvgContextPrecision.HasValue ? $"{run.Summary.AvgContextPrecision.Value * 100}%" : "0%")"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold text-sec" style="font-size: .85rem">Context Recall (Bao phu)</span>
+                                    <span class="fw-bold text-violet" style="font-size: .85rem; color: var(--violet) !important">
+                                        @(run.Summary.AvgContextRecall.HasValue ? $"{run.Summary.AvgContextRecall.Value * 100:N1}%" : "N/A")
+                                    </span>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(99, 102, 241, 0.08);">
+                                    <div class="progress-bar" role="progressbar" style="width: @(run.Summary.AvgContextRecall.HasValue ? $"{run.Summary.AvgContextRecall.Value * 100}%" : "0%"); background-color: var(--violet);"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- ── DETAIL RESULTS TABLE ──────────────────────────────────── -->
+    <div class="surface-card p-0 overflow-hidden">
+        <div class="card-header-row">
+            <h2 class="card-header-title">
+                <i data-lucide="list" class="icon-sm me-1" style="color:var(--primary)"></i>
+                Ket qua chi tiet tung cau hoi kiem thu (@run.Results.Count)
+            </h2>
+            <span class="text-muted small d-none d-md-inline">Bam vao tung dong cau hoi de xem so sanh dap an</span>
+        </div>
+
+        @if (run.Results.Count == 0)
+        {
+            <div class="p-4 text-center text-muted">
+                Dot chay nay chua sinh ra ket qua kiem thu nao.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th class="ps-4" style="width: 25%">Cau hoi</th>
+                            <th style="width: 10%">Tre (Latency)</th>
+                            <th style="width: 10%">Faithful.</th>
+                            <th style="width: 10%">Correct.</th>
+                            <th style="width: 10%">Precision</th>
+                            <th style="width: 10%">Recall</th>
+                            <th style="width: 10%">Trang thai</th>
+                            <th class="pe-4 text-end" style="width: 15%">So sanh</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var res in run.Results)
+                        {
+                            <tr class="btn-toggle-row" data-target="details-@res.Id" style="cursor: pointer">
+                                <td class="ps-4">
+                                    <div class="fw-semibold text-truncate-2" style="font-size: .85rem; max-width: 320px; line-height: 1.4" title="@res.Question">
+                                        @res.Question
+                                    </div>
+                                    <span class="badge bg-light text-dark border mt-1" style="font-size: .68rem">Mon: @res.SubjectCode</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-sec">@(res.LatencyMs.HasValue ? $"{res.LatencyMs.Value:N0}ms" : "-")</span>
+                                </td>
+                                <td>
+                                    @if (res.Faithfulness.HasValue)
+                                    {
+                                        <span class="status-chip success font-monospace py-0 px-2" style="font-size: .76rem">@((res.Faithfulness.Value * 100).ToString("N0"))%</span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (res.AnswerCorrectness.HasValue)
+                                    {
+                                        <span class="status-chip primary font-monospace py-0 px-2" style="font-size: .76rem">@((res.AnswerCorrectness.Value * 100).ToString("N0"))%</span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (res.ContextPrecision.HasValue)
+                                    {
+                                        <span class="status-chip info font-monospace py-0 px-2" style="font-size: .76rem">@((res.ContextPrecision.Value * 100).ToString("N0"))%</span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (res.ContextRecall.HasValue)
+                                    {
+                                        <span class="status-chip warning font-monospace py-0 px-2" style="font-size: .76rem">@((res.ContextRecall.Value * 100).ToString("N0"))%</span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (res.HasError)
+                                    {
+                                        <span class="status-chip danger" title="@res.ErrorMsg">
+                                            <i data-lucide="alert-triangle" class="icon-xs"></i> Loi
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-chip success">
+                                            <i data-lucide="check" class="icon-xs"></i> OK
+                                        </span>
+                                    }
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <button class="btn btn-sm btn-outline-secondary py-1" style="font-size: .75rem">
+                                        <span class="d-none d-md-inline">Xem</span> Dap an
+                                        <i data-lucide="chevron-down" class="icon-xs ms-1 toggle-icon"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <!-- Expander Row -->
+                            <tr id="details-@res.Id" class="d-none bg-light-subtle">
+                                <td colspan="8" class="p-4" style="border-top: none; background: rgba(99, 102, 241, 0.02)">
+                                    <div class="row g-4">
+                                        <!-- Error display -->
+                                        @if (res.HasError)
+                                        {
+                                            <div class="col-12">
+                                                <div class="alert alert-danger mb-0">
+                                                    <h6 class="fw-bold mb-1"><i data-lucide="alert-circle" class="icon-sm me-1"></i>Thong bao loi chi tiet:</h6>
+                                                    <p class="mb-0 small">@res.ErrorMsg</p>
+                                                </div>
+                                            </div>
+                                        }
+
+                                        <!-- Ground Truth -->
+                                        <div class="col-md-6">
+                                            <div class="fw-bold text-sec mb-2" style="font-size: .88rem">
+                                                <i data-lucide="check-square" class="icon-sm text-success me-1"></i>
+                                                Dap an chuan (Ground Truth)
+                                            </div>
+                                            <div class="p-3 rounded border bg-white small text-sec" style="white-space: pre-line; line-height: 1.6; max-height: 250px; overflow-y: auto">
+                                                @res.GroundTruth
+                                            </div>
+                                        </div>
+
+                                        <!-- Generated Answer -->
+                                        <div class="col-md-6">
+                                            <div class="fw-bold text-sec mb-2" style="font-size: .88rem">
+                                                <i data-lucide="message-square" class="icon-sm text-primary me-1"></i>
+                                                LLM phan hoi (Generated Answer)
+                                            </div>
+                                            <div class="p-3 rounded border bg-white small text-sec" style="white-space: pre-line; line-height: 1.6; max-height: 250px; overflow-y: auto">
+                                                @(string.IsNullOrEmpty(res.GeneratedAnswer) ? "Khong co phan hoi duoc sinh ra." : res.GeneratedAnswer)
+                                            </div>
+                                        </div>
+
+                                        <!-- Retrieved Chunks -->
+                                        <div class="col-12 pt-2">
+                                            <div class="fw-bold text-sec mb-2" style="font-size: .88rem">
+                                                <i data-lucide="layers" class="icon-sm text-info me-1"></i>
+                                                Context chunks da truy xuat (Retrieved Chunk IDs)
+                                            </div>
+                                            <div>
+                                                @if (!string.IsNullOrWhiteSpace(res.RetrievedChunkIds))
+                                                {
+                                                    var chunkIds = res.RetrievedChunkIds.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                                                    foreach (var chunkId in chunkIds)
+                                                    {
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill py-2 px-3 me-2" style="font-size: .78rem">
+                                                            #Chunk @chunkId
+                                                        </span>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">Khong tim thay context chunk phu hop trong qua trinh doc index.</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Setup toggle functionality for rows
+            const rows = document.querySelectorAll(".btn-toggle-row");
+            rows.forEach(row => {
+                row.addEventListener("click", function () {
+                    const targetId = this.getAttribute("data-target");
+                    const targetRow = document.getElementById(targetId);
+                    const icon = this.querySelector(".toggle-icon");
+                    
+                    if (targetRow) {
+                        const isHidden = targetRow.classList.contains("d-none");
+                        if (isHidden) {
+                            targetRow.classList.remove("d-none");
+                            if (icon) {
+                                icon.style.transform = "rotate(180deg)";
+                            }
+                        } else {
+                            targetRow.classList.add("d-none");
+                            if (icon) {
+                                icon.style.transform = "rotate(0deg)";
+                            }
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

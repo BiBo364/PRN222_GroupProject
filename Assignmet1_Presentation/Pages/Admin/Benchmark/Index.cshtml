@@ -1,0 +1,260 @@
+@page "/Admin/Benchmark/Index"
+@model Assignmet1_Presentation.Pages.Admin.Benchmark.IndexModel
+@{
+    ViewData["Title"] = "Danh gia RAG";
+}
+
+<div class="d-flex flex-column gap-4">
+    <!-- ── HERO ──────────────────────────────────────────────────── -->
+    <div class="page-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <div class="hero-badge mb-2">
+                <i data-lucide="shield-check" class="icon-sm"></i> Quan tri he thong
+            </div>
+            <h1 class="page-title mb-1">Danh gia &amp; Benchmark RAG</h1>
+            <p class="page-subtitle">Kiem thu nang luc tra loi tu dong, tinh chinh embedding va chunking bang cau hoi mau.</p>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0">
+            <a asp-page="/Admin/Benchmark/Questions" class="btn btn-outline-primary">
+                <i data-lucide="database" class="icon-sm"></i> Ngan hang cau hoi mau
+            </a>
+            <a asp-page="/Admin/Benchmark/Run" class="btn btn-primary">
+                <i data-lucide="play" class="icon-sm"></i> Chay dot danh gia
+            </a>
+        </div>
+    </div>
+
+    <!-- ── STATS CARDS ───────────────────────────────────────────── -->
+    <div class="row g-3">
+        <div class="col-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-value text-primary">@Model.ViewModel.TotalRuns</div>
+                <div class="stat-label">Tong so dot danh gia</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-value text-success">@Model.ViewModel.CompletedRuns</div>
+                <div class="stat-label">Hoan thanh thanh cong</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-value text-info">@Model.ViewModel.TotalQuestions</div>
+                <div class="stat-label">So cau hoi test hien co</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-value text-warning">
+                    @(Model.ViewModel.LatestAvgLatencyMs.HasValue ? $"{Model.ViewModel.LatestAvgLatencyMs.Value:N0}ms" : "N/A")
+                </div>
+                <div class="stat-label">Tre trung binh gan nhat</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── LATEST METRICS ────────────────────────────────────────── -->
+    <div class="surface-card">
+        <h3 class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--text)">Nang luc RAG hien tai (Dot gan nhat)</h3>
+        <div class="row g-4 align-items-center">
+            <div class="col-md-6">
+                <div class="d-flex flex-column gap-3">
+                    <div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-semibold text-sec" style="font-size: .88rem">Do trung thuc (Faithfulness)</span>
+                            <span class="fw-bold text-success" style="font-size: .88rem">
+                                @(Model.ViewModel.LatestAvgFaithfulness.HasValue ? $"{Model.ViewModel.LatestAvgFaithfulness.Value * 100:N1}%" : "Chua co du lieu")
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 8px; background: rgba(99, 102, 241, 0.08);">
+                            <div class="progress-bar bg-success rounded-pill" role="progressbar" 
+                                 style="width: @(Model.ViewModel.LatestAvgFaithfulness.HasValue ? $"{Model.ViewModel.LatestAvgFaithfulness.Value * 100}%" : "0%")"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-semibold text-sec" style="font-size: .88rem">Do chinh xac cau tra loi (Correctness)</span>
+                            <span class="fw-bold text-primary" style="font-size: .88rem">
+                                @(Model.ViewModel.LatestAvgAnswerCorrectness.HasValue ? $"{Model.ViewModel.LatestAvgAnswerCorrectness.Value * 100:N1}%" : "Chua co du lieu")
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 8px; background: rgba(99, 102, 241, 0.08);">
+                            <div class="progress-bar bg-primary rounded-pill" role="progressbar" 
+                                 style="width: @(Model.ViewModel.LatestAvgAnswerCorrectness.HasValue ? $"{Model.ViewModel.LatestAvgAnswerCorrectness.Value * 100}%" : "0%")"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 border-start-md ps-md-4">
+                <p class="text-muted small mb-0" style="line-height: 1.6">
+                    <i data-lucide="info" class="icon-sm text-info me-1"></i>
+                    <strong>Do trung thuc:</strong> Danh gia thong tin sinh ra co hoan toan duoc lay tu nguon context tim thay hay khong (tranh ảo tưởng - hallucination).<br />
+                    <strong>Do chinh xac:</strong> So sanh muc do trung khop va tuong dong giua dap an cua LLM va dap an chuan (Ground Truth) trong ngan hang cau hoi.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── TABLE CARD ─────────────────────────────────────────────── -->
+    <div class="surface-card p-0 overflow-hidden">
+        <div class="card-header-row">
+            <h2 class="card-header-title">
+                <i data-lucide="gauge" class="icon-sm me-1" style="color:var(--primary)"></i>
+                Lich su benchmark
+            </h2>
+            <a asp-page="/Admin/Benchmark/Run" class="btn btn-primary btn-sm">
+                <i data-lucide="play" class="icon-sm"></i> Chay test moi
+            </a>
+        </div>
+
+        @if (Model.ViewModel.Runs.Count == 0)
+        {
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i data-lucide="clipboard-list" style="width:56px;height:56px;color:var(--text-faint)"></i>
+                </div>
+                <div class="empty-state-title">Chua chay benchmark nao</div>
+                <div class="empty-state-desc">Thiet lap cac cau hoi mau de danh gia he thong sau do thuc hien dot test dau tien.</div>
+                <a asp-page="/Admin/Benchmark/Run" class="btn btn-primary">
+                    <i data-lucide="play" class="icon-sm"></i> Chay thu dot dau tien
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Dot danh gia</th>
+                            <th>Cau hinh kiem thu</th>
+                            <th>So cau</th>
+                            <th>Faithfulness</th>
+                            <th>Correctness</th>
+                            <th>Latency</th>
+                            <th>Trang thai</th>
+                            <th class="pe-4 text-end">Chi tiet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var run in Model.ViewModel.Runs)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold" style="color: var(--text)">@run.Name</div>
+                                    <div class="text-muted small" style="font-size: .78rem">
+                                        @run.CreatedAt?.ToString("dd/MM/yyyy HH:mm")
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-sec" style="font-size: .85rem">
+                                        <strong>Model:</strong> @run.LlmModel
+                                    </div>
+                                    <div class="text-muted small" style="font-size: .78rem">
+                                        Embed: @(run.EmbeddingModelName ?? "N/A") | Chunk: @(run.ChunkingConfigName ?? "N/A")
+                                    </div>
+                                    <div class="text-muted small" style="font-size: .78rem">
+                                        TopK: @run.TopK | Reranker: @(run.UseReranker == true ? "Co" : "Khong")
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold">@(run.Summary?.TotalQuestions ?? 0)</span>
+                                </td>
+                                <td>
+                                    @if (run.Summary?.AvgFaithfulness != null)
+                                    {
+                                        <span class="status-chip success" style="font-size: .78rem; padding: .15rem .5rem">
+                                            @((run.Summary.AvgFaithfulness.Value * 100).ToString("N0"))%
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (run.Summary?.AvgAnswerCorrectness != null)
+                                    {
+                                        <span class="status-chip primary" style="font-size: .78rem; padding: .15rem .5rem">
+                                            @((run.Summary.AvgAnswerCorrectness.Value * 100).ToString("N0"))%
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (run.Summary?.AvgLatencyMs != null)
+                                    {
+                                        <span class="fw-semibold">@($"{run.Summary.AvgLatencyMs.Value:N0}ms")</span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (string.Equals(run.Status, "running", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="status-chip info animated-pulse">
+                                            <i data-lucide="loader" class="icon-xs spin-animation"></i> Dang chay
+                                        </span>
+                                    }
+                                    else if (string.Equals(run.Status, "completed", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="status-chip success">
+                                            <i data-lucide="check-circle" class="icon-xs"></i> Hoan tat
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-chip danger" title="@run.Description">
+                                            <i data-lucide="x-circle" class="icon-xs"></i> Loi/Huy
+                                        </span>
+                                    }
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <a asp-page="/Admin/Benchmark/Detail" asp-route-id="@run.Id" 
+                                       class="btn btn-sm btn-outline-primary" title="Xem ket qua chi tiet">
+                                        <i data-lucide="eye" class="icon-sm"></i> Chi tiet
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Apply spin animation to the loader icon
+            const style = document.createElement('style');
+            style.type = 'text/css';
+            style.innerHTML = `
+                @@keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                .spin-animation {
+                    animation: spin 1.5s linear infinite;
+                }
+                @@keyframes pulse {
+                    0% { opacity: 0.6; }
+                    50% { opacity: 1; }
+                    100% { opacity: 0.6; }
+                }
+                .animated-pulse {
+                    animation: pulse 2s infinite ease-in-out;
+                }
+            `;
+            document.getElementsByTagName('head')[0].appendChild(style);
+        });
+    </script>
+}

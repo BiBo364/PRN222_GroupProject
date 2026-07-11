@@ -34,6 +34,8 @@ public static class DependencyInjection
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddHttpClient<IMomoPaymentService, MomoPaymentService>();
+        services.AddScoped<IBenchmarkRepository, BenchmarkRepository>();
+        services.AddScoped<IBenchmarkService, BenchmarkService>();
 
         return services;
     }

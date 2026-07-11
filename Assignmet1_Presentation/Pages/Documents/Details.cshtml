@@ -55,7 +55,7 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="stat-label"><i data-lucide="layers" class="icon-sm me-1"></i> @(Model.ViewModel.IsSlideDeck ? "Trang slide" : "Chunks")</div>
+            <div class="stat-label"><i data-lucide="layers" class="icon-sm me-1"></i> @(Model.ViewModel.IsSlideDeck ? "Trang slide" : "Phân đoạn")</div>
             <div class="stat-value fs-6">@Model.ViewModel.Chunks.Count</div>
         </div>
     </div>
@@ -78,12 +78,12 @@
     <section class="surface-card p-4 mb-4">
         <div class="d-flex align-items-center gap-2 mb-3">
             <i data-lucide="pencil" class="icon-sm text-primary"></i>
-            <h2 class="card-header-title mb-0">Chinh sua tai lieu</h2>
+            <h2 class="card-header-title mb-0">Chỉnh sửa tài liệu</h2>
         </div>
         <form asp-page-handler="Update" asp-route-id="@Model.ViewModel.Id" method="post" class="row g-3 align-items-end">
             @Html.AntiForgeryToken()
             <div class="col-12 col-lg-7">
-                <label class="form-label fw-semibold" for="documentOriginalName">Ten tai lieu</label>
+                <label class="form-label fw-semibold" for="documentOriginalName">Tên tài liệu</label>
                 <input id="documentOriginalName"
                        name="originalName"
                        class="form-control"
@@ -92,9 +92,9 @@
                        required />
             </div>
             <div class="col-12 col-lg-3">
-                <label class="form-label fw-semibold" for="documentChapterId">Chuong</label>
+                <label class="form-label fw-semibold" for="documentChapterId">Chương</label>
                 <select id="documentChapterId" name="chapterId" class="form-select">
-                    <option value="">Khong gan chuong</option>
+                    <option value="">Không gán chương</option>
                     @foreach (var option in Model.ViewModel.ChapterOptions)
                     {
                         <option value="@option.Value" selected="@option.Selected">@option.Text</option>
@@ -103,7 +103,7 @@
             </div>
             <div class="col-12 col-lg-2 d-grid">
                 <button type="submit" class="btn btn-primary">
-                    <i data-lucide="save" class="icon-sm"></i> Luu
+                    <i data-lucide="save" class="icon-sm"></i> Lưu
                 </button>
             </div>
         </form>
@@ -115,13 +115,13 @@
         <div>
             <div class="reader-kicker">
                 <i data-lucide="book-open-text" class="icon-sm"></i>
-                @(Model.ViewModel.IsSlideDeck ? "Slide deck" : "Indexed content")
+                @(Model.ViewModel.IsSlideDeck ? "Slide deck" : "Nội dung đã lập chỉ mục")
             </div>
             <h4 class="reader-title mb-0">@(Model.ViewModel.IsSlideDeck ? "Nội dung slide" : "Nội dung lập chỉ mục")</h4>
         </div>
         <div class="reader-summary">
             <span class="status-chip badge-soft">@Model.ViewModel.ChunkItems.Count khối hiển thị</span>
-            <span class="status-chip badge-soft">@Model.ViewModel.Chunks.Count chunks</span>
+            <span class="status-chip badge-soft">@Model.ViewModel.Chunks.Count phân đoạn</span>
         </div>
     </div>
 
@@ -146,7 +146,7 @@
                         ? $"Trang {item.PageNumber}"
                         : $"Đoạn {item.DisplayIndex}";
                 var icon = item.IsSlide ? "presentation" : "file-text";
-                var chunkLabel = item.ChunkCount > 1 ? $"{item.ChunkCount} chunks" : "1 chunk";
+                var chunkLabel = item.ChunkCount > 1 ? $"{item.ChunkCount} phân đoạn" : "1 phân đoạn";
 
                 <article class="document-content-block @(item.IsSlide ? "is-slide" : "is-page")">
                     <aside class="content-block-marker">
@@ -177,6 +177,9 @@
                                     {
                                         <figure class="reader-image-frame">
                                             <img src="@imageUrl" alt="@title" />
+                                            <div style="font-size:.75rem;color:var(--text-faint);margin-left:24px">
+                                                Loại: <span class="text-uppercase fw-bold">@Model.ViewModel.FileType</span>
+                                            </div>
                                         </figure>
                                     }
                                 }

@@ -103,6 +103,48 @@ public class DocumentRepository : IDocumentRepository
         return _context.ChunkingConfigs.OrderBy(c => c.Id).FirstOrDefaultAsync();
     }
 
+    /// <summary>
+    /// Tạo mới hoặc cập nhật bản ghi ChunkingConfig đầu tiên trong DB.
+    /// Được gọi lúc khởi động để đồng bộ cấu hình từ appsettings.json vào database.
+    /// </summary>
+    public async Task<ChunkingConfig> UpsertChunkingConfigAsync(
+        string name,
+        string strategy,
+        int chunkSize,
+        int chunkOverlap,
+        string? description)
+    {
+        var existing = await _context.ChunkingConfigs
+            .OrderBy(c => c.Id)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            // Cập nhật bản ghi hiện có để DB phản ánh đúng cấu hình mới nhất
+            existing.Name        = name;
+            existing.Strategy    = strategy;
+            existing.ChunkSize   = chunkSize;
+            existing.ChunkOverlap = chunkOverlap;
+            existing.Description = description;
+            await _context.SaveChangesAsync();
+            return existing;
+        }
+
+        // Chưa có → tạo mới
+        var config = new ChunkingConfig
+        {
+            Name        = name,
+            Strategy    = strategy,
+            ChunkSize   = chunkSize,
+            ChunkOverlap = chunkOverlap,
+            Description = description,
+            CreatedAt   = DateTime.Now
+        };
+        _context.ChunkingConfigs.Add(config);
+        await _context.SaveChangesAsync();
+        return config;
+    }
+
     public async Task AddChunksAsync(IEnumerable<Chunk> chunks)
     {
         _context.Chunks.AddRange(chunks);

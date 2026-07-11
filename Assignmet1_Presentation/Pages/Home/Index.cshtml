@@ -1,54 +1,54 @@
 @page
 @model Assignmet1_Presentation.Pages.Home.IndexModel
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Trang chủ";
     var userId = Model.UserId;
     var displayName = Model.DisplayName;
 }
 
 <section class="page-hero mb-4">
-    <div class="hero-badge mb-3">RAG-powered learning workspace</div>
+    <div class="hero-badge mb-3">Nền tảng học tập trực tuyến</div>
     <div class="hero-grid align-items-center">
         <div>
-            <h1 class="page-title">A focused workspace for documents, chat, and subscription control.</h1>
+            <h1 class="page-title">Không gian học tập tích hợp tài liệu, Chat AI và quản lý học phí.</h1>
             <p class="page-subtitle fs-5">
-                Browse indexed materials, ask questions with cited answers, and manage the payment workflow inside one MVC app.
+                Duyệt tài liệu, đặt câu hỏi với câu trả lời có trích dẫn, và quản lý thanh toán trong một ứng dụng.
             </p>
             <div class="d-flex flex-wrap gap-2 mt-4">
                 @if (userId is not null)
                 {
-                    <a class="btn btn-primary" asp-page="/Documents/Index">Open documents</a>
-                    <a class="btn btn-outline-light" asp-page="/Chat/Index">Start chat</a>
-                    <a class="btn btn-outline-secondary" asp-page="/Subscription/Index">Subscription</a>
+                    <a class="btn btn-primary" asp-page="/Documents/Index">Mở thư viện</a>
+                    <a class="btn btn-outline-light" asp-page="/Chat/Index">Bắt đầu chat</a>
+                    <a class="btn btn-outline-secondary" asp-page="/Subscription/Index">Gói học</a>
                 }
                 else
                 {
-                    <a class="btn btn-primary" asp-page="/Account/Login">Sign in</a>
-                    <a class="btn btn-outline-light" asp-page="/Home/Privacy">Learn more</a>
+                    <a class="btn btn-primary" asp-page="/Account/Login">Đăng nhập</a>
+                    <a class="btn btn-outline-light" asp-page="/Home/Privacy">Tìm hiểu thêm</a>
                 }
             </div>
         </div>
         <div class="surface-card">
-            <div class="stat-label mb-2">Current status</div>
-            <div class="stat-value mb-2">@((userId is not null) ? "Workspace ready" : "Please sign in")</div>
+            <div class="stat-label mb-2">Trạng thái</div>
+            <div class="stat-value mb-2">@((userId is not null) ? "Sẵn sàng" : "Vui lòng đăng nhập")</div>
             <p class="page-subtitle mb-3">
                 @if (userId is not null)
                 {
-                    <span>Signed in as <strong>@displayName</strong>. Your documents, chat sessions, and payment tickets are ready.</span>
+                    <span>Đăng nhập với tên <strong>@displayName</strong>. Tài liệu, phiên chat và thông tin học phí sẵn sàng.</span>
                 }
                 else
                 {
-                    <span>Login to access documents, chat, and subscription features.</span>
+                    <span>Hãy đăng nhập để truy cập tài liệu, chat AI và các tính năng khác.</span>
                 }
             </p>
             <div class="d-grid gap-2">
                 <div class="mini-panel">
-                    <div class="stat-label">Presentation</div>
-                    <div class="fw-semibold">MVC 3-layer architecture</div>
+                    <div class="stat-label">Giao diện</div>
+                    <div class="fw-semibold">Kiến trúc MVC 3 lớp</div>
                 </div>
                 <div class="mini-panel">
                     <div class="stat-label">Backend</div>
-                    <div class="fw-semibold">Service + Repository separation</div>
+                    <div class="fw-semibold">Phân tách Service + Repository</div>
                 </div>
             </div>
         </div>

@@ -1,23 +1,23 @@
 @page "/Account/Login"
 @model Assignmet1_Presentation.Pages.Account.LoginModel
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = "Đăng nhập";
 }
 
 <div class="row justify-content-center align-items-center g-4">
     <div class="col-lg-5">
         <div class="page-hero mb-4">
-            <div class="hero-badge mb-3">Secure access</div>
-            <h1 class="page-title mb-3">Sign in to continue your study workspace.</h1>
+            <div class="hero-badge mb-3">Truy cập bảo mật</div>
+            <h1 class="page-title mb-3">Đăng nhập để tiếp tục không gian học tập.</h1>
             <p class="page-subtitle">
-                Access indexed documents, RAG chat, and payment management from a single login.
+                Truy cập tài liệu, chat AI và quản lý học phí chỉ với một lần đăng nhập.
             </p>
         </div>
     </div>
     <div class="col-lg-5">
         <div class="auth-card">
-            <h2 class="h4 mb-2">Login</h2>
-            <p class="page-subtitle mb-4">Use your username or email and password.</p>
+            <h2 class="h4 mb-2">Đăng nhập</h2>
+            <p class="page-subtitle mb-4">Sử dụng tên đăng nhập hoặc email và mật khẩu.</p>
 
             <form method="post">
                 <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
@@ -35,7 +35,7 @@
                     <span asp-validation-for="Input.Password" class="text-danger"></span>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-lg w-100">Sign in</button>
+                <button type="submit" class="btn btn-primary btn-lg w-100">Đăng nhập</button>
             </form>
         </div>
     </div>

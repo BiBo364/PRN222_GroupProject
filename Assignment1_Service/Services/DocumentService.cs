@@ -5,6 +5,7 @@ using Assignment1_Service.Helpers;
 using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Assignment1_Service.Services;
 
@@ -15,19 +16,25 @@ public class DocumentService : IDocumentService
     private readonly IUserReposity _userRepository;
     private readonly IEmbeddingService _embeddingService;
     private readonly ILogger<DocumentService> _logger;
+    private readonly ChunkingSettings _chunkingSettings;
+    private readonly IAccountNotificationService _notificationService;
 
     public DocumentService(
         IDocumentRepository documentRepository,
         ISubjectRepository subjectRepository,
         IUserReposity userRepository,
         IEmbeddingService embeddingService,
-        ILogger<DocumentService> logger)
+        ILogger<DocumentService> logger,
+        IOptions<ChunkingSettings> chunkingSettings,
+        IAccountNotificationService notificationService)
     {
         _documentRepository = documentRepository;
         _subjectRepository = subjectRepository;
         _userRepository = userRepository;
         _embeddingService = embeddingService;
         _logger = logger;
+        _chunkingSettings = chunkingSettings.Value;
+        _notificationService = notificationService;
     }
 
     public async Task<List<DocumentListItemDto>> GetDocumentsAsync()
@@ -74,7 +81,10 @@ public class DocumentService : IDocumentService
             throw new InvalidOperationException("Selected chapter does not belong to the selected subject.");
 
         if (await _documentRepository.ExistsActiveDocumentNameAsync(subject.Id, normalizedOriginalName))
+        {
+            await SendDuplicateNotificationAsync(userId, normalizedOriginalName, subject, "Tên tài liệu trùng lặp với tài liệu đã tồn tại trong môn học.");
             throw new InvalidOperationException("Tai lieu nay da ton tai trong mon hoc nay.");
+        }
 
         var document = new Document
         {
@@ -132,6 +142,7 @@ public class DocumentService : IDocumentService
                 normalizedOriginalName,
                 document.Id))
         {
+            await SendDuplicateNotificationAsync(userId, normalizedOriginalName, subject, "Tên tài liệu trùng lặp với tài liệu khác trong môn học khi cập nhật.");
             return (null, "Da co tai lieu cung ten trong mon hoc nay.");
         }
 
@@ -263,7 +274,10 @@ public class DocumentService : IDocumentService
             return (null, "Selected chapter does not belong to the selected subject.");
 
         if (await _documentRepository.ExistsActiveDocumentNameAsync(subjectId, normalizedOriginalName))
+        {
+            await SendDuplicateNotificationAsync(userId, normalizedOriginalName, subject, "Tên tài liệu trùng lặp với tài liệu đã tồn tại trong môn học.");
             return (null, "Tai lieu nay da ton tai trong mon hoc nay.");
+        }
 
         Directory.CreateDirectory(storageRoot);
 
@@ -284,6 +298,7 @@ public class DocumentService : IDocumentService
         if (await _documentRepository.ExistsActiveDocumentHashAsync(subjectId, fileHash))
         {
             DeleteStoredFileQuietly(storagePath);
+            await SendDuplicateNotificationAsync(userId, normalizedOriginalName, subject, "Nội dung tài liệu trùng lặp với tài liệu đã tồn tại trong môn học (Trùng mã Hash SHA-256).");
             return (null, "Noi dung tai lieu nay da ton tai trong mon hoc nay.");
         }
 
@@ -352,10 +367,15 @@ public class DocumentService : IDocumentService
 
     private async Task IndexDocumentContentAsync(Document document, string filePath, string webRoot)
     {
-        var chunkingConfig = await _documentRepository.GetFirstChunkingConfigAsync();
         var embeddingModels = await _documentRepository.GetEmbeddingModelsAsync();
         if (embeddingModels.Count == 0)
             throw new InvalidOperationException("No embedding model configured in the database.");
+
+        // Đọc cấu hình chunk từ DB — bản ghi này đã được sync từ appsettings.json lúc khởi động.
+        // Muốn thay đổi: sửa section "Chunking" trong appsettings.json rồi restart app.
+        var chunkingConfig = await _documentRepository.GetFirstChunkingConfigAsync();
+        var maxWordsPerChunk = chunkingConfig?.ChunkSize   ?? _chunkingSettings.MaxWordsPerChunk;
+        var overlapWords     = chunkingConfig?.ChunkOverlap ?? _chunkingSettings.OverlapWords;
 
         List<Chunk> chunkEntities;
 
@@ -370,14 +390,12 @@ public class DocumentService : IDocumentService
             if (pages.Count == 0)
                 throw new InvalidOperationException("No text could be extracted from the file.");
 
-            var chunkSize = chunkingConfig?.ChunkSize ?? 800;
-            var overlap = chunkingConfig?.ChunkOverlap ?? 100;
             chunkEntities = new List<Chunk>();
-
             var nextChunkIndex = 0;
+
             foreach (var page in pages)
             {
-                var chunks = TextChunker.Chunk(page.Content, chunkSize, overlap);
+                var chunks = TextChunker.Chunk(page.Content, maxWordsPerChunk, overlapWords);
                 foreach (var chunk in chunks)
                 {
                     chunkEntities.Add(CreateTextChunk(
@@ -510,6 +528,29 @@ public class DocumentService : IDocumentService
                 throw new InvalidOperationException("At least one embedding vector is required for every chunk.");
 
             chunks[index].Embeddings = embeddings;
+        }
+    }
+
+    private async Task SendDuplicateNotificationAsync(int userId, string documentName, Subject subject, string reason)
+    {
+        try
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user is not null && !string.IsNullOrWhiteSpace(user.Email))
+            {
+                await _notificationService.SendDuplicateDocumentNotificationEmailAsync(
+                    user.Email,
+                    user.FullName ?? user.Username,
+                    documentName,
+                    subject.Code,
+                    subject.Name,
+                    reason
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gửi email thông báo trùng lặp tài liệu cho giảng viên.");
         }
     }
 }

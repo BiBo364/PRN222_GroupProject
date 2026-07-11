@@ -243,20 +243,39 @@
                         return;
                     }
 
-                    setProgress(Math.max(currentProgress, 1), "Tai len that bai.");
-                    progressBar.classList.remove("progress-bar-animated");
-                    progressBar.classList.add("bg-danger");
+                    // Khi có lỗi xảy ra (như trùng lặp tài liệu)
+                    if (progressPanel) {
+                        progressPanel.classList.add("d-none"); // Ẩn panel tiến trình để tránh cảm giác bị treo
+                    }
                     setError(payload.error || "Tai len that bai. Vui long thu lai.");
+
+                    // Hiển thị thông báo dạng Alert đẹp đẽ ngay trên giao diện
+                    Swal.fire({
+                        title: "Tải lên thất bại",
+                        text: payload.error || "Tài liệu này đã tồn tại hoặc có lỗi xảy ra.",
+                        icon: "error",
+                        confirmButtonColor: "#dc2626", // Màu đỏ cảnh báo
+                        confirmButtonText: "Đóng"
+                    });
                 };
 
                 xhr.onerror = () => {
                     stopProcessingAnimation();
                     isPending = false;
                     submitButton.disabled = false;
-                    setProgress(Math.max(currentProgress, 1), "Tai len that bai.");
-                    progressBar.classList.remove("progress-bar-animated");
-                    progressBar.classList.add("bg-danger");
+                    
+                    if (progressPanel) {
+                        progressPanel.classList.add("d-none");
+                    }
                     setError("Khong the ket noi voi may chu trong qua trinh tai len.");
+
+                    Swal.fire({
+                        title: "Lỗi kết nối",
+                        text: "Không thể kết nối với máy chủ trong quá trình tải lên.",
+                        icon: "error",
+                        confirmButtonColor: "#dc2626",
+                        confirmButtonText: "Đóng"
+                    });
                 };
 
                 progressBar.classList.remove("bg-danger");

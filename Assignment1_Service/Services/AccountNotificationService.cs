@@ -82,6 +82,95 @@ public class AccountNotificationService : IAccountNotificationService
         }
     }
 
+    public async Task<AccountNotificationResult> SendDuplicateDocumentNotificationEmailAsync(
+        string toEmail,
+        string fullName,
+        string documentName,
+        string subjectCode,
+        string subjectName,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_smtpOptions.Enabled)
+        {
+            return new AccountNotificationResult
+            {
+                IsSuccess = false,
+                Message = "SMTP chưa được bật trong cấu hình."
+            };
+        }
+
+        if (!IsConfigured())
+        {
+            return new AccountNotificationResult
+            {
+                IsSuccess = false,
+                Message = "SMTP chưa được cấu hình đầy đủ."
+            };
+        }
+
+        try
+        {
+            using var message = new MailMessage
+            {
+                From = new MailAddress(_smtpOptions.FromEmail, _smtpOptions.FromName),
+                Subject = "Cảnh báo: Tải lên tài liệu trùng lặp - RAG EDU",
+                Body = BuildDuplicateHtmlBody(fullName, documentName, subjectCode, subjectName, reason),
+                IsBodyHtml = true
+            };
+            message.To.Add(toEmail);
+
+            using var client = new SmtpClient(_smtpOptions.Host, _smtpOptions.Port)
+            {
+                EnableSsl = _smtpOptions.EnableSsl,
+                Credentials = new NetworkCredential(_smtpOptions.Username, _smtpOptions.Password)
+            };
+
+            using var registration = cancellationToken.Register(client.SendAsyncCancel);
+            await client.SendMailAsync(message, cancellationToken);
+
+            return new AccountNotificationResult
+            {
+                IsSuccess = true,
+                Message = "Đã gửi email thông báo tài liệu trùng lặp."
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send duplicate document notification email to {Email}.", toEmail);
+            return new AccountNotificationResult
+            {
+                IsSuccess = false,
+                Message = $"Gửi email thất bại: {ex.Message}"
+            };
+        }
+    }
+
+    private string BuildDuplicateHtmlBody(string fullName, string documentName, string subjectCode, string subjectName, string reason)
+    {
+        var displayName = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(fullName) ? "Giảng viên" : fullName);
+        var safeDocName = WebUtility.HtmlEncode(documentName);
+        var safeSubjectCode = WebUtility.HtmlEncode(subjectCode);
+        var safeSubjectName = WebUtility.HtmlEncode(subjectName);
+        var safeReason = WebUtility.HtmlEncode(reason);
+
+        return $"""
+            <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px;padding:24px;background-color:#ffffff">
+                <h2 style="color:#dc2626;margin-top:0">Cảnh báo trùng lặp tài liệu</h2>
+                <p>Xin chào <strong>{displayName}</strong>,</p>
+                <p>Hệ thống RAG EDU phát hiện bạn vừa yêu cầu tải lên một tài liệu trùng lặp trong môn học phụ trách:</p>
+                <div style="background-color:#f9fafb;border-left:4px solid #ef4444;padding:16px;margin:20px 0;border-radius:4px">
+                    <p style="margin:4px 0"><strong>Môn học:</strong> {safeSubjectCode} - {safeSubjectName}</p>
+                    <p style="margin:4px 0"><strong>Tên tài liệu tải lên:</strong> {safeDocName}</p>
+                    <p style="margin:4px 0;color:#dc2626"><strong>Lý do từ chối:</strong> {safeReason}</p>
+                </div>
+                <p>Vui lòng kiểm tra lại thư viện tài liệu của môn học trước khi thực hiện tải lên lại.</p>
+                <hr style="border:0;border-top:1px solid #e5e7eb;margin:24px 0" />
+                <p style="font-size:0.85rem;color:#6b7280;margin-bottom:0">Đây là email tự động từ hệ thống RAG EDU. Vui lòng không phản hồi email này.</p>
+            </div>
+            """;
+    }
+
     private bool IsConfigured()
     {
         return !string.IsNullOrWhiteSpace(_smtpOptions.Host)

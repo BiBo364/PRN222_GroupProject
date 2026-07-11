@@ -1,10 +1,12 @@
 using Assignmet1_Presentation.Endpoints;
 using Assignmet1_Presentation.Filters;
 using Assignmet1_Presentation.Hubs;
-using Assignment1_Service;
-using Assignment1_Service.Models;
-using Assignment1_Service.Infrastructure;
 using Assignment1_Repository.Models;
+using Assignment1_Repository.Repositories.Interfaces;
+using Assignment1_Service;
+using Assignment1_Service.Infrastructure;
+using Assignment1_Service.Models;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,7 @@ builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection("Gemi
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.Configure<MoMoPaymentSettings>(builder.Configuration.GetSection(MoMoPaymentSettings.SectionName));
 builder.Services.Configure<SubscriptionQuotaSettings>(builder.Configuration.GetSection(SubscriptionQuotaSettings.SectionName));
+builder.Services.Configure<ChunkingSettings>(builder.Configuration.GetSection(ChunkingSettings.SectionName));
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -34,6 +37,13 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<RagEduContext>();
     await DatabaseSchemaSynchronizer.UpdateAsync(db);
+
+    // Đồng bộ cấu hình chunk từ appsettings.json vào database.
+    // Mỗi lần restart app, DB sẽ được cập nhật theo đúng giá trị trong appsettings.json.
+    var docRepo        = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
+    var chunkSettings  = scope.ServiceProvider.GetRequiredService<IOptions<ChunkingSettings>>().Value;
+    var startupLogger  = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await ChunkingConfigSynchronizer.SyncAsync(docRepo, chunkSettings, startupLogger);
 }
 
 if (!app.Environment.IsDevelopment())

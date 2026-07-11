@@ -23,7 +23,7 @@
 @if (Model.ViewModel.IsAdminView)
 {
     <section class="page-hero mb-4">
-        <div class="hero-badge mb-3">Admin subscription</div>
+        <div class="hero-badge mb-3">Quản trị viên</div>
         <h1 class="page-title">Quan ly goi hoc va doanh thu</h1>
         <p class="page-subtitle mb-0">
             Xem tat ca goi dang ky hien co, tong doanh thu, goi duoc mua nhieu nhat va bao cao doanh thu theo thoi gian.
@@ -200,7 +200,7 @@
 else
 {
     <section class="page-hero mb-4">
-        <div class="hero-badge mb-3">Student subscription</div>
+        <div class="hero-badge mb-3">Sinh viên</div>
         <h1 class="page-title">Mua goi Plus cho sinh vien</h1>
         <p class="page-subtitle mb-0">
             Xem goi hien tai, quota con lai theo mon hoc, thoi diem reset va nang cap Plus ngay bang cong thanh toan MoMo.
@@ -214,7 +214,7 @@ else
             <p class="mb-0 text-muted">
                 @if (!Model.ViewModel.IsPlus)
                 {
-                    <span>Free plan gioi han @Model.ViewModel.FreeQuestionLimit cau moi mon trong @Model.ViewModel.FreeQuotaWindowHours gio.</span>
+                    <span>Gói miễn phí giới hạn @Model.ViewModel.FreeQuestionLimit câu mỗi môn trong @Model.ViewModel.FreeQuotaWindowHours giờ.</span>
                 }
             </p>
         </article>
@@ -222,7 +222,7 @@ else
         <article class="surface-card subscription-summary-card">
             <div class="stat-label mb-2">So lan hoi con lai</div>
             <div class="subscription-summary-value">
-                @(Model.ViewModel.IsPlus ? "Unlimited" : Model.ViewModel.TotalQuestionsRemaining.ToString())
+                @(Model.ViewModel.IsPlus ? "Không giới hạn" : Model.ViewModel.TotalQuestionsRemaining.ToString())
             </div>
             <p class="mb-0 text-muted">
                 @if (Model.ViewModel.IsPlus)

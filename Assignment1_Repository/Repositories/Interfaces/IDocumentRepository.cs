@@ -18,6 +18,7 @@ public interface IDocumentRepository
     Task<EmbeddingModel?> GetFirstEmbeddingModelAsync();
     Task<List<EmbeddingModel>> GetEmbeddingModelsAsync();
     Task<ChunkingConfig?> GetFirstChunkingConfigAsync();
+    Task<ChunkingConfig> UpsertChunkingConfigAsync(string name, string strategy, int chunkSize, int chunkOverlap, string? description);
     Task AddChunksAsync(IEnumerable<Chunk> chunks);
     Task ClearChunksAsync(int documentId);
 }

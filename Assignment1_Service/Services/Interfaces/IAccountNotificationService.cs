@@ -10,4 +10,13 @@ public interface IAccountNotificationService
         string username,
         string temporaryPassword,
         CancellationToken cancellationToken = default);
+
+    Task<AccountNotificationResult> SendDuplicateDocumentNotificationEmailAsync(
+        string toEmail,
+        string fullName,
+        string documentName,
+        string subjectCode,
+        string subjectName,
+        string reason,
+        CancellationToken cancellationToken = default);
 }

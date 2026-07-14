@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RAG Edu Hub</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- FontAwesome (backup) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+</head>
+<body class="app-body">
+    @{
+        var isLoggedIn        = Context.Session.GetInt32("UserId") is not null;
+        var forcePasswordChange = string.Equals(Context.Session.GetString("ForcePasswordChange"), "true", StringComparison.OrdinalIgnoreCase);
+        var sessionRoleId     = Context.Session.GetInt32("RoleId");
+        var sessionFullName   = Context.Session.GetString("FullName");
+        var sessionUsername   = Context.Session.GetString("Username");
+
+        // Role display info
+        string roleLabel = sessionRoleId switch {
+            1 => "Admin",
+            2 => "Giang vien",
+            3 => "Sinh vien",
+            _ => ""
+        };
+        string roleCssClass = sessionRoleId switch {
+            1 => "warning",
+            2 => "primary",
+            3 => "success",
+            _ => "info"
+        };
+
+        var successMsg = TempData["Success"] as string;
+        var warningMsg = TempData["Warning"] as string;
+        var errorMsg   = TempData["Error"] as string;
+        var infoMsg    = TempData["Info"] as string;
+
+        TempData.Remove("Success");
+        TempData.Remove("Warning");
+        TempData.Remove("Error");
+        TempData.Remove("Info");
+
+        var flashMessages = new List<string>();
+        var flashCss = "alert-info";
+        var flashIcon = "info";
+
+        if (!string.IsNullOrWhiteSpace(errorMsg))
+        {
+            flashCss = "alert-danger";
+            flashIcon = "x-circle";
+            flashMessages.Add(errorMsg);
+        }
+
+        if (!string.IsNullOrWhiteSpace(warningMsg))
+        {
+            if (flashMessages.Count == 0)
+            {
+                flashCss = "alert-warning";
+                flashIcon = "alert-triangle";
+            }
+            flashMessages.Add(warningMsg);
+        }
+
+        if (!string.IsNullOrWhiteSpace(successMsg))
+        {
+            if (flashMessages.Count == 0)
+            {
+                flashCss = "alert-success";
+                flashIcon = "check-circle-2";
+            }
+            flashMessages.Add(successMsg);
+        }
+
+        if (!string.IsNullOrWhiteSpace(infoMsg))
+        {
+            flashMessages.Add(infoMsg);
+        }
+    }
+
+    <header class="app-header">
+        <nav class="navbar navbar-expand-lg app-nav">
+            <div class="container app-shell">
+
+                <!-- Brand -->
+                <a class="navbar-brand app-brand" asp-page="/Home/Index">
+                    <span class="brand-mark">
+                        <i data-lucide="book-open" class="icon-md text-white"></i>
+                    </span>
+                    <span class="brand-text">RAG Edu Hub</span>
+                </a>
+
+                <!-- Toggle -->
+                <button class="navbar-toggler border-0" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#mainNav"
+                        aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <i data-lucide="menu" class="icon-md" style="color:var(--text-muted)"></i>
+                </button>
+
+                <div class="collapse navbar-collapse" id="mainNav">
+
+                    <!-- Left links -->
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 app-nav-links">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Home/Index">
+                                <i data-lucide="home" class="icon-sm"></i> Trang chu
+                            </a>
+                        </li>
+
+                        @if (isLoggedIn && !forcePasswordChange)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Documents/Index">
+                                    <i data-lucide="library" class="icon-sm"></i> Thu vien
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Chat/Index">
+                                    <i data-lucide="message-square" class="icon-sm"></i> Chat AI
+                                </a>
+                            </li>
+                            @if (sessionRoleId != 1)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-page="/Subscription/Index">
+                                        <i data-lucide="sparkles" class="icon-sm"></i> Gói học
+                                    </a>
+                                </li>
+                            }
+
+                            @* Recycle bin for Lecturer (own subject docs) *@
+                            @if (sessionRoleId == 2)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-page="/Documents/Recycle">
+                                        <i data-lucide="archive-restore" class="icon-sm"></i> Thung rac tai lieu
+                                    </a>
+                                </li>
+                            }
+
+                            @* Admin menu *@
+                            @if (sessionRoleId == 1)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i data-lucide="shield-check" class="icon-sm"></i> Quan tri
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <span class="dropdown-header text-uppercase" style="font-size:.68rem;letter-spacing:.07em;color:var(--text-faint);padding:.4rem .85rem .2rem">
+                                                Mon hoc
+                                            </span>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-page="/Subjects/Manage">
+                                                <i data-lucide="book-copy" class="icon-sm"></i> Quan ly mon hoc
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-page="/Subjects/Recycle">
+                                                <i data-lucide="trash-2" class="icon-sm" style="color:var(--rose)"></i> Thung rac mon hoc
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li>
+                                            <span class="dropdown-header text-uppercase" style="font-size:.68rem;letter-spacing:.07em;color:var(--text-faint);padding:.4rem .85rem .2rem">
+                                                Nguoi dung
+                                            </span>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-page="/Admin/Index">
+                                                <i data-lucide="users" class="icon-sm"></i> Quan ly nguoi dung
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-page="/Admin/ImportUsers">
+                                                <i data-lucide="file-up" class="icon-sm"></i> Import nguoi dung
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li>
+                                            <span class="dropdown-header text-uppercase" style="font-size:.68rem;letter-spacing:.07em;color:var(--text-faint);padding:.4rem .85rem .2rem">
+                                                Tai chinh
+                                            </span>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-page="/Subscription/Index">
+                                                <i data-lucide="credit-card" class="icon-sm"></i> Goi hoc
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-page="/PaymentAdmin/Index">
+                                                <i data-lucide="receipt" class="icon-sm"></i> Giao dich
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            }
+                        }
+                        else if (isLoggedIn && forcePasswordChange)
+                        {
+                            <li class="nav-item">
+                                <span class="force-password-nav">
+                                    <i data-lucide="alert-circle" class="icon-sm"></i>
+                                    Vui long doi mat khau de tiep tuc
+                                </span>
+                            </li>
+                        }
+                    </ul>
+
+                    <!-- Right meta -->
+                    <div class="d-flex align-items-center gap-2 app-nav-meta">
+                        @if (isLoggedIn)
+                        {
+                            <div class="dropdown">
+                                <button class="user-chip dropdown-toggle border-0" data-bs-toggle="dropdown">
+                                    <span class="user-chip-label">Da dang nhap</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong class="text-truncate" style="max-width:140px;font-size:.88rem">
+                                            @(sessionFullName ?? sessionUsername)
+                                        </strong>
+                                        @if (!string.IsNullOrEmpty(roleLabel))
+                                        {
+                                            <span class="status-chip @roleCssClass" style="font-size:.65rem;padding:.15rem .55rem;font-weight:700">
+                                                @roleLabel
+                                            </span>
+                                        }
+                                    </div>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" style="min-width:220px">
+                                    <li class="px-3 py-2">
+                                        <div style="font-size:.72rem;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem">
+                                            Tai khoan
+                                        </div>
+                                        <div class="fw-semibold" style="font-size:.9rem;color:var(--text)">
+                                            @(sessionFullName ?? sessionUsername)
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(roleLabel))
+                                        {
+                                            <span class="status-chip @roleCssClass mt-1" style="font-size:.7rem;padding:.2rem .6rem">
+                                                @roleLabel
+                                            </span>
+                                        }
+                                    </li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    @if (sessionRoleId == 3)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-page="/Subscription/Index">
+                                                <i data-lucide="sparkles" class="icon-sm"></i> Goi Plus cua toi
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                    }
+                                    <li>
+                                        <a class="dropdown-item" asp-page="/Account/ChangePassword">
+                                            <i data-lucide="key-round" class="icon-sm"></i> Doi mat khau
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-page="/Account/Logout" style="color:var(--rose-dk)">
+                                            <i data-lucide="log-out" class="icon-sm"></i> Dang xuat
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <a class="btn btn-primary btn-sm" asp-page="/Account/Login">
+                                <i data-lucide="log-in" class="icon-sm"></i> Dang nhap
+                            </a>
+                        }
+                    </div>
+
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main" class="app-main">
+        <div class="container app-shell">
+
+            @* Global flash messages *@
+            @if (flashMessages.Count > 0)
+            {
+                <div class="alert @flashCss mb-4" role="alert">
+                    <i data-lucide="@flashIcon" class="alert-icon"></i>
+                    <div>
+                        @foreach (var message in flashMessages)
+                        {
+                            <div>@message</div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container app-shell d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="brand-mark" style="width:1.6rem;height:1.6rem;border-radius:.4rem">
+                    <i data-lucide="book-open" style="width:14px;height:14px;color:#fff"></i>
+                </span>
+                <span style="font-weight:600;color:var(--text-sec)">RAG Edu Hub</span>
+                <span style="color:var(--text-faint)">&copy; 2026</span>
+            </div>
+            <a asp-page="/Home/Privacy" style="color:var(--text-faint);font-size:.85rem">
+                Chinh sach rieng tu
+            </a>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Init Lucide icons
+            lucide.createIcons();
+
+            // ── Global SweetAlert2 delete confirmation ──────────────
+            // Handles any button with class "btn-delete-confirm"
+            document.body.addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-delete-confirm');
+                if (!btn) return;
+
+                e.preventDefault();
+                const form      = btn.closest('form');
+                const itemName  = btn.getAttribute('data-item-name') || 'muc nay';
+                const itemType  = btn.getAttribute('data-item-type') || 'tai lieu';
+                const canRestore = btn.getAttribute('data-can-restore') !== 'false';
+
+                Swal.fire({
+                    title: 'Xac nhan xoa?',
+                    html: `<div style="text-align:left;line-height:1.7">
+                               <p>Ban chuan bi xoa: <strong>${itemName}</strong></p>
+                               ${canRestore
+                                ? '<p style="margin:0;font-size:.875rem;color:#6b7280"><i class="fa fa-info-circle" style="color:#6366f1"></i> Sau khi xoa, ban co the khoi phuc trong <strong>Thung rac</strong>.</p>'
+                                : '<p style="margin:0;font-size:.875rem;color:#dc2626">Hanh dong nay khong the hoan tac!</p>'}
+                           </div>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f43f5e',
+                    cancelButtonColor:  '#6b7280',
+                    confirmButtonText:  '<i class="fa fa-trash" style="margin-right:6px"></i>Co, xoa ngay!',
+                    cancelButtonText:   'Huy bo',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    customClass: {
+                        popup:   'swal2-popup',
+                        title:   'swal2-title',
+                        actions: 'swal2-actions'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed && form) {
+                        form.submit();
+                    }
+                });
+            });
+
+            // ── Active nav link highlight ───────────────────────────
+            const currentPath = window.location.pathname.replace(/\/$/, '').toLowerCase();
+            document.querySelectorAll('.app-nav-links .nav-link').forEach(link => {
+                const href = (link.getAttribute('href') || '').replace(/\/$/, '').toLowerCase();
+                if (href && href !== '' && currentPath.startsWith(href)) {
+                    link.classList.add('active');
+                }
+            });
+
+            // ── Auto-dismiss alerts after 6 seconds ────────────────
+            document.querySelectorAll('.alert').forEach(alert => {
+                if (alert.closest('.app-main')) {
+                    setTimeout(() => {
+                        alert.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-8px)';
+                        setTimeout(() => alert.remove(), 500);
+                    }, 6000);
+                }
+            });
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,216 @@
+@page "/Admin/ImportUsers"
+@model Assignmet1_Presentation.Pages.Admin.ImportUsersModel
+@using Assignment1_Service.Models
+@{
+    ViewData["Title"] = "Import người dùng";
+}
+
+<div class="d-flex flex-column gap-4">
+    <div class="page-hero d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3">
+        <div>
+            <div class="hero-badge mb-2"><i data-lucide="upload-cloud" class="icon-sm"></i> Nhập dữ liệu hàng loạt</div>
+            <h1 class="page-title mb-1">Import người dùng</h1>
+            <p class="page-subtitle mb-0">
+                Tải lên file <strong>.xlsx, .csv, .json, .txt</strong> chỉ cần họ tên. Hệ thống sẽ tự tạo username/email,
+                mật khẩu mặc định <code>1234567</code> và sẽ gửi email thông báo nếu SMTP đã được cấu hình.
+            </p>
+        </div>
+        <a asp-page="/Admin/Index" class="btn btn-outline-secondary flex-shrink-0"><i data-lucide="arrow-left" class="icon-sm me-2"></i> Quay lại danh sách</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="surface-card h-100">
+                <h2 class="h5 fw-semibold mb-4"><i data-lucide="file-up" class="icon-sm me-2"></i> Tải lên danh sách</h2>
+
+                <form method="post" enctype="multipart/form-data" id="importForm">
+                    @Html.AntiForgeryToken()
+
+                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+                    {
+                        <div class="alert alert-danger mb-4">
+                            <div asp-validation-summary="All"></div>
+                        </div>
+                    }
+
+                    <div class="mb-4">
+                        <label asp-for="Input.RoleId" class="form-label fw-semibold"></label>
+                        <select asp-for="Input.RoleId" class="form-select form-select-lg">
+                            <option value="2">Giảng viên</option>
+                            <option value="3">Sinh viên</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4" id="subjectAssignmentGroup">
+                        <label asp-for="Input.SubjectId" class="form-label fw-semibold"></label>
+                        <select asp-for="Input.SubjectId" class="form-select form-select-lg">
+                            <option value="">Không gán môn học</option>
+                            @foreach (var s in Model.Input.SubjectOptions)
+                            {
+                                var isTakenByTeacher = Model.Input.TeacherBySubjectId.TryGetValue(s.Id, out var assignedTeacher);
+                                <option value="@s.Id">
+                                    @s.Code - @s.Name@(isTakenByTeacher ? $" (đã có GV: {assignedTeacher})" : "")
+                                </option>
+                            }
+                        </select>
+                        <div class="form-text">Chỉ áp dụng khi import giảng viên. Mỗi môn học chỉ có một giảng viên phụ trách.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Input.File" class="form-label fw-semibold"></label>
+                        <input type="file" asp-for="Input.File" accept=".xlsx,.xls,.csv,.json,.txt" class="form-control" />
+                        <span asp-validation-for="Input.File" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn"><i data-lucide="upload" class="icon-sm me-2"></i> Bắt đầu Import</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="surface-card h-100">
+                <h2 class="h5 fw-semibold mb-4"><i data-lucide="info" class="icon-sm me-2"></i> Hướng dẫn</h2>
+                <div class="d-flex flex-column gap-3">
+                    <div class="mini-panel">
+                        <div class="fw-semibold small"><i data-lucide="file-spreadsheet" class="icon-sm me-1"></i> Định dạng file</div>
+                        <div class="text-muted small">Cột 1: FullName/Họ tên. Các cột Email và Username không còn bắt buộc vì hệ thống tự sinh tài khoản.</div>
+                    </div>
+                    <div class="mini-panel">
+                        <div class="fw-semibold small"><i data-lucide="lock" class="icon-sm me-1"></i> Mật khẩu mặc định</div>
+                        <div class="text-muted small">Tài khoản mới sẽ được tạo với mật khẩu <strong>1234567</strong>.</div>
+                    </div>
+                    <div class="mini-panel">
+                        <div class="fw-semibold small"><i data-lucide="key" class="icon-sm me-1"></i> Đổi mật khẩu lần đầu</div>
+                        <div class="text-muted small">Người dùng đăng nhập bằng mật khẩu mặc định sẽ bị điều hướng sang màn đổi mật khẩu.</div>
+                    </div>
+                    <div class="mini-panel">
+                        <div class="fw-semibold small"><i data-lucide="mail" class="icon-sm me-1"></i> Email thông báo</div>
+                        <div class="text-muted small">Email được sinh theo vai trò: giảng viên dùng @@edu.vn, sinh viên dùng @@fpt.edu.vn.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Input.Result is { } result)
+    {
+        <div class="surface-card mt-4">
+            <h2 class="h5 fw-semibold mb-4"><i data-lucide="bar-chart-2" class="icon-sm me-2"></i> Kết quả import</h2>
+
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-2">
+                    <div class="stat-card text-center">
+                        <div class="stat-value text-info">@result.TotalRows</div>
+                        <div class="stat-label">Tổng dòng</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="stat-card text-center">
+                        <div class="stat-value text-success">@result.CreatedCount</div>
+                        <div class="stat-label">Tạo thành công</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="stat-card text-center">
+                        <div class="stat-value text-warning">@result.SkippedDuplicateCount</div>
+                        <div class="stat-label">Trùng lặp</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="stat-card text-center">
+                        <div class="stat-value text-danger">@result.ErrorCount</div>
+                        <div class="stat-label">Lỗi</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="stat-card text-center">
+                        <div class="stat-value text-success">@result.NotificationSentCount</div>
+                        <div class="stat-label">Gửi mail thành công</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="stat-card text-center">
+                        <div class="stat-value text-danger">@result.NotificationFailedCount</div>
+                        <div class="stat-label">Gửi mail lỗi</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Dòng</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Username</th>
+                            <th>Trạng thái</th>
+                            <th>Email thông báo</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in result.Rows)
+                        {
+                            <tr>
+                                <td>@row.RowNumber</td>
+                                <td>@(row.FullName ?? "-")</td>
+                                <td>@(row.Email ?? "-")</td>
+                                <td>@(row.Username ?? "-")</td>
+                                <td>@row.StatusLabel</td>
+                                <td>
+                                    @if (row.NotificationSent is true)
+                                    {
+                                        <span class="text-success"><i data-lucide="check" class="icon-sm"></i> Đã gửi</span>
+                                    }
+                                    else if (row.NotificationSent is false)
+                                    {
+                                        <span class="text-danger"><i data-lucide="x" class="icon-sm"></i> Chưa gửi</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @row.Message
+                                    @if (!string.IsNullOrWhiteSpace(row.NotificationMessage))
+                                    {
+                                        <div class="text-muted small">@row.NotificationMessage</div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    const roleSelect = document.getElementById('Input_RoleId');
+    const subjectGroup = document.getElementById('subjectAssignmentGroup');
+    const subjectSelect = document.getElementById('Input_SubjectId');
+
+    function syncSubjectAssignmentVisibility() {
+        const isLecturer = roleSelect && roleSelect.value === '2';
+        if (subjectGroup) subjectGroup.style.display = isLecturer ? '' : 'none';
+        if (!isLecturer && subjectSelect) subjectSelect.value = '';
+    }
+
+    if (roleSelect) {
+        roleSelect.addEventListener('change', syncSubjectAssignmentVisibility);
+        syncSubjectAssignmentVisibility();
+    }
+
+    document.getElementById('importForm').addEventListener('submit', function () {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm me-2 spin"></i> Đang xử lý...';
+        lucide.createIcons();
+    });
+</script>
+}

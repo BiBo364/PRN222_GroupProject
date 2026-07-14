@@ -1,0 +1,411 @@
+@page "/Subjects/Details/{id:int}"
+@model Assignmet1_Presentation.Pages.Subjects.DetailsModel
+@{
+    ViewData["Title"] = $"{Model.ViewModel.Subject.Code} - Mon hoc";
+    var hasDocuments  = Model.ViewModel.Documents.Any();
+    var subject       = Model.ViewModel.Subject;
+}
+
+<!-- ── HERO ──────────────────────────────────────────────────────── -->
+<section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
+        <div>
+            <div class="hero-badge mb-3">
+                <i data-lucide="book-open" class="icon-sm"></i> Chi tiet mon hoc
+            </div>
+            <h1 class="page-title mb-1" id="subject-code">@subject.Code</h1>
+            <p class="page-subtitle mb-1" id="subject-name">@subject.Name</p>
+            @if (!string.IsNullOrEmpty(subject.Description))
+            {
+                <p class="page-subtitle mb-0" id="subject-description" style="font-size:.9rem;color:var(--text-muted)">
+                    @subject.Description
+                </p>
+            }
+        </div>
+        <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+            @if (Model.ViewModel.CanUploadDocument)
+            {
+                <a class="btn btn-primary"
+                   asp-page="/Documents/Upload"
+                   asp-route-subjectId="@subject.Id">
+                    <i data-lucide="upload-cloud" class="icon-sm"></i> Tai len tai lieu
+                </a>
+            }
+            <a class="btn btn-outline-secondary" asp-page="/Documents/Index">
+                <i data-lucide="arrow-left" class="icon-sm"></i> Quay lai
+            </a>
+        </div>
+    </div>
+</section>
+
+
+<!-- ── STATS ROW ─────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4 stagger-children">
+    <div class="col-6 col-md-4">
+        <div class="stat-card text-center">
+            <div class="stat-value" style="background:var(--grad-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent"
+                 id="subject-chapter-count">
+                @subject.Chapters.Count
+            </div>
+            <div class="stat-label">
+                <i data-lucide="bookmark" class="icon-xs me-1"></i> So chuong
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="stat-card text-center">
+            <div class="stat-value" style="background:var(--grad-cool);-webkit-background-clip:text;-webkit-text-fill-color:transparent"
+                 id="subject-document-count">
+                @Model.ViewModel.Documents.Count
+            </div>
+            <div class="stat-label">
+                <i data-lucide="file-text" class="icon-xs me-1"></i> Tong tai lieu
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="stat-card text-center">
+            <div class="stat-value" style="background:var(--grad-accent);-webkit-background-clip:text;-webkit-text-fill-color:transparent"
+                 id="subject-indexed-count">
+                @Model.ViewModel.Documents.Count(d => d.Status == "indexed")
+            </div>
+            <div class="stat-label">
+                <i data-lucide="check-circle" class="icon-xs me-1"></i> Da lap chi muc
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── DOCUMENTS TABLE ───────────────────────────────────────────── -->
+<div class="surface-card p-0 overflow-hidden">
+
+    <div class="card-header-row">
+        <h2 class="card-header-title" id="documents-title">
+            <i data-lucide="files" class="icon-sm me-1" style="color:var(--primary)"></i>
+            @(hasDocuments ? "Tai lieu mon hoc" : "Chua co tai lieu")
+        </h2>
+        @if (Model.ViewModel.CanUploadDocument)
+        {
+            <a class="btn btn-primary btn-sm"
+               asp-page="/Documents/Upload"
+               asp-route-subjectId="@subject.Id">
+                <i data-lucide="upload-cloud" class="icon-sm"></i> Tai len
+            </a>
+        }
+    </div>
+
+    <!-- Empty state -->
+    <div id="document-empty-state"
+         class="empty-state"
+         style="display:@(hasDocuments ? "none" : "block")">
+        <div class="empty-state-icon">
+            <i data-lucide="file-x" style="width:56px;height:56px;color:var(--text-faint)"></i>
+        </div>
+        <div class="empty-state-title">Chua co tai lieu nao</div>
+        <div class="empty-state-desc">
+            @if (Model.ViewModel.CanUploadDocument)
+            {
+                <span>Hay tai len tai lieu dau tien de bat dau su dung tinh nang chat AI.</span>
+            }
+            else
+            {
+                <span>Mon hoc nay chua co tai lieu nao duoc tai len.</span>
+            }
+        </div>
+        @if (Model.ViewModel.CanUploadDocument)
+        {
+            <a class="btn btn-primary"
+               asp-page="/Documents/Upload"
+               asp-route-subjectId="@subject.Id">
+                <i data-lucide="upload-cloud" class="icon-sm"></i> Tai len tai lieu dau tien
+            </a>
+        }
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive" id="document-table-wrapper"
+         style="display:@(hasDocuments ? "block" : "none")">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-4">Ten tai lieu</th>
+                    <th>Loai</th>
+                    <th>Chuong</th>
+                    <th>Trang thai</th>
+                    <th>Chunks</th>
+                    <th>Ngay tai len</th>
+                    <th>Ngay lap chi muc</th>
+                    <th class="pe-4 text-end">Hanh dong</th>
+                </tr>
+            </thead>
+            <tbody id="document-table-body">
+                @foreach (var doc in Model.ViewModel.Documents)
+                {
+                        string statusClass = "warning";
+                        if (doc.Status == "indexed") statusClass = "success";
+                        else if (doc.Status == "failed") statusClass = "danger";
+
+                        string statusLabel = doc.Status;
+                        if (doc.Status == "indexed") statusLabel = "Da lap chi muc";
+                        else if (doc.Status == "failed") statusLabel = "That bai";
+                        else if (doc.Status == "processing") statusLabel = "Dang xu ly";
+                        else if (doc.Status == "pending") statusLabel = "Cho xu ly";
+                    <tr data-document-row
+                        data-document-id="@doc.Id"
+                        data-document-status="@doc.Status"
+                        data-document-subject-id="@doc.SubjectId">
+                        <td class="ps-4">
+                            <div class="fw-semibold doc-name" style="color:var(--text)">@doc.OriginalName</div>
+                            <div style="font-size:.75rem;color:var(--text-faint)">#@doc.Id</div>
+                        </td>
+                        <td>
+                            <span class="status-chip info doc-type" style="font-size:.72rem;font-weight:700;letter-spacing:.04em">
+                                @doc.FileType.ToUpper()
+                            </span>
+                        </td>
+                        <td class="doc-chapter" style="font-size:.85rem;color:var(--text-muted)">
+                            @(doc.ChapterNumber is null ? "—" : $"Ch.{doc.ChapterNumber}: {doc.ChapterTitle}")
+                        </td>
+                        <td>
+                            <span class="status-chip @statusClass doc-status">@statusLabel</span>
+                            @if (doc.Status == "failed" && !string.IsNullOrEmpty(doc.ErrorMsg))
+                            {
+                                <div class="small text-danger doc-error mt-1" style="font-size:.75rem">
+                                    @doc.ErrorMsg
+                                </div>
+                            }
+                        </td>
+                        <td class="doc-chunks" style="font-weight:600;color:var(--text-sec)">@doc.ChunkCount</td>
+                        <td class="doc-created" style="font-size:.82rem;color:var(--text-muted)">
+                            @(doc.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")
+                        </td>
+                        <td class="doc-indexed" style="font-size:.82rem;color:var(--text-muted)">
+                            @(doc.IndexedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")
+                        </td>
+                        @if (Model.ViewModel.CanDeleteDocument)
+                        {
+                            <td class="pe-4 text-end">
+                                <div class="action-btn-group">
+                                    <a class="btn btn-sm btn-outline-info"
+                                       asp-page="/Documents/Details"
+                                       asp-route-id="@doc.Id"
+                                       title="Xem chi tiet tai lieu">
+                                        <i data-lucide="eye" class="icon-sm"></i>
+                                    </a>
+                                    @if (Model.ViewModel.CanEditDocument)
+                                    {
+                                        <a class="btn btn-sm btn-outline-secondary"
+                                           asp-page="/Documents/Details"
+                                           asp-route-id="@doc.Id"
+                                           title="Chinh sua tai lieu">
+                                            <i data-lucide="pencil" class="icon-sm"></i>
+                                        </a>
+                                    }
+                                    <form asp-page="/Documents/Details"
+                                          asp-page-handler="Delete"
+                                          asp-route-id="@doc.Id"
+                                          method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="returnSubjectId" value="@subject.Id" />
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger btn-delete-doc"
+                                                data-doc-name="@doc.OriginalName"
+                                                title="Xoa tai lieu (co the khoi phuc)">
+                                            <i data-lucide="trash-2" class="icon-sm"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="pe-4 text-end">
+                                <a class="btn btn-sm btn-outline-info"
+                                   asp-page="/Documents/Details"
+                                   asp-route-id="@doc.Id"
+                                   title="Xem chi tiet tai lieu">
+                                    <i data-lucide="eye" class="icon-sm"></i>
+                                </a>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Modal: Confirm Delete Document ────────────────────────────── -->
+@if (Model.ViewModel.CanDeleteDocument)
+{
+    <div class="modal fade" id="deleteDocModal" tabindex="-1" aria-labelledby="deleteDocModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger" id="deleteDocModalLabel">
+                        <i data-lucide="alert-triangle" class="icon-md me-2"></i> Xac nhan xoa tai lieu
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Dong"></button>
+                </div>
+                <div class="modal-body">
+                    <p style="color:var(--text-sec);font-size:.9rem;margin-bottom:.5rem">
+                        Ban chuan bi xoa tai lieu:
+                    </p>
+                    <p class="fw-semibold" id="deleteDocName" style="color:var(--text);font-size:1rem;margin-bottom:1rem"></p>
+                    <div class="alert alert-info" style="font-size:.85rem;margin-bottom:0">
+                        <i data-lucide="info" class="alert-icon"></i>
+                        <span>Tai lieu se duoc chuyen vao <strong>Thung rac</strong> va co the khoi phuc lai.</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i data-lucide="x" class="icon-sm"></i> Huy bo
+                    </button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteDocBtn">
+                        <i data-lucide="trash-2" class="icon-sm"></i> Xoa tai lieu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (() => {
+            const subjectId          = @subject.Id;
+            const documentTableBody  = document.getElementById("document-table-body");
+            if (!documentTableBody) return;
+
+            const emptyState    = document.getElementById("document-empty-state");
+            const tableWrapper  = document.getElementById("document-table-wrapper");
+            const documentsTitle = document.getElementById("documents-title");
+            const subjectCode   = document.getElementById("subject-code");
+            const subjectName   = document.getElementById("subject-name");
+            const subjectDesc   = document.getElementById("subject-description");
+            const chapterCount  = document.getElementById("subject-chapter-count");
+            const documentCount = document.getElementById("subject-document-count");
+            const indexedCount  = document.getElementById("subject-indexed-count");
+
+            const statusLabels = {
+                indexed:    "Da lap chi muc",
+                failed:     "That bai",
+                processing: "Dang xu ly",
+                pending:    "Cho xu ly"
+            };
+
+            function refreshCounters() {
+                const rows    = documentTableBody.querySelectorAll("[data-document-row]");
+                const total   = rows.length;
+                const indexed = documentTableBody.querySelectorAll("[data-document-row][data-document-status='indexed']").length;
+                if (documentCount) documentCount.textContent = String(total);
+                if (indexedCount)  indexedCount.textContent  = String(indexed);
+                if (documentsTitle) {
+                    documentsTitle.innerHTML = total > 0
+                        ? `<i data-lucide="files" class="icon-sm me-1" style="color:var(--primary)"></i> Tai lieu mon hoc`
+                        : `<i data-lucide="files" class="icon-sm me-1" style="color:var(--primary)"></i> Chua co tai lieu`;
+                    lucide.createIcons();
+                }
+                if (emptyState && tableWrapper) {
+                    emptyState.style.display  = total === 0 ? "block" : "none";
+                    tableWrapper.style.display = total === 0 ? "none"  : "block";
+                }
+            }
+
+            function upsertDocument(doc) {
+                if (doc.subjectId && Number(doc.subjectId) !== Number(subjectId)) return;
+                const existing = documentTableBody.querySelector(`[data-document-row][data-document-id="${doc.id}"]`);
+                if (existing) {
+                    existing.setAttribute("data-document-status", doc.status || "");
+                    existing.querySelector(".doc-name").textContent   = doc.originalName || "";
+                    existing.querySelector(".doc-type").textContent   = (doc.fileType || "").toUpperCase();
+                    existing.querySelector(".doc-chapter").textContent = doc.chapterNumber ? `Ch.${doc.chapterNumber}: ${doc.chapterTitle || ""}` : "—";
+                    existing.querySelector(".doc-status").textContent = statusLabels[doc.status] || doc.status;
+                    existing.querySelector(".doc-chunks").textContent  = String(doc.chunkCount ?? 0);
+                    existing.querySelector(".doc-created").textContent = appHubRealtime.formatDateTime(doc.createdAt);
+                    existing.querySelector(".doc-indexed").textContent = appHubRealtime.formatDateTime(doc.indexedAt);
+                } else {
+                    documentTableBody.insertAdjacentHTML("beforeend", `
+                        <tr data-document-row data-document-id="${doc.id}" data-document-status="${appHubRealtime.escapeHtml(doc.status)}" data-document-subject-id="${doc.subjectId ?? ''}">
+                            <td class="ps-4">
+                                <div class="fw-semibold doc-name">${appHubRealtime.escapeHtml(doc.originalName)}</div>
+                                <div style="font-size:.75rem;color:var(--text-faint)">#${doc.id}</div>
+                            </td>
+                            <td><span class="status-chip info doc-type">${appHubRealtime.escapeHtml((doc.fileType||"").toUpperCase())}</span></td>
+                            <td class="doc-chapter">${doc.chapterNumber ? `Ch.${doc.chapterNumber}: ${doc.chapterTitle||""}` : "—"}</td>
+                            <td><span class="status-chip warning doc-status">${statusLabels[doc.status]||doc.status}</span></td>
+                            <td class="doc-chunks fw-semibold">${doc.chunkCount ?? 0}</td>
+                            <td class="doc-created">${appHubRealtime.formatDateTime(doc.createdAt)}</td>
+                            <td class="doc-indexed">${appHubRealtime.formatDateTime(doc.indexedAt)}</td>
+                            <td class="pe-4 text-end">
+                                <a class="btn btn-sm btn-outline-info" href="/Documents/Details/${doc.id}">
+                                    <i data-lucide="eye" class="icon-sm"></i>
+                                </a>
+                            </td>
+                        </tr>`);
+                    lucide.createIcons();
+                }
+                refreshCounters();
+            }
+
+            function removeDocument(id) {
+                const row = documentTableBody.querySelector(`[data-document-row][data-document-id="${id}"]`);
+                if (row) row.remove();
+                refreshCounters();
+            }
+
+            function updateSubject(sub) {
+                if (!sub || Number(sub.id) !== Number(subjectId)) return;
+                if (subjectCode) subjectCode.textContent = sub.code || "";
+                if (subjectName) subjectName.textContent = sub.name || "";
+                if (subjectDesc) subjectDesc.textContent = sub.description || "";
+                if (chapterCount) chapterCount.textContent = String(sub.chapterCount ?? 0);
+            }
+
+            function removeSubject(id) {
+                if (Number(id) !== Number(subjectId)) return;
+                Swal.fire({
+                    title: "Mon hoc da bi xoa",
+                    text: "Mon hoc nay vua bi xoa. Ban se duoc chuyen ve trang danh sach.",
+                    icon: "warning",
+                    confirmButtonText: "Ve trang chu"
+                }).then(() => { window.location.href = "/Documents"; });
+            }
+
+            refreshCounters();
+
+            window.appHubRealtime.createConnection({
+                DocumentCreated: upsertDocument,
+                DocumentUpdated: upsertDocument,
+                DocumentDeleted: removeDocument,
+                CourseUpdated: updateSubject,
+                CourseDeleted: removeSubject
+            });
+
+            // ── Delete document modal ──────────────────────────
+            let formToSubmit = null;
+            const modalEl    = document.getElementById("deleteDocModal");
+            const deleteModal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+            if (document.getElementById("document-table-wrapper")) {
+                document.getElementById("document-table-wrapper").addEventListener("click", (e) => {
+                    const btn = e.target.closest(".btn-delete-doc");
+                    if (!btn) return;
+                    formToSubmit = btn.closest("form");
+                    const docName = btn.getAttribute("data-doc-name") || "tai lieu nay";
+                    const nameEl  = document.getElementById("deleteDocName");
+                    if (nameEl) nameEl.textContent = docName;
+                    if (deleteModal) deleteModal.show();
+                });
+            }
+
+            const confirmDeleteBtn = document.getElementById("confirmDeleteDocBtn");
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener("click", () => {
+                    if (formToSubmit) formToSubmit.submit();
+                    if (deleteModal) deleteModal.hide();
+                });
+            }
+        })();
+    </script>
+}

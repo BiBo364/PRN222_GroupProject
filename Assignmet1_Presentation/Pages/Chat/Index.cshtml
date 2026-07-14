@@ -1,0 +1,99 @@
+@page "/Chat/Index"
+@model Assignmet1_Presentation.Pages.Chat.IndexModel
+@{
+    ViewData["Title"] = "Chat AI";
+    var selectedSubject = Model.ViewModel.AvailableSubjects.FirstOrDefault(subject => subject.Id == Model.ViewModel.SelectedSubjectId);
+}
+
+<section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <div class="hero-badge mb-3">RAG Chat</div>
+            <h1 class="page-title">Chat & Hỏi Đáp</h1>
+            @if (selectedSubject is not null)
+            {
+                <p class="page-subtitle">Môn học: <strong>@selectedSubject.Code</strong> - @selectedSubject.Name</p>
+            }
+            else
+            {
+                <p class="page-subtitle">Vui lòng chọn môn học có tài liệu được lập chỉ mục trước khi bắt đầu cuộc trò chuyện.</p>
+            }
+        </div>
+    </div>
+</section>
+
+<div class="alert alert-info">
+    Câu trả lời được giới hạn trong các tài liệu khóa học đã lập chỉ mục và bao gồm trích dẫn nguồn từ tài liệu đã tải lên.
+</div>
+
+@if (Model.ViewModel.QuotaStatus is not null)
+{
+    <div class="alert @(Model.ViewModel.QuotaStatus.IsPlus ? "alert-success" : Model.ViewModel.QuotaStatus.IsAllowed ? "alert-info" : "alert-warning")">
+        @Model.ViewModel.QuotaStatus.Message
+        @if (!Model.ViewModel.QuotaStatus.IsPlus)
+        {
+            <a class="ms-2" asp-page="/Subscription/Index">Xem goi Plus</a>
+        }
+    </div>
+}
+
+
+<div class="surface-card mb-4">
+    <form method="get" asp-page="/Chat/Index" class="row g-3 align-items-end">
+        <div class="col-12 col-md-8">
+            <label class="form-label" for="subjectId">Môn học</label>
+            <select class="form-select form-select-lg" id="subjectId" name="subjectId">
+                <option value="">-- Chọn môn học --</option>
+                @foreach (var subject in Model.ViewModel.AvailableSubjects)
+                {
+                    <option value="@subject.Id" selected="@(subject.Id == Model.ViewModel.SelectedSubjectId)">@subject.Code - @subject.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-12 col-md-4 d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">Tải cuộc trò chuyện</button>
+        </div>
+    </form>
+</div>
+
+<div class="d-flex justify-content-end mb-3">
+    @if (Model.ViewModel.SelectedSubjectId.HasValue)
+    {
+        <a class="btn btn-primary" asp-page="/Chat/New" asp-route-subjectId="@Model.ViewModel.SelectedSubjectId">Cuộc trò chuyện mới</a>
+    }
+    else
+    {
+        <button class="btn btn-primary" type="button" disabled>Cuộc trò chuyện mới</button>
+    }
+</div>
+
+@if (!Model.ViewModel.Sessions.Any())
+{
+    <div class="content-panel text-center py-5">
+        <h3 class="h5 mb-2">Chưa có cuộc trò chuyện nào</h3>
+        @if (Model.ViewModel.SelectedSubjectId.HasValue)
+        {
+            <p class="page-subtitle mb-0">Bắt đầu cuộc trò chuyện mới để đặt câu hỏi về tài liệu lập chỉ mục của môn học này.</p>
+        }
+        else
+        {
+            <p class="page-subtitle mb-0">Hãy chọn một môn học ở trên để xem hoặc bắt đầu cuộc trò chuyện.</p>
+        }
+    </div>
+}
+else
+{
+    <div class="surface-card p-0 overflow-hidden">
+        @foreach (var session in Model.ViewModel.Sessions)
+        {
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+               asp-page="/Chat/Conversation" asp-route-id="@session.Id">
+                <div>
+                    <div class="fw-semibold text-white">@session.Title</div>
+                    <small>Cập nhật lúc @session.UpdatedAt?.ToString("g")</small>
+                </div>
+                <span class="status-chip badge-soft">Mở</span>
+            </a>
+        }
+    </div>
+}

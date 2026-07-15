@@ -1,4 +1,5 @@
 using Assignmet1_Presentation.Constants;
+using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -8,17 +9,26 @@ namespace Assignmet1_Presentation.Pages.MoMoPayment;
 public class ReturnModel : PageModel
 {
     private readonly IMomoPaymentService _momoPaymentService;
-    private readonly ISubscriptionService _subscriptionService;
 
-    public ReturnModel(
-        IMomoPaymentService momoPaymentService,
-        ISubscriptionService subscriptionService)
+    public ReturnModel(IMomoPaymentService momoPaymentService)
     {
         _momoPaymentService = momoPaymentService;
-        _subscriptionService = subscriptionService;
     }
 
-    public async Task<IActionResult> OnGetAsync(string? orderId, int? resultCode, string? message)
+    public async Task<IActionResult> OnGetAsync(
+        string? partnerCode,
+        string? orderId,
+        string? requestId,
+        decimal? amount,
+        string? orderInfo,
+        string? orderType,
+        long? transId,
+        int? resultCode,
+        string? message,
+        string? payType,
+        long? responseTime,
+        string? extraData,
+        string? signature)
     {
         if (!string.IsNullOrWhiteSpace(orderId))
         {
@@ -29,13 +39,26 @@ public class ReturnModel : PageModel
                 return RedirectToPage("/Subscription/Index");
             }
 
-            if (ticket is not null &&
-                resultCode == 0 &&
-                ticket.Status == PaymentStatuses.MomoPending)
+            if (ticket is not null && ticket.Status == PaymentStatuses.MomoPending)
             {
-                var completed = await _subscriptionService.CompleteTicketAsync(
-                    ticket.Id,
-                    "MoMo return success fallback (local test without IPN)");
+                var callback = new MoMoCallbackRequestDto
+                {
+                    PartnerCode = partnerCode,
+                    OrderId = orderId,
+                    RequestId = requestId,
+                    Amount = amount ?? 0,
+                    OrderInfo = orderInfo,
+                    OrderType = orderType,
+                    TransId = transId,
+                    ResultCode = resultCode ?? -1,
+                    Message = message,
+                    PayType = payType,
+                    ResponseTime = responseTime ?? 0,
+                    ExtraData = extraData,
+                    Signature = signature
+                };
+
+                var completed = await _momoPaymentService.HandleIpnAsync(callback);
 
                 if (completed.Success)
                 {

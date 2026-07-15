@@ -8,5 +8,7 @@ public interface IMomoPaymentService
 
     Task<(bool Success, string? Error)> HandleIpnAsync(MoMoCallbackRequestDto callback);
 
+    Task<(bool Success, string? Error)> ReconcilePendingTicketAsync(int ticketId);
+
     Task<PaymentTicketDto?> GetTicketByOrderIdAsync(string orderId);
 }

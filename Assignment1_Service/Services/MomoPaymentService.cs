@@ -207,7 +207,7 @@ public class MomoPaymentService : IMomoPaymentService
             return (false, "Khong tim thay giao dich MoMo.");
 
         ticket.MomoIpnJson = JsonSerializer.Serialize(callback, JsonOptions);
-        ticket.MomoTransId = callback.TransId;
+        ticket.MomoTransId = callback.TransId?.ToString(CultureInfo.InvariantCulture);
         ticket.MomoResultCode = callback.ResultCode;
 
         if (ticket.Status == PaymentTicketStatus.Approved)
@@ -222,6 +222,23 @@ public class MomoPaymentService : IMomoPaymentService
             ticket.AdminNote = "MoMo amount mismatch.";
             await _repository.UpdateTicketAsync(ticket);
             return (false, "So tien thanh toan khong khop.");
+        }
+
+        if (!string.Equals(callback.PartnerCode, SanitizeSetting(_settings.PartnerCode), StringComparison.Ordinal))
+        {
+            ticket.Status = PaymentTicketStatus.Rejected;
+            ticket.AdminNote = "MoMo partner code mismatch.";
+            await _repository.UpdateTicketAsync(ticket);
+            return (false, "Giao dich MoMo khong hop le.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(callback.RequestId) &&
+            !string.Equals(callback.RequestId, ticket.MomoRequestId, StringComparison.Ordinal))
+        {
+            ticket.Status = PaymentTicketStatus.Rejected;
+            ticket.AdminNote = "MoMo request id mismatch.";
+            await _repository.UpdateTicketAsync(ticket);
+            return (false, "Giao dich MoMo khong hop le.");
         }
 
         if (!VerifyCallbackSignature(callback))
@@ -257,6 +274,77 @@ public class MomoPaymentService : IMomoPaymentService
         return ticket is null ? null : DtoMapper.ToDto(ticket);
     }
 
+    public async Task<(bool Success, string? Error)> ReconcilePendingTicketAsync(int ticketId)
+    {
+        var ticket = await _repository.GetTicketByIdAsync(ticketId);
+        if (ticket is null)
+            return (false, "Khong tim thay giao dich MoMo.");
+
+        if (ticket.Status == PaymentTicketStatus.Approved)
+            return (true, null);
+
+        if (ticket.Status != PaymentTicketStatus.MomoPending)
+            return (false, "Giao dich nay khong con cho MoMo xac nhan.");
+
+        var accessKey = SanitizeSetting(_settings.AccessKey);
+        var secretKey = SanitizeSetting(_settings.SecretKey);
+        var partnerCode = SanitizeSetting(_settings.PartnerCode);
+        if (string.IsNullOrWhiteSpace(accessKey) ||
+            string.IsNullOrWhiteSpace(secretKey) ||
+            string.IsNullOrWhiteSpace(partnerCode) ||
+            string.IsNullOrWhiteSpace(ticket.MomoOrderId))
+        {
+            return (false, "Thieu cau hinh hoac ma don MoMo.");
+        }
+
+        var requestId = Guid.NewGuid().ToString("N");
+        var query = new MoMoQueryRequestDto
+        {
+            PartnerCode = partnerCode,
+            RequestId = requestId,
+            OrderId = ticket.MomoOrderId,
+            Lang = SanitizeSetting(_settings.Lang, "vi")
+        };
+        query.Signature = BuildQuerySignature(secretKey, accessKey, query.OrderId, partnerCode, requestId);
+
+        MoMoQueryResponseDto? response;
+        try
+        {
+            var endpoint = GetQueryEndpoint();
+            using var httpResponse = await _httpClient.PostAsJsonAsync(endpoint, query, JsonOptions);
+            var responseJson = await httpResponse.Content.ReadAsStringAsync();
+            response = JsonSerializer.Deserialize<MoMoQueryResponseDto>(responseJson, JsonOptions);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Khong the truy van trang thai MoMo: {ex.Message}");
+        }
+
+        if (response is null ||
+            !string.Equals(response.PartnerCode, partnerCode, StringComparison.Ordinal) ||
+            !string.Equals(response.RequestId, requestId, StringComparison.Ordinal) ||
+            !string.Equals(response.OrderId, ticket.MomoOrderId, StringComparison.Ordinal) ||
+            DecimalToInteger(response.Amount) != DecimalToInteger(ticket.Amount))
+        {
+            return (false, "Phan hoi truy van MoMo khong hop le.");
+        }
+
+        ticket.MomoResultCode = response.ResultCode;
+        ticket.MomoTransId = response.TransId?.ToString(CultureInfo.InvariantCulture);
+
+        if (response.ResultCode != 0)
+        {
+            ticket.AdminNote = $"MoMo query: {response.Message ?? "Chua co ket qua thanh toan."}";
+            await _repository.UpdateTicketAsync(ticket);
+            return (false, ticket.AdminNote);
+        }
+
+        await _repository.UpdateTicketAsync(ticket);
+        return await _subscriptionService.CompleteTicketAsync(
+            ticket.Id,
+            "MoMo query success fallback (IPN unavailable)");
+    }
+
     private bool VerifyCallbackSignature(MoMoCallbackRequestDto callback)
     {
         if (string.IsNullOrWhiteSpace(callback.Signature))
@@ -284,9 +372,20 @@ public class MomoPaymentService : IMomoPaymentService
         return ComputeHmacSha256(secretKey, raw);
     }
 
+    private static string BuildQuerySignature(
+        string secretKey,
+        string accessKey,
+        string orderId,
+        string partnerCode,
+        string requestId)
+    {
+        var raw = $"accessKey={accessKey}&orderId={orderId}&partnerCode={partnerCode}&requestId={requestId}";
+        return ComputeHmacSha256(secretKey, raw);
+    }
+
     private string BuildCallbackSignature(MoMoCallbackRequestDto callback)
     {
-        return $"accessKey={SanitizeSetting(_settings.AccessKey)}&amount={DecimalToInteger(callback.Amount)}&extraData={callback.ExtraData ?? string.Empty}&message={callback.Message ?? string.Empty}&orderId={callback.OrderId ?? string.Empty}&orderInfo={callback.OrderInfo ?? string.Empty}&orderType={callback.OrderType ?? string.Empty}&partnerCode={callback.PartnerCode ?? string.Empty}&payType={callback.PayType ?? string.Empty}&requestId={callback.RequestId ?? string.Empty}&responseTime={callback.ResponseTime}&resultCode={callback.ResultCode}&transId={callback.TransId ?? string.Empty}";
+        return $"accessKey={SanitizeSetting(_settings.AccessKey)}&amount={DecimalToInteger(callback.Amount)}&extraData={callback.ExtraData ?? string.Empty}&message={callback.Message ?? string.Empty}&orderId={callback.OrderId ?? string.Empty}&orderInfo={callback.OrderInfo ?? string.Empty}&orderType={callback.OrderType ?? string.Empty}&partnerCode={callback.PartnerCode ?? string.Empty}&payType={callback.PayType ?? string.Empty}&requestId={callback.RequestId ?? string.Empty}&responseTime={callback.ResponseTime}&resultCode={callback.ResultCode}&transId={callback.TransId?.ToString(CultureInfo.InvariantCulture) ?? string.Empty}";
     }
 
     private static string ComputeHmacSha256(string secretKey, string data)
@@ -301,6 +400,18 @@ public class MomoPaymentService : IMomoPaymentService
         return string.IsNullOrWhiteSpace(value)
             ? fallback
             : value.Trim().Normalize(NormalizationForm.FormC);
+    }
+
+    private string GetQueryEndpoint()
+    {
+        var createEndpoint = SanitizeSetting(
+            _settings.Endpoint,
+            "https://test-payment.momo.vn/v2/gateway/api/create");
+        const string createSuffix = "/create";
+
+        return createEndpoint.EndsWith(createSuffix, StringComparison.OrdinalIgnoreCase)
+            ? createEndpoint[..^createSuffix.Length] + "/query"
+            : "https://test-payment.momo.vn/v2/gateway/api/query";
     }
 
     private static long DecimalToInteger(decimal amount)

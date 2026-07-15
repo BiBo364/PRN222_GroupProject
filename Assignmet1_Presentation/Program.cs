@@ -6,6 +6,7 @@ using Assignment1_Repository.Repositories.Interfaces;
 using Assignment1_Service;
 using Assignment1_Service.Infrastructure;
 using Assignment1_Service.Models;
+using Assignment1_Service.Services.Interfaces;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -73,6 +74,17 @@ if (!app.Environment.IsDevelopment())
 app.UseRouting();
 app.UseSession();
 app.UseAuthorization();
+app.MapPost("/MoMoPayment/Ipn", async (HttpRequest request, IMomoPaymentService momoPaymentService) =>
+{
+    var callback = await request.ReadFromJsonAsync<MoMoCallbackRequestDto>();
+    if (callback is null)
+        return Results.BadRequest(new { message = "IPN body is required." });
+
+    var (success, error) = await momoPaymentService.HandleIpnAsync(callback);
+    return success
+        ? Results.NoContent()
+        : Results.BadRequest(new { message = error ?? "IPN failed" });
+}).DisableAntiforgery();
 app.MapRazorPages();
 app.MapApiEndpoints();
 app.MapHub<AppHub>("/hubs/app");

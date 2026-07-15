@@ -89,7 +89,8 @@ public class MoMoCallbackRequestDto
     public string? OrderType { get; set; }
 
     [JsonPropertyName("transId")]
-    public string? TransId { get; set; }
+    // MoMo sends transId as a JSON number in IPN/redirect payloads.
+    public long? TransId { get; set; }
 
     [JsonPropertyName("resultCode")]
     public int ResultCode { get; set; }
@@ -120,4 +121,46 @@ public class MoMoCreateResponseDto
 
     [JsonPropertyName("payUrl")]
     public string? PayUrl { get; set; }
+}
+
+public class MoMoQueryRequestDto
+{
+    [JsonPropertyName("partnerCode")]
+    public string PartnerCode { get; set; } = string.Empty;
+
+    [JsonPropertyName("requestId")]
+    public string RequestId { get; set; } = string.Empty;
+
+    [JsonPropertyName("orderId")]
+    public string OrderId { get; set; } = string.Empty;
+
+    [JsonPropertyName("lang")]
+    public string Lang { get; set; } = "vi";
+
+    [JsonPropertyName("signature")]
+    public string Signature { get; set; } = string.Empty;
+}
+
+public class MoMoQueryResponseDto
+{
+    [JsonPropertyName("partnerCode")]
+    public string? PartnerCode { get; set; }
+
+    [JsonPropertyName("requestId")]
+    public string? RequestId { get; set; }
+
+    [JsonPropertyName("orderId")]
+    public string? OrderId { get; set; }
+
+    [JsonPropertyName("amount")]
+    public decimal Amount { get; set; }
+
+    [JsonPropertyName("transId")]
+    public long? TransId { get; set; }
+
+    [JsonPropertyName("resultCode")]
+    public int ResultCode { get; set; }
+
+    [JsonPropertyName("message")]
+    public string? Message { get; set; }
 }

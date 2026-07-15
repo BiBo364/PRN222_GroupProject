@@ -14,15 +14,18 @@ namespace Assignmet1_Presentation.Pages.Subscription;
 public class IndexModel : PageModel
 {
     private readonly ISubscriptionService _subscriptionService;
+    private readonly IMomoPaymentService _momoPaymentService;
     private readonly IChatService _chatService;
     private readonly SubscriptionQuotaSettings _quotaSettings;
 
     public IndexModel(
         ISubscriptionService subscriptionService,
+        IMomoPaymentService momoPaymentService,
         IChatService chatService,
         IOptions<SubscriptionQuotaSettings> quotaSettings)
     {
         _subscriptionService = subscriptionService;
+        _momoPaymentService = momoPaymentService;
         _chatService = chatService;
         _quotaSettings = quotaSettings.Value;
     }
@@ -43,8 +46,15 @@ public class IndexModel : PageModel
             .Where(plan => plan.Price > 0)
             .OrderBy(plan => plan.Price)
             .ToList();
-        var active = await _subscriptionService.GetActiveSubscriptionAsync(userId);
         var tickets = await _subscriptionService.GetUserTicketsAsync(userId);
+        var pendingTicket = tickets.FirstOrDefault(ticket => ticket.Status == PaymentTicketStatuses.MomoPending);
+        if (pendingTicket is not null)
+        {
+            await _momoPaymentService.ReconcilePendingTicketAsync(pendingTicket.Id);
+            tickets = await _subscriptionService.GetUserTicketsAsync(userId);
+        }
+
+        var active = await _subscriptionService.GetActiveSubscriptionAsync(userId);
         var subjects = await _chatService.GetAvailableSubjectsAsync();
         var quotaStatuses = await _subscriptionService.GetChatQuotaStatusesAsync(
             userId,

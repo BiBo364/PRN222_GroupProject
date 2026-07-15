@@ -1,44 +1,43 @@
 # PRN222_10W_Assignment1
 
-ASP.NET Core MVC app with layered architecture (Repository → Service → Presentation).
-
+ASP.NET Core MVC app with layered architecture (Repository → Service → Presentation).                                                                                                                                                                                                 
 # Setup
 
-Clone the repository.
+Clone the repository.                                                                                                                                            
 
 ### Database Setup
-
-   Create Database from SQL Script
-   A SQL script is provided in:
-   Scripts/CreateDB.sql
+                                                                                                     
+   Create Database from SQL Script                                                                      
+   A SQL script is provided in:                                                                
+   Scripts/CreateDB.sql                                                                      
 
    Step 1: Create Database
    Open SQL Server Management Studio and run:
    CREATE DATABASE Assignment1DB;
 
    Step 2: Select Database
-   USE Assignment1DB;
+   USE Assignment1DB;                                                                                                                                                                                                                      
 
    Step 3: Execute Script
    Run:
    Scripts/CreateDB.sql
 
-### Configure Connection String
+### Configure Connection String                                                                                                                                                                                                                                                                                                                                      
 Copy the template file:
    ```bash
    copy Assignmet1_Presentation\appsettings.example.json Assignmet1_Presentation\appsettings.json
-   ```
+   ```                                                                                                                                    
 Update:
 Edit `Assignmet1_Presentation/appsettings.json` with your local `DefaultConnection`.
-For Windows Authentication:
+For Windows Authentication:                                                                                                                                     
 
 {
 "ConnectionStrings": {
 "DefaultConnection": "Server=localhost;Database=Assignment1DB;Trusted_Connection=True;TrustServerCertificate=True;"
 }
 }
-
-Run the presentation project:
+                                                                                                                                                                 
+Run the presentation project:                                                                                                                                         
 
    ```bash
    dotnet run --project Assignmet1_Presentation
@@ -52,13 +51,13 @@ Run the presentation project:
 
 The application follows a layered architecture to ensure separation of concerns and maintainability.
 
-Presentation Layer
+Presentation Layer                                                                                 
 
 Responsible for:
-* Handling HTTP requests
-* Displaying views
+* Handling HTTP requests                                                                                                            
+* Displaying views                                                                                                                                           
 * User interaction
-
+                                                                                       
 Components:
 
 * Controllers
@@ -78,10 +77,600 @@ Components:
 
 Repository Layer
 Responsible for:
-* Data access
-* CRUD operations
-* Database interaction through Entity Framework Core
-Components:
-* Repositories
-* Entities
-* DbContext
+* Data access                                                                                                         
+* CRUD operations                                                                                                                                                                   
+* Database interaction through Entity Framework                                                    Core                                                                                                          
+Components:                                                                                                                                                                                         
+* Repositories                                                                                               
+* Entities                                                                                                                                                                                                              
+* DbContext                                                                                                                                    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                      
+
+
+                                                                                                                                                                                      
+
+
+                                                                                                                        
+
+
+
+
+
+
+
+
+
+
+                                                                                                                          
+
+
+                                                                                                                       
+
+
+
+
+
+                                                                                                                     
+                                                                                                                              
+
+
+
+                                                                                                                             
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                              
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

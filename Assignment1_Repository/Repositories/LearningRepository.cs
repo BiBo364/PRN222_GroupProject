@@ -145,7 +145,7 @@ public class LearningRepository : ILearningRepository
             .ToListAsync(cancellationToken);
 
         return prompts
-            .Select(NormalizePrompt)
+            .Select(LearningTextNormalizer.NormalizeForComparison)
             .Where(prompt => prompt.Length > 0)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
@@ -407,12 +407,4 @@ public class LearningRepository : ILearningRepository
         return _context.SaveChangesAsync(cancellationToken);
     }
 
-    private static string NormalizePrompt(string prompt)
-    {
-        return string.Join(
-            ' ',
-            prompt.Trim().ToLowerInvariant().Split(
-                [' ', '\t', '\r', '\n'],
-                StringSplitOptions.RemoveEmptyEntries));
-    }
 }

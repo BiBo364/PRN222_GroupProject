@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Assignment1_Repository.Models;
@@ -206,7 +205,7 @@ public sealed class LearningService : ILearningService
             if (acceptedQuestions.Count >= request.QuestionCount)
                 break;
 
-            var normalizedPrompt = NormalizeTextForComparison(draft.Prompt);
+            var normalizedPrompt = LearningTextNormalizer.NormalizeForComparison(draft.Prompt);
             if (normalizedPrompt.Length == 0 || !existingPrompts.Add(normalizedPrompt))
                 continue;
 
@@ -1652,33 +1651,10 @@ public sealed class LearningService : ILearningService
             : null;
     }
 
-    private static string NormalizeTextForComparison(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return string.Empty;
-
-        var normalized = value.Normalize(NormalizationForm.FormD);
-        var builder = new StringBuilder();
-        foreach (var character in normalized)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
-                continue;
-
-            builder.Append(char.IsLetterOrDigit(character)
-                ? char.ToLowerInvariant(character)
-                : ' ');
-        }
-
-        return string.Join(
-            ' ',
-            builder.ToString().Split(
-                [' ', '\t', '\r', '\n'],
-                StringSplitOptions.RemoveEmptyEntries));
-    }
-
     private static bool AnswersMatch(string? left, string? right)
     {
-        return NormalizeTextForComparison(left) == NormalizeTextForComparison(right);
+        return LearningTextNormalizer.NormalizeForComparison(left)
+            == LearningTextNormalizer.NormalizeForComparison(right);
     }
 
     private async Task CreateLearningSetVersionAsync(

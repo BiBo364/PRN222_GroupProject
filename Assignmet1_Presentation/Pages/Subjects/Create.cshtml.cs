@@ -46,7 +46,7 @@ public class CreateModel : PageModel
         {
             var created = await _subjectService.CreateSubjectAsync(Input.Code!, Input.Name!, Input.Description);
             await _appHub.Clients.All.SendAsync("CourseCreated", ViewModelMapper.ToListItemViewModel(created));
-            TempData["Success"] = $"Created subject {created.Subject.Code} - {created.Subject.Name}.";
+            TempData["Success"] = $"Đã tạo môn học {created.Subject.Code} - {created.Subject.Name}.";
             return RedirectToPage("/Subjects/Manage");
         }
         catch (Exception ex)

@@ -39,11 +39,11 @@ public class ManageModel : PageModel
         if (success)
         {
             await _appHub.Clients.All.SendAsync("CourseDeleted", id);
-            TempData["Success"] = "Deleted subject successfully.";
+            TempData["Success"] = "Đã chuyển môn học vào thùng rác.";
         }
         else
         {
-            TempData["Error"] = error ?? "Error deleting subject.";
+            TempData["Error"] = error ?? "Không thể xóa môn học.";
         }
 
         return RedirectToPage("/Subjects/Manage");

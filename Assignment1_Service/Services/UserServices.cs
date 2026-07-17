@@ -98,16 +98,16 @@ public class UserServices : IUserServices
                 ".csv" => ParseCsv(stream),
                 ".json" => ParseJson(stream),
                 ".txt" => ParseTxt(stream),
-                _ => throw new InvalidOperationException("Dinh dang file khong duoc ho tro.")
+                _ => throw new InvalidOperationException("Định dạng tệp không được hỗ trợ.")
             };
         }
         catch (Exception ex)
         {
-            throw new Exception($"Loi khi phan tich file: {ex.Message}");
+            throw new Exception($"Lỗi khi phân tích tệp: {ex.Message}");
         }
 
         if (roleId is not LecturerRoleId and not StudentRoleId)
-            throw new InvalidOperationException("Chi ho tro import giang vien hoac hoc sinh/sinh vien.");
+            throw new InvalidOperationException("Chỉ hỗ trợ nhập giảng viên hoặc học sinh, sinh viên.");
 
         var importSubjectId = roleId == LecturerRoleId ? subjectId : null;
         var assignedTeacherSubjectsInBatch = new HashSet<int>();
@@ -119,7 +119,7 @@ public class UserServices : IUserServices
             var fullName = NormalizeFullName(rowResult.FullName);
             if (fullName is null)
             {
-                MarkError(rowResult, result, "Ho ten khong duoc de trong.");
+                MarkError(rowResult, result, "Họ tên không được để trống.");
                 continue;
             }
 
@@ -129,7 +129,7 @@ public class UserServices : IUserServices
             {
                 if (!assignedTeacherSubjectsInBatch.Add(importSubjectId.Value))
                 {
-                    MarkError(rowResult, result, "Mon hoc nay da duoc chon cho giang vien khac trong cung file import.");
+                    MarkError(rowResult, result, "Môn học này đã được chọn cho giảng viên khác trong cùng tệp nhập.");
                     continue;
                 }
 
@@ -139,7 +139,7 @@ public class UserServices : IUserServices
 
                 if (!isAvailable)
                 {
-                    MarkError(rowResult, result, availabilityError ?? "Mon hoc da co giang vien phu trach.");
+                    MarkError(rowResult, result, availabilityError ?? "Môn học đã có giảng viên phụ trách.");
                     continue;
                 }
             }
@@ -164,7 +164,7 @@ public class UserServices : IUserServices
             await _userRepository.AddAsync(newUser);
 
             rowResult.Status = ImportRowStatus.Created;
-            rowResult.Message = $"Tao tai khoan thanh cong (username: {username}).";
+            rowResult.Message = $"Tạo tài khoản thành công (tên đăng nhập: {username}).";
 
             var notificationResult = await _accountNotificationService.SendAccountCreatedEmailAsync(
                 newUser.Email,
@@ -182,7 +182,7 @@ public class UserServices : IUserServices
             else
             {
                 result.NotificationFailedCount++;
-                rowResult.Message = $"{rowResult.Message} Tuy nhien, email thong bao chua gui duoc.";
+                rowResult.Message = $"{rowResult.Message} Tuy nhiên, email thông báo chưa gửi được.";
             }
 
             result.CreatedCount++;
@@ -252,7 +252,7 @@ public class UserServices : IUserServices
         var json = reader.ReadToEnd();
         using var document = JsonDocument.Parse(json);
         if (document.RootElement.ValueKind != JsonValueKind.Array)
-            throw new InvalidOperationException("File JSON phai la mot mang danh sach nguoi dung.");
+            throw new InvalidOperationException("Tệp JSON phải là một mảng danh sách người dùng.");
 
         var rows = new List<ImportRowResultDto>();
         var rowNum = 1;
@@ -312,16 +312,16 @@ public class UserServices : IUserServices
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user is null)
-            return (false, "Khong tim thay nguoi dung.");
+            return (false, "Không tìm thấy người dùng.");
 
         if (user.RoleId != LecturerRoleId)
-            return (false, "Chi co the gan mon hoc cho giang vien.");
+            return (false, "Chỉ có thể phân công môn học cho giảng viên.");
 
         if (subjectId.HasValue)
         {
             var subject = await _subjectRepository.GetByIdWithDetailsAsync(subjectId.Value);
             if (subject is null)
-                return (false, "Khong tim thay mon hoc.");
+                return (false, "Không tìm thấy môn học.");
 
             var (isAvailable, availabilityError) = await ValidateTeacherSubjectAssignmentAsync(
                 subjectId.Value,
@@ -345,7 +345,7 @@ public class UserServices : IUserServices
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user is null)
-            return (false, "Khong tim thay nguoi dung.");
+            return (false, "Không tìm thấy người dùng.");
 
         user.IsActive = !(user.IsActive ?? true);
         await _userRepository.UpdateAsync(user);
@@ -359,10 +359,10 @@ public class UserServices : IUserServices
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user is null)
-            return (false, "Khong tim thay tai khoan.");
+            return (false, "Không tìm thấy tài khoản.");
 
         if (user.Password != currentPassword)
-            return (false, "Mat khau hien tai khong dung.");
+            return (false, "Mật khẩu hiện tại không đúng.");
 
         var validationError = ValidateNewPassword(newPassword, user.Password);
         if (validationError is not null)
@@ -377,10 +377,10 @@ public class UserServices : IUserServices
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user is null)
-            return (false, "Khong tim thay tai khoan.");
+            return (false, "Không tìm thấy tài khoản.");
 
         if (!IsDefaultPassword(user.Password))
-            return (false, "Tai khoan nay khong con dung mat khau mac dinh.");
+            return (false, "Tài khoản này không còn sử dụng mật khẩu mặc định.");
 
         var validationError = ValidateNewPassword(newPassword, user.Password);
         if (validationError is not null)
@@ -401,7 +401,7 @@ public class UserServices : IUserServices
 
         var teacherName = existingTeacher.FullName ?? existingTeacher.Username;
         var subjectCode = existingTeacher.Subject?.Code ?? subjectId.ToString();
-        return (false, $"Mon hoc {subjectCode} da duoc gan cho giang vien {teacherName}.");
+        return (false, $"Môn học {subjectCode} đã được phân công cho giảng viên {teacherName}.");
     }
 
     private static void MarkError(ImportRowResultDto rowResult, ImportUsersResultDto result, string message)
@@ -458,7 +458,7 @@ public class UserServices : IUserServices
         {
             LecturerRoleId => LecturerEmailDomain,
             StudentRoleId => StudentEmailDomain,
-            _ => throw new InvalidOperationException("Vai tro import khong hop le.")
+            _ => throw new InvalidOperationException("Vai trò nhập dữ liệu không hợp lệ.")
         };
 
         return $"{username}@{domain}";
@@ -531,10 +531,10 @@ public class UserServices : IUserServices
     private static string? ValidateNewPassword(string newPassword, string currentPassword)
     {
         if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-            return "Mat khau moi phai co it nhat 6 ky tu.";
+            return "Mật khẩu mới phải có ít nhất 6 ký tự.";
 
         if (newPassword == currentPassword)
-            return "Mat khau moi khong duoc trung voi mat khau hien tai.";
+            return "Mật khẩu mới không được trùng với mật khẩu hiện tại.";
 
         return null;
     }

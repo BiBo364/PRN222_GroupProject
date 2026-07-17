@@ -32,7 +32,7 @@ public class AccountNotificationService : IAccountNotificationService
             return new AccountNotificationResult
             {
                 IsSuccess = false,
-                Message = "SMTP chua duoc bat trong cau hinh."
+                Message = "SMTP chưa được bật trong cấu hình."
             };
         }
 
@@ -41,7 +41,7 @@ public class AccountNotificationService : IAccountNotificationService
             return new AccountNotificationResult
             {
                 IsSuccess = false,
-                Message = "SMTP chua duoc cau hinh day du."
+                Message = "SMTP chưa được cấu hình đầy đủ."
             };
         }
 
@@ -50,7 +50,7 @@ public class AccountNotificationService : IAccountNotificationService
             using var message = new MailMessage
             {
                 From = new MailAddress(_smtpOptions.FromEmail, _smtpOptions.FromName),
-                Subject = "Tai khoan RAG EDU da duoc tao",
+                Subject = "Tài khoản RAG EDU đã được tạo",
                 Body = BuildHtmlBody(fullName, username, temporaryPassword),
                 IsBodyHtml = true
             };
@@ -68,7 +68,7 @@ public class AccountNotificationService : IAccountNotificationService
             return new AccountNotificationResult
             {
                 IsSuccess = true,
-                Message = "Da gui email thong bao."
+                Message = "Đã gửi email thông báo."
             };
         }
         catch (Exception ex)
@@ -77,7 +77,7 @@ public class AccountNotificationService : IAccountNotificationService
             return new AccountNotificationResult
             {
                 IsSuccess = false,
-                Message = $"Gui email that bai: {ex.Message}"
+                Message = $"Gửi email thất bại: {ex.Message}"
             };
         }
     }
@@ -187,17 +187,17 @@ public class AccountNotificationService : IAccountNotificationService
         var safePassword = WebUtility.HtmlEncode(temporaryPassword);
         var loginUrl = string.IsNullOrWhiteSpace(_smtpOptions.LoginUrl)
             ? string.Empty
-            : $"<p><a href=\"{WebUtility.HtmlEncode(_smtpOptions.LoginUrl)}\">Dang nhap he thong</a></p>";
+            : $"<p><a href=\"{WebUtility.HtmlEncode(_smtpOptions.LoginUrl)}\">Đăng nhập hệ thống</a></p>";
 
         return $"""
             <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937">
-                <p>Xin chao {displayName},</p>
-                <p>Tai khoan hoc tap cua ban tren he thong RAG EDU da duoc tao.</p>
-                <p><strong>Username:</strong> {safeUsername}<br />
-                <strong>Mat khau tam thoi:</strong> {safePassword}</p>
-                <p>Vui long dang nhap va doi mat khau ngay o lan dang nhap dau tien de bao mat tai khoan.</p>
+                <p>Xin chào {displayName},</p>
+                <p>Tài khoản học tập của bạn trên hệ thống RAG EDU đã được tạo.</p>
+                <p><strong>Tên đăng nhập:</strong> {safeUsername}<br />
+                <strong>Mật khẩu tạm thời:</strong> {safePassword}</p>
+                <p>Vui lòng đăng nhập và đổi mật khẩu ngay trong lần đăng nhập đầu tiên để bảo mật tài khoản.</p>
                 {loginUrl}
-                <p>Neu ban khong nhan yeu cau nay, vui long lien he admin hoac giang vien phu trach.</p>
+                <p>Nếu bạn không nhận ra yêu cầu này, vui lòng liên hệ quản trị viên hoặc giảng viên phụ trách.</p>
             </div>
             """;
     }

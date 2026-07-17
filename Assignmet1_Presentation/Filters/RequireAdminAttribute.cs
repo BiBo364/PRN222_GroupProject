@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Assignmet1_Presentation.Filters;
 
-public class RequireAdminAttribute : ActionFilterAttribute
+public sealed class RequireAdminAttribute : Attribute, IPageFilter
 {
-    public override void OnActionExecuting(ActionExecutingContext context)
+    public void OnPageHandlerExecuting(PageHandlerExecutingContext context)
     {
         if (context.HttpContext.Session.GetInt32("UserId") is null)
         {
@@ -21,6 +21,13 @@ public class RequireAdminAttribute : ActionFilterAttribute
             return;
         }
 
-        base.OnActionExecuting(context);
+    }
+
+    public void OnPageHandlerSelected(PageHandlerSelectedContext context)
+    {
+    }
+
+    public void OnPageHandlerExecuted(PageHandlerExecutedContext context)
+    {
     }
 }

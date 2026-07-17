@@ -8,14 +8,14 @@
 <section class="page-hero mb-4">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
         <div>
-            <div class="hero-badge mb-3">Conversation</div>
+            <div class="hero-badge mb-3">Cuộc trò chuyện</div>
             <h1 class="page-title mb-2">@session.Title</h1>
             @if (!string.IsNullOrWhiteSpace(session.SubjectCode) || !string.IsNullOrWhiteSpace(session.SubjectName))
             {
                 <p class="page-subtitle mb-0">@session.SubjectCode - @session.SubjectName</p>
             }
         </div>
-        <a class="btn btn-outline-light btn-sm" asp-page="/Chat/Index" asp-route-subjectId="@Model.ViewModel.SelectedSubjectId">All chats</a>
+        <a class="btn btn-outline-light btn-sm" asp-page="/Chat/Index" asp-route-subjectId="@Model.ViewModel.SelectedSubjectId">Tất cả cuộc trò chuyện</a>
     </div>
 </section>
 
@@ -25,7 +25,7 @@
         @Model.ViewModel.QuotaStatus.Message
         @if (!Model.ViewModel.QuotaStatus.IsPlus)
         {
-            <a class="ms-2" asp-page="/Subscription/Index">Nang cap Plus</a>
+            <a class="ms-2" asp-page="/Subscription/Index">Nâng cấp Plus</a>
         }
     </div>
 }
@@ -39,7 +39,7 @@ else
 
 <div id="chatMessages" class="chat-shell scroll-panel mb-3" data-session-id="@session.Id">
     <p id="chatEmptyState" class="page-subtitle mb-0 @(session.Messages.Any() ? "d-none" : string.Empty)">
-        Ask a question about the indexed documents for this subject.
+        Hãy đặt câu hỏi về các tài liệu đã được lập chỉ mục của môn học này.
     </p>
 
     @foreach (var message in session.Messages)
@@ -47,21 +47,21 @@ else
         var isUser = message.Role == "user";
         <div class="mb-3 d-flex @(isUser ? "justify-content-end" : "justify-content-start")">
             <div class="chat-message @(isUser ? "user" : "assistant")">
-                <div class="small fw-semibold mb-1">@(isUser ? "You" : "Assistant")</div>
+                <div class="small fw-semibold mb-1">@(isUser ? "Bạn" : "Trợ lý AI")</div>
                 <div class="chat-message-body">@message.Content</div>
 
                 @if (!isUser && message.Citations.Any())
                 {
                     <hr class="my-2" />
                     <div class="small">
-                        <strong>Sources:</strong>
+                        <strong>Nguồn tham khảo:</strong>
                         <ul class="mb-0 ps-3">
                             @foreach (var cite in message.Citations)
                             {
                                 <li>
                                     @cite.DocumentName
-                                    @(cite.SlideNumber.HasValue ? $"(slide {cite.SlideNumber})" : string.Empty)
-                                    <span class="text-muted">- score @cite.Score</span>
+                                    @(cite.SlideNumber.HasValue ? $"(trang chiếu {cite.SlideNumber})" : string.Empty)
+                                    <span class="text-muted">- độ liên quan @cite.Score</span>
                                 </li>
                             }
                         </ul>
@@ -76,14 +76,14 @@ else
     <form id="chatForm" asp-page-handler="Ask" asp-route-id="@session.Id" method="post">
         <div asp-validation-summary="All" class="text-danger mb-2"></div>
         <div class="input-group input-group-lg">
-            <input asp-for="ViewModel.Question" class="form-control" placeholder="Ask about the course materials..." autocomplete="off" />
-            <button id="chatSubmitButton" type="submit" class="btn btn-primary">Send</button>
+            <input asp-for="ViewModel.Question" class="form-control" placeholder="Đặt câu hỏi về tài liệu môn học..." autocomplete="off" />
+            <button id="chatSubmitButton" type="submit" class="btn btn-primary">Gửi</button>
         </div>
         <span asp-validation-for="ViewModel.Question" class="text-danger"></span>
         <div id="chatPendingHint" class="form-text mt-2 d-none">
-            Assistant is reviewing the indexed materials. You can keep reading the conversation while the answer is loading.
+            Trợ lý AI đang đọc các tài liệu đã lập chỉ mục. Bạn vẫn có thể xem lại cuộc trò chuyện trong khi chờ câu trả lời.
         </div>
-        <div class="form-text mt-2">Answers use RAG retrieval from indexed documents only.</div>
+        <div class="form-text mt-2">Câu trả lời chỉ sử dụng nội dung truy xuất từ tài liệu đã lập chỉ mục.</div>
     </form>
 </div>
 
@@ -154,14 +154,14 @@ else
 
                 const title = document.createElement("div");
                 title.className = "small fw-semibold mb-1";
-                title.textContent = role === "user" ? "You" : "Assistant";
+                title.textContent = role === "user" ? "Bạn" : "Trợ lý AI";
 
                 const body = document.createElement("div");
                 body.className = "chat-message-body";
 
                 if (options.pending) {
                     const text = document.createElement("div");
-                    text.textContent = "Hay doi toi mot chut, toi dang tim kiem thong tin lien quan.";
+                    text.textContent = "Vui lòng chờ trong giây lát, tôi đang tìm kiếm thông tin liên quan.";
                     body.appendChild(text);
 
                     const dots = document.createElement("div");
@@ -191,7 +191,7 @@ else
                 box.className = "small";
 
                 const strong = document.createElement("strong");
-                strong.textContent = "Sources:";
+                strong.textContent = "Nguồn tham khảo:";
 
                 const list = document.createElement("ul");
                 list.className = "mb-0 ps-3";
@@ -201,14 +201,14 @@ else
                     const parts = [citation.documentName];
 
                     if (citation.slideNumber !== null && citation.slideNumber !== undefined) {
-                        parts.push(`(slide ${citation.slideNumber})`);
+                        parts.push(`(trang chiếu ${citation.slideNumber})`);
                     }
 
                     item.append(document.createTextNode(parts.join(" ")));
 
                     const score = document.createElement("span");
                     score.className = "text-muted";
-                    score.textContent = ` - score ${citation.score}`;
+                    score.textContent = ` - độ liên quan ${citation.score}`;
                     item.appendChild(score);
                     list.appendChild(item);
                 });
@@ -231,7 +231,7 @@ else
                 const question = input.value.trim();
                 if (!question) {
                     input.focus();
-                    setError("Please enter a question.");
+                    setError("Vui lòng nhập câu hỏi.");
                     return;
                 }
 
@@ -264,11 +264,11 @@ else
                     const payload = await response.json().catch(() => ({}));
 
                     if (!response.ok) {
-                        throw new Error(payload.error || "Unable to get an answer right now.");
+                        throw new Error(payload.error || "Hiện chưa thể nhận câu trả lời. Vui lòng thử lại.");
                     }
 
                     assistantMessage.bubble.classList.remove("assistant-pending");
-                    assistantMessage.body.textContent = payload.answer || "No answer was returned.";
+                    assistantMessage.body.textContent = payload.answer || "Trợ lý AI chưa trả về nội dung.";
 
                     if (Array.isArray(payload.citations) && payload.citations.length > 0) {
                         appendCitations(assistantMessage.bubble, payload.citations);
@@ -284,7 +284,7 @@ else
                     assistantMessage.bubble.classList.add("assistant-error");
                     assistantMessage.body.textContent = error instanceof Error
                         ? error.message
-                        : "Something went wrong while retrieving the answer.";
+                        : "Đã xảy ra lỗi khi truy xuất câu trả lời.";
                     setError(assistantMessage.body.textContent);
                 } finally {
                     isPending = false;

@@ -5,59 +5,95 @@
 }
 
 <section class="page-hero mb-4">
-    <div class="hero-badge mb-3"><i data-lucide="plus-circle" class="icon-sm"></i> Tạo mới</div>
-    <h1 class="page-title mb-2">Tạo tài liệu rỗng</h1>
+    <div class="hero-badge mb-3"><i data-lucide="file-plus-2" class="icon-sm"></i> Khởi tạo tài liệu</div>
+    <h1 class="page-title mb-2">Tạo bản ghi tài liệu mới</h1>
     @if (Model.ViewModel.Subject is not null)
     {
-        <p class="page-subtitle">Môn học: <strong>@Model.ViewModel.Subject.Code</strong> — @Model.ViewModel.Subject.Name</p>
+        <p class="page-subtitle">
+            Đang thao tác trong môn <strong>@Model.ViewModel.Subject.Code</strong> — @Model.ViewModel.Subject.Name.
+        </p>
     }
 </section>
 
-
-<div class="surface-card">
-    <form method="post">
-        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-
-        <input asp-for="ViewModel.SubjectId" type="hidden" />
-
-        @if (Model.ViewModel.Subject is not null)
-        {
-            <div class="alert alert-info">
-                Đang tạo tài liệu mới cho môn học <strong>@Model.ViewModel.Subject.Code</strong> — @Model.ViewModel.Subject.Name.
+<div class="editor-layout">
+    <div class="surface-card editor-form-card">
+        <div class="editor-form-heading">
+            <div class="editor-form-icon"><i data-lucide="file-cog"></i></div>
+            <div>
+                <h2>Thông tin tài liệu</h2>
+                <p>Tạo bản ghi trước khi bổ sung nội dung và lập chỉ mục.</p>
             </div>
-        }
-
-        <div class="mb-3">
-            <label asp-for="ViewModel.OriginalName" class="form-label">Tên tài liệu</label>
-            <input asp-for="ViewModel.OriginalName" class="form-control" />
-            <span asp-validation-for="ViewModel.OriginalName" class="text-danger"></span>
         </div>
 
-        <div class="mb-3">
-            <label asp-for="ViewModel.FileType" class="form-label">Loại tệp</label>
-            <select asp-for="ViewModel.FileType" class="form-select">
-                <option value="pdf">PDF</option>
-                <option value="docx">DOCX</option>
-                <option value="pptx">PPTX</option>
-            </select>
-        </div>
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4"></div>
+            <input asp-for="ViewModel.SubjectId" type="hidden" />
 
-        @if (Model.ViewModel.ChapterOptions.Any())
-        {
-            <div class="mb-3">
-                <label asp-for="ViewModel.ChapterId" class="form-label">Chương</label>
-                <select asp-for="ViewModel.ChapterId" asp-items="Model.ViewModel.ChapterOptions" class="form-select">
-                    <option value="">-- Chọn chương --</option>
+            @if (Model.ViewModel.Subject is not null)
+            {
+                <div class="alert alert-info">
+                    <i data-lucide="info" class="alert-icon"></i>
+                    <div>
+                        Tài liệu sẽ thuộc môn <strong>@Model.ViewModel.Subject.Code</strong> — @Model.ViewModel.Subject.Name.
+                    </div>
+                </div>
+            }
+
+            <div class="form-field">
+                <label asp-for="ViewModel.OriginalName" class="form-label">Tên tài liệu <span class="text-danger">*</span></label>
+                <input asp-for="ViewModel.OriginalName" class="form-control"
+                       placeholder="Ví dụ: Bài giảng tuần 01 - Tổng quan ASP.NET Core" />
+                <span asp-validation-for="ViewModel.OriginalName" class="text-danger"></span>
+            </div>
+
+            <div class="form-field">
+                <label asp-for="ViewModel.FileType" class="form-label">Loại tệp</label>
+                <select asp-for="ViewModel.FileType" class="form-select">
+                    <option value="pdf">PDF</option>
+                    <option value="docx">DOCX</option>
+                    <option value="pptx">PPTX</option>
                 </select>
-                <span asp-validation-for="ViewModel.ChapterId" class="text-danger"></span>
             </div>
-        }
 
-        <div class="d-flex flex-wrap gap-2">
-            <button type="submit" class="btn btn-primary"><i data-lucide="check" class="icon-sm me-2"></i> Tạo mới</button>
-            <a asp-page="/Documents/Index" class="btn btn-outline-secondary"><i data-lucide="arrow-left" class="icon-sm me-2"></i> Quay lại</a>
+            @if (Model.ViewModel.ChapterOptions.Any())
+            {
+                <div class="form-field">
+                    <label asp-for="ViewModel.ChapterId" class="form-label">Chương</label>
+                    <select asp-for="ViewModel.ChapterId" asp-items="Model.ViewModel.ChapterOptions" class="form-select">
+                        <option value="">Chưa phân loại theo chương</option>
+                    </select>
+                    <span asp-validation-for="ViewModel.ChapterId" class="text-danger"></span>
+                </div>
+            }
+
+            <div class="editor-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="check" class="icon-sm"></i>
+                    Tạo tài liệu
+                </button>
+                <a asp-page="/Documents/Index" class="btn btn-outline-secondary">
+                    <i data-lucide="arrow-left" class="icon-sm"></i>
+                    Quay lại Thư viện
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <aside class="editor-aside">
+        <div class="editor-aside-card">
+            <div class="editor-aside-icon"><i data-lucide="file-search"></i></div>
+            <h3>Tài liệu và AI</h3>
+            <p>Chỉ tài liệu đã có nội dung và được lập chỉ mục mới được dùng cho Chat AI hoặc tạo câu hỏi bằng AI.</p>
         </div>
-    </form>
+        <div class="editor-aside-card">
+            <div class="editor-aside-icon"><i data-lucide="tags"></i></div>
+            <h3>Tổ chức dễ tìm</h3>
+            <ul class="editor-checklist">
+                <li><i data-lucide="check-circle-2"></i><span>Đặt tên có tuần học hoặc chủ đề.</span></li>
+                <li><i data-lucide="check-circle-2"></i><span>Chọn đúng loại tệp và chương liên quan.</span></li>
+            </ul>
+        </div>
+    </aside>
 </div>
 
 @section Scripts {

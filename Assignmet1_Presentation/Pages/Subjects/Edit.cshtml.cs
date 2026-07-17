@@ -56,7 +56,7 @@ public class EditModel : PageModel
             await _appHub.Clients.All.SendAsync(
                 "CourseUpdated", ViewModelMapper.ToListItemViewModel(updated));
 
-            TempData["Success"] = $"Updated subject {Input.Code} successfully.";
+            TempData["Success"] = $"Đã cập nhật môn học {Input.Code}.";
             return RedirectToPage("/Subjects/Manage");
         }
         catch (Exception ex)

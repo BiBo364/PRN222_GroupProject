@@ -1,7 +1,7 @@
 @page "/Documents/Upload"
 @model Assignmet1_Presentation.Pages.Documents.UploadModel
 @{
-    ViewData["Title"] = "Tai len tai lieu";
+    ViewData["Title"] = "Tải tài liệu lên";
 }
 
 <div class="d-flex flex-column gap-4">
@@ -9,17 +9,17 @@
     <div class="page-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
         <div>
             <div class="hero-badge mb-2">
-                <i data-lucide="upload" class="icon-sm text-primary"></i> Tai len
+                <i data-lucide="upload" class="icon-sm text-primary"></i> Tải lên
             </div>
-            <h1 class="page-title mb-1">Tai len tai lieu moi</h1>
+            <h1 class="page-title mb-1">Tải tài liệu mới lên</h1>
             @if (Model.ViewModel.Subject is not null)
             {
-                <p class="page-subtitle">Mon hoc: <strong class="text-primary">@Model.ViewModel.Subject.Code</strong> - @Model.ViewModel.Subject.Name</p>
+                <p class="page-subtitle">Môn học: <strong class="text-primary">@Model.ViewModel.Subject.Code</strong> - @Model.ViewModel.Subject.Name</p>
             }
         </div>
         <div class="d-flex gap-2 flex-shrink-0">
             <a asp-page="/Documents/Index" class="btn btn-outline-secondary">
-                <i data-lucide="arrow-left" class="icon-sm"></i> Quay lai Thu vien
+                <i data-lucide="arrow-left" class="icon-sm"></i> Quay lại Thư viện
             </a>
         </div>
     </div>
@@ -45,13 +45,13 @@
                 <div class="alert alert-info py-2 px-3 mb-4 d-flex align-items-center gap-2" style="font-size:.85rem">
                     <i data-lucide="info" class="icon-sm flex-shrink-0"></i>
                     <div>
-                        Dang tai len tai lieu cho mon hoc <strong>@Model.ViewModel.Subject.Code</strong>.
+                        Đang tải tài liệu lên môn học <strong>@Model.ViewModel.Subject.Code</strong>.
                     </div>
                 </div>
             }
 
             <div class="mb-4">
-                <label asp-for="ViewModel.File" class="form-label fw-semibold">Tai lieu</label>
+                <label asp-for="ViewModel.File" class="form-label fw-semibold">Tài liệu</label>
                 <div class="upload-zone position-relative border rounded p-4 text-center mb-1" style="background:var(--bg-alt);border-style:dashed!important;border-color:var(--surface-border)!important">
                     <i data-lucide="file-up" style="width:48px;height:48px;color:var(--text-faint)" class="mb-3"></i>
                     <h6 class="mb-1 fw-bold" style="color:var(--text)">Chon hoac keo tha file</h6>
@@ -64,9 +64,9 @@
             @if (Model.ViewModel.ChapterOptions.Any())
             {
                 <div class="mb-4">
-                    <label asp-for="ViewModel.ChapterId" class="form-label fw-semibold">Chuong (Tuy chon)</label>
+                    <label asp-for="ViewModel.ChapterId" class="form-label fw-semibold">Chương (tùy chọn)</label>
                     <select asp-for="ViewModel.ChapterId" asp-items="Model.ViewModel.ChapterOptions" class="form-select form-select-lg">
-                        <option value="">-- Chon chuong --</option>
+                        <option value="">-- Chọn chương --</option>
                     </select>
                     <span asp-validation-for="ViewModel.ChapterId" class="text-danger small"></span>
                 </div>
@@ -76,9 +76,9 @@
                 <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
                     <div>
                         <div class="small fw-semibold text-uppercase d-flex align-items-center" style="color:var(--primary)">
-                            <i data-lucide="loader-2" class="icon-sm me-2 spin"></i> Tien trinh tai len
+                            <i data-lucide="loader-2" class="icon-sm me-2 spin"></i> Tiến trình tải lên
                         </div>
-                        <div id="uploadStatusText" class="page-subtitle small mb-0 mt-1">Dang chuan bi tai lieu...</div>
+                        <div id="uploadStatusText" class="page-subtitle small mb-0 mt-1">Đang chuẩn bị tài liệu...</div>
                     </div>
                     <div id="uploadPercentText" class="fs-4 text-primary fw-bold" style="font-feature-settings:'tnum'">0%</div>
                 </div>
@@ -90,7 +90,7 @@
 
             <div class="d-grid gap-2 pt-2 border-top" style="border-color:var(--surface-border)!important">
                 <button id="uploadSubmitButton" type="submit" class="btn btn-primary btn-lg">
-                    <i data-lucide="upload-cloud" class="icon-sm me-2"></i> Tai len &amp; Lap chi muc
+                    <i data-lucide="upload-cloud" class="icon-sm me-2"></i> Tải lên và lập chỉ mục
                 </button>
             </div>
         </form>
@@ -164,7 +164,7 @@
                         processingTimer = null;
                         return;
                     }
-                    setProgress(currentProgress + 1, "Da tai xong file. Dang trich xuat noi dung va lap chi muc...");
+                    setProgress(currentProgress + 1, "Đã tải xong tệp. Đang trích xuất nội dung và lập chỉ mục...");
                 }, 300);
             };
 
@@ -183,7 +183,7 @@
                 const file = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
 
                 if (!file) {
-                    setError("Vui long chon file truoc khi tai len.");
+                    setError("Vui lòng chọn tài liệu trước khi tải lên.");
                     fileInput.focus();
                     return;
                 }
@@ -191,7 +191,7 @@
                 setError("");
                 setSuccess("");
                 currentProgress = 0;
-                setProgress(1, "Dang bat dau tai len...");
+                setProgress(1, "Đang bắt đầu tải lên...");
                 isPending = true;
                 submitButton.disabled = true;
 
@@ -202,15 +202,15 @@
 
                 xhr.upload.addEventListener("progress", (progressEvent) => {
                     if (!progressEvent.lengthComputable) {
-                        setProgress(18, "Dang tai tai lieu len may chu...");
+                        setProgress(18, "Đang tải tài liệu lên máy chủ...");
                         return;
                     }
                     const uploadPercent = Math.round((progressEvent.loaded / progressEvent.total) * 72);
-                    setProgress(Math.max(uploadPercent, 5), "Dang tai tai lieu len may chu...");
+                    setProgress(Math.max(uploadPercent, 5), "Đang tải tài liệu lên máy chủ...");
                 });
 
                 xhr.upload.addEventListener("load", () => {
-                    setProgress(76, "Da tai len hoan tat. Dang cho lap chi muc...");
+                    setProgress(76, "Đã tải lên hoàn tất. Đang chờ lập chỉ mục...");
                     startProcessingAnimation();
                 });
 
@@ -229,7 +229,7 @@
                     }
 
                     if (xhr.status >= 200 && xhr.status < 300) {
-                        setProgress(100, "Tai len va lap chi muc thanh cong.");
+                        setProgress(100, "Tải lên và lập chỉ mục thành công.");
 
                         const redirectUrl = payload.redirectUrl;
                         if (redirectUrl) {
@@ -239,7 +239,7 @@
                             return;
                         }
 
-                        setSuccess(payload.message || "Da tai len tai lieu thanh cong.");
+                        setSuccess(payload.message || "Đã tải tài liệu lên thành công.");
                         return;
                     }
 
@@ -247,7 +247,7 @@
                     if (progressPanel) {
                         progressPanel.classList.add("d-none"); // Ẩn panel tiến trình để tránh cảm giác bị treo
                     }
-                    setError(payload.error || "Tai len that bai. Vui long thu lai.");
+                    setError(payload.error || "Tải tài liệu lên thất bại. Vui lòng thử lại.");
 
                     // Hiển thị thông báo dạng Alert đẹp đẽ ngay trên giao diện
                     Swal.fire({
@@ -267,7 +267,7 @@
                     if (progressPanel) {
                         progressPanel.classList.add("d-none");
                     }
-                    setError("Khong the ket noi voi may chu trong qua trinh tai len.");
+                    setError("Không thể kết nối với máy chủ trong quá trình tải lên.");
 
                     Swal.fire({
                         title: "Lỗi kết nối",

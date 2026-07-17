@@ -1,0 +1,169 @@
+@page
+@model Assignmet1_Presentation.Pages.Audit.IndexModel
+@{
+    ViewData["Title"] = "Nhật ký thao tác";
+}
+
+@functions {
+    private static string StatusClass(int statusCode) => statusCode switch
+    {
+        >= 500 => "is-error",
+        >= 400 => "is-warning",
+        _ => "is-success"
+    };
+
+    private static string CategoryLabel(string category) => category switch
+    {
+        "learning" => "Quiz và ôn tập",
+        "documents" => "Tài liệu",
+        "subjects" => "Môn học",
+        "users" => "Người dùng",
+        "payments" => "Thanh toán",
+        "account" => "Tài khoản",
+        _ => "Hệ thống"
+    };
+}
+
+<div class="learning-page-heading learning-page-heading-actions">
+    <div>
+        <span class="eyebrow">Truy vết hệ thống</span>
+        <h1>Nhật ký thao tác</h1>
+        <p>
+            @(Model.Data.CanViewAllUsers
+                ? "Theo dõi các thao tác ghi của quản trị viên và giảng viên trên toàn hệ thống."
+                : "Theo dõi các thao tác ghi đã thực hiện bằng tài khoản giảng viên của bạn.")
+        </p>
+    </div>
+    <span class="audit-total">
+        <i data-lucide="database" class="icon-sm"></i>
+        @Model.Data.TotalItems bản ghi
+    </span>
+</div>
+
+<form method="get" class="surface-card audit-filter-grid">
+    <div class="form-field audit-search-field">
+        <label asp-for="Search">Tìm kiếm</label>
+        <input asp-for="Search"
+               class="form-control"
+               placeholder="Người thực hiện, mô tả hoặc mã đối tượng" />
+    </div>
+    <div class="form-field">
+        <label asp-for="Category">Nhóm thao tác</label>
+        <select asp-for="Category" class="form-select">
+            <option value="">Tất cả nhóm</option>
+            @foreach (var category in Model.Data.Categories)
+            {
+                <option value="@category">@CategoryLabel(category)</option>
+            }
+        </select>
+    </div>
+    <div class="form-field">
+        <label asp-for="Action">Hành động</label>
+        <select asp-for="Action" class="form-select">
+            <option value="">Tất cả hành động</option>
+            <option value="create">Tạo mới</option>
+            <option value="update">Cập nhật</option>
+            <option value="delete">Xóa</option>
+            <option value="restore">Khôi phục</option>
+            <option value="publish">Phát hành</option>
+            <option value="unpublish">Thu hồi</option>
+            <option value="import">Nhập dữ liệu</option>
+            <option value="review">Duyệt</option>
+        </select>
+    </div>
+    <div class="form-field">
+        <label asp-for="FromDate">Từ ngày</label>
+        <input asp-for="FromDate" class="form-control" type="date" />
+    </div>
+    <div class="form-field">
+        <label asp-for="ToDate">Đến ngày</label>
+        <input asp-for="ToDate" class="form-control" type="date" />
+    </div>
+    <div class="audit-filter-actions">
+        <button class="btn btn-primary" type="submit">
+            <i data-lucide="search" class="icon-sm"></i>
+            Lọc nhật ký
+        </button>
+        <a class="btn btn-outline-secondary" asp-page="/Audit/Index">Đặt lại</a>
+    </div>
+</form>
+
+<section class="surface-card audit-log-panel">
+    @if (Model.Data.Items.Count == 0)
+    {
+        <div class="analytics-empty">
+            <span class="learning-icon learning-icon-lg"><i data-lucide="file-clock"></i></span>
+            <h2>Chưa có bản ghi phù hợp</h2>
+            <p>Nhật ký sẽ được ghi tự động khi giảng viên hoặc quản trị viên thực hiện thao tác thay đổi dữ liệu.</p>
+        </div>
+    }
+    else
+    {
+        <div class="audit-log-list">
+            @foreach (var item in Model.Data.Items)
+            {
+                <article class="audit-log-row">
+                    <div class="audit-log-icon @StatusClass(item.StatusCode)">
+                        <i data-lucide="@(item.StatusCode >= 400 ? "triangle-alert" : "check")"></i>
+                    </div>
+                    <div class="audit-log-main">
+                        <div class="audit-log-heading">
+                            <div>
+                                <strong>@item.Description</strong>
+                                <div class="question-badges">
+                                    <span class="question-type-badge">@item.CategoryLabel</span>
+                                    <span class="topic-badge">@item.ActionLabel</span>
+                                    @if (!string.IsNullOrWhiteSpace(item.EntityId))
+                                    {
+                                        <span class="audit-entity">Mã @item.EntityId</span>
+                                    }
+                                </div>
+                            </div>
+                            <time datetime="@item.CreatedAt.ToString("O")">
+                                @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                            </time>
+                        </div>
+                        <div class="audit-log-meta">
+                            <span><i data-lucide="user-round" class="icon-xs"></i> @item.UserDisplayName · @item.RoleLabel</span>
+                            <span><i data-lucide="route" class="icon-xs"></i> @item.HttpMethod @item.RequestPath</span>
+                            <span><i data-lucide="server" class="icon-xs"></i> HTTP @item.StatusCode</span>
+                            @if (!string.IsNullOrWhiteSpace(item.IpAddress))
+                            {
+                                <span><i data-lucide="network" class="icon-xs"></i> @item.IpAddress</span>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@if (Model.Data.TotalPages > 1)
+{
+    <nav class="audit-pagination" aria-label="Phân trang nhật ký">
+        <a class="btn btn-outline-secondary @(Model.Data.CurrentPage <= 1 ? "disabled" : "")"
+           asp-page="/Audit/Index"
+           asp-route-category="@Model.Category"
+           asp-route-action="@Model.Action"
+           asp-route-search="@Model.Search"
+           asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+           asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+           asp-route-pageNumber="@(Model.Data.CurrentPage - 1)">
+            <i data-lucide="chevron-left" class="icon-sm"></i>
+            Trang trước
+        </a>
+        <span>Trang @Model.Data.CurrentPage / @Model.Data.TotalPages</span>
+        <a class="btn btn-outline-secondary @(Model.Data.CurrentPage >= Model.Data.TotalPages ? "disabled" : "")"
+           asp-page="/Audit/Index"
+           asp-route-category="@Model.Category"
+           asp-route-action="@Model.Action"
+           asp-route-search="@Model.Search"
+           asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+           asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+           asp-route-pageNumber="@(Model.Data.CurrentPage + 1)">
+            Trang sau
+            <i data-lucide="chevron-right" class="icon-sm"></i>
+        </a>
+    </nav>
+}

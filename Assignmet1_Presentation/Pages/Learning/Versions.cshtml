@@ -1,0 +1,90 @@
+@page "{id:int}"
+@model Assignmet1_Presentation.Pages.Learning.VersionsModel
+@{
+    ViewData["Title"] = "Lịch sử phiên bản Quiz";
+}
+
+@if (Model.History is not null)
+{
+    var history = Model.History;
+
+    <div class="learning-page-heading learning-page-heading-actions">
+        <div>
+            <a class="learning-back-link" asp-page="/Learning/Details" asp-route-id="@history.LearningSetId">
+                <i data-lucide="arrow-left" class="icon-sm"></i>
+                Quay lại Quiz
+            </a>
+            <span class="eyebrow">Kiểm soát thay đổi</span>
+            <h1>Lịch sử phiên bản</h1>
+            <p>
+                Xem lại và khôi phục các lần lưu của <strong>@history.LearningSetTitle</strong>.
+                Bản hiện tại được cập nhật lúc @history.CurrentUpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm").
+            </p>
+        </div>
+        <a class="btn btn-outline-primary"
+           asp-page="/Learning/ManualEditor"
+           asp-route-id="@history.LearningSetId">
+            <i data-lucide="pencil-line" class="icon-sm"></i>
+            Mở trình soạn
+        </a>
+    </div>
+
+    <section class="version-safety-note surface-card">
+        <span class="learning-icon learning-icon-violet"><i data-lucide="shield-check"></i></span>
+        <div>
+            <h2>Khôi phục an toàn</h2>
+            <p>
+                Hệ thống tự sao lưu bản hiện tại trước khi khôi phục. Phiên bản được khôi phục luôn ở trạng thái
+                bản nháp, không ảnh hưởng lịch sử làm bài đã có.
+            </p>
+        </div>
+    </section>
+
+    <div class="version-timeline">
+        @foreach (var version in history.Versions)
+        {
+            <article class="surface-card version-card">
+                <div class="version-marker">
+                    <span>v@(version.VersionNumber)</span>
+                </div>
+                <div class="version-card-content">
+                    <div class="version-card-heading">
+                        <div>
+                            <div class="question-badges">
+                                <span class="publication-badge @(version.IsPublished ? "is-published" : "is-draft")">
+                                    @(version.IsPublished ? "Đã phát hành" : "Bản nháp")
+                                </span>
+                                <span class="topic-badge">@version.QuestionCount câu hỏi</span>
+                            </div>
+                            <h2>@version.Title</h2>
+                            <p>@version.ChangeSummary</p>
+                        </div>
+                        <time datetime="@version.CreatedAt.ToString("O")">
+                            @version.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </time>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(version.Description))
+                    {
+                        <p class="version-description">@version.Description</p>
+                    }
+                    <div class="version-meta">
+                        <span><i data-lucide="user-round" class="icon-xs"></i> @version.CreatedBy</span>
+                        <span><i data-lucide="clock-3" class="icon-xs"></i> @version.DurationMinutes phút</span>
+                    </div>
+                    <form method="post"
+                          asp-page-handler="Restore"
+                          class="version-restore-form"
+                          data-version-number="@version.VersionNumber"
+                          data-quiz-title="@version.Title">
+                        <input type="hidden" name="id" value="@history.LearningSetId" />
+                        <input type="hidden" name="versionId" value="@version.Id" />
+                        <button class="btn btn-outline-primary" type="submit">
+                            <i data-lucide="history" class="icon-sm"></i>
+                            Khôi phục phiên bản này
+                        </button>
+                    </form>
+                </div>
+            </article>
+        }
+    </div>
+}

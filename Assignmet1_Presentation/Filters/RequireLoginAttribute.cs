@@ -3,16 +3,21 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Assignmet1_Presentation.Filters;
 
-public class RequireLoginAttribute : ActionFilterAttribute
+public sealed class RequireLoginAttribute : Attribute, IPageFilter
 {
-    public override void OnActionExecuting(ActionExecutingContext context)
+    public void OnPageHandlerExecuting(PageHandlerExecutingContext context)
     {
         if (context.HttpContext.Session.GetInt32("UserId") is null)
         {
             context.Result = new RedirectToPageResult("/Account/Login");
-            return;
         }
+    }
 
-        base.OnActionExecuting(context);
+    public void OnPageHandlerSelected(PageHandlerSelectedContext context)
+    {
+    }
+
+    public void OnPageHandlerExecuted(PageHandlerExecutedContext context)
+    {
     }
 }

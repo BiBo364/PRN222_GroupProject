@@ -1,7 +1,7 @@
 @page "/Documents/Recycle"
 @model Assignmet1_Presentation.Pages.Documents.RecycleModel
 @{
-    ViewData["Title"] = "Thung rac tai lieu";
+    ViewData["Title"] = "Thùng rác tài liệu";
 }
 
 <div class="d-flex flex-column gap-4">
@@ -9,14 +9,14 @@
     <div class="page-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
         <div>
             <div class="hero-badge mb-2">
-                <i data-lucide="trash-2" class="icon-sm text-danger"></i> Thung rac
+                <i data-lucide="trash-2" class="icon-sm text-danger"></i> Thùng rác
             </div>
-            <h1 class="page-title mb-1">Tai lieu da xoa</h1>
-            <p class="page-subtitle">Xem va khoi phuc cac tai lieu da bi xoa khoi he thong.</p>
+            <h1 class="page-title mb-1">Tài liệu đã xóa</h1>
+            <p class="page-subtitle">Xem và khôi phục các tài liệu đã bị xóa khỏi hệ thống.</p>
         </div>
         <div class="d-flex gap-2 flex-shrink-0">
             <a asp-page="/Documents/Index" class="btn btn-outline-secondary">
-                <i data-lucide="arrow-left" class="icon-sm"></i> Quay lai Thu vien
+                <i data-lucide="arrow-left" class="icon-sm"></i> Quay lại Thư viện
             </a>
         </div>
     </div>
@@ -28,7 +28,7 @@
         <div class="card-header-row">
             <h2 class="card-header-title">
                 <i data-lucide="file-x" class="icon-sm me-1" style="color:var(--rose)"></i>
-                Danh sach tai lieu da xoa (@Model.Documents.Count)
+                Danh sách tài liệu đã xóa (@Model.Documents.Count)
             </h2>
         </div>
 
@@ -38,8 +38,8 @@
                 <div class="empty-state-icon">
                     <i data-lucide="archive-restore" style="width:56px;height:56px;color:var(--text-faint)"></i>
                 </div>
-                <div class="empty-state-title">Thung rac trong</div>
-                <div class="empty-state-desc">Khong co tai lieu nao bi xoa.</div>
+                <div class="empty-state-title">Thùng rác trống</div>
+                <div class="empty-state-desc">Không có tài liệu nào đã bị xóa.</div>
             </div>
         }
         else
@@ -48,11 +48,11 @@
                 <table class="table table-hover mb-0 align-middle">
                     <thead>
                         <tr>
-                            <th class="ps-4">Ten tai lieu</th>
-                            <th>Mon hoc</th>
-                            <th>Nguoi xoa</th>
-                            <th>Ngay xoa</th>
-                            <th class="pe-4 text-end">Hanh dong</th>
+                            <th class="ps-4">Tên tài liệu</th>
+                            <th>Môn học</th>
+                            <th>Người xóa</th>
+                            <th>Ngày xóa</th>
+                            <th class="pe-4 text-end">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -79,7 +79,7 @@
                                         <div class="user-avatar-circle" style="width:24px;height:24px;font-size:.65rem;background:linear-gradient(135deg,#64748b,#64748baa)">
                                             @((doc.DeletedByName?.Length > 0 ? doc.DeletedByName[0] : '?').ToString().ToUpper())
                                         </div>
-                                        <span style="font-size:.85rem;color:var(--text-sec)">@(doc.DeletedByName ?? "Khong ro")</span>
+                                        <span style="font-size:.85rem;color:var(--text-sec)">@(doc.DeletedByName ?? "Không rõ")</span>
                                     </div>
                                 </td>
                                 <td>
@@ -94,8 +94,8 @@
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-success btn-restore"
                                                 data-item-name="@doc.OriginalName"
-                                                title="Khoi phuc tai lieu">
-                                            <i data-lucide="rotate-ccw" class="icon-sm"></i> Khoi phuc
+                                                title="Khôi phục tài liệu">
+                                            <i data-lucide="rotate-ccw" class="icon-sm"></i> Khôi phục
                                         </button>
                                     </form>
                                 </td>
@@ -114,19 +114,19 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title text-success" id="restoreDocModalLabel">
-                    <i data-lucide="rotate-ccw" class="icon-md me-2"></i> Xac nhan khoi phuc
+                    <i data-lucide="rotate-ccw" class="icon-md me-2"></i> Xác nhận khôi phục
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Dong"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body" style="font-size:.9rem;color:var(--text-sec)">
-                Ban co chac chan muon khoi phuc tai lieu <strong id="restoreDocName" style="color:var(--primary)"></strong> khong?
+                Bạn có chắc chắn muốn khôi phục tài liệu <strong id="restoreDocName" style="color:var(--primary)"></strong> không?
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                    <i data-lucide="x" class="icon-sm"></i> Huy bo
+                    <i data-lucide="x" class="icon-sm"></i> Hủy bỏ
                 </button>
                 <button type="button" class="btn btn-success" id="confirmRestoreBtn">
-                    <i data-lucide="check" class="icon-sm"></i> Khoi phuc
+                    <i data-lucide="check" class="icon-sm"></i> Khôi phục
                 </button>
             </div>
         </div>

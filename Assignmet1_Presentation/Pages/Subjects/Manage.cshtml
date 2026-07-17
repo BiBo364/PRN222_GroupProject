@@ -1,7 +1,7 @@
 @page "/Subjects/Manage"
 @model Assignmet1_Presentation.Pages.Subjects.ManageModel
 @{
-    ViewData["Title"] = "Quan ly mon hoc";
+    ViewData["Title"] = "Quản lý môn học";
 }
 
 <div class="d-flex flex-column gap-4">
@@ -15,17 +15,17 @@
     <div class="page-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
         <div>
             <div class="hero-badge mb-2">
-                <i data-lucide="shield-check" class="icon-sm"></i> Quan tri
+                <i data-lucide="shield-check" class="icon-sm"></i> Quản trị
             </div>
-            <h1 class="page-title mb-1">Quan ly mon hoc</h1>
-            <p class="page-subtitle">Tao, cap nhat va xoa thong tin cac mon hoc trong he thong.</p>
+            <h1 class="page-title mb-1">Quản lý môn học</h1>
+            <p class="page-subtitle">Tạo, cập nhật và xóa thông tin các môn học trong hệ thống.</p>
         </div>
         <div class="d-flex gap-2 flex-shrink-0">
             <a asp-page="/Subjects/Recycle" class="btn btn-outline-secondary">
-                <i data-lucide="trash-2" class="icon-sm"></i> Thung rac
+                <i data-lucide="trash-2" class="icon-sm"></i> Thùng rác
             </a>
             <a asp-page="/Subjects/Create" class="btn btn-primary">
-                <i data-lucide="plus" class="icon-sm"></i> Them mon hoc
+                <i data-lucide="plus" class="icon-sm"></i> Thêm môn học
             </a>
         </div>
     </div>
@@ -38,11 +38,11 @@
         <div class="card-header-row">
             <h2 class="card-header-title">
                 <i data-lucide="book-copy" class="icon-sm me-1" style="color:var(--primary)"></i>
-                Danh sach mon hoc —
+                Danh sách môn học —
                 <span id="subject-count">@Model.Subjects.Count</span> mon
             </h2>
             <a asp-page="/Subjects/Create" class="btn btn-primary btn-sm d-none d-md-inline-flex">
-                <i data-lucide="plus" class="icon-sm"></i> Them moi
+                <i data-lucide="plus" class="icon-sm"></i> Thêm mới
             </a>
         </div>
 
@@ -53,10 +53,10 @@
             <div class="empty-state-icon">
                 <i data-lucide="book-open" style="width:56px;height:56px;color:var(--text-faint)"></i>
             </div>
-            <div class="empty-state-title">Chua co mon hoc nao</div>
-            <div class="empty-state-desc">Bat dau bang cach tao mon hoc dau tien de phan cong giang vien va quan ly tai lieu.</div>
+            <div class="empty-state-title">Chưa có môn học nào</div>
+            <div class="empty-state-desc">Bắt đầu bằng cách tạo môn học đầu tiên để phân công giảng viên và quản lý tài liệu.</div>
             <a asp-page="/Subjects/Create" class="btn btn-primary">
-                <i data-lucide="plus" class="icon-sm"></i> Tao mon hoc dau tien
+                <i data-lucide="plus" class="icon-sm"></i> Tạo môn học đầu tiên
             </a>
         </div>
 
@@ -67,10 +67,10 @@
             <table class="table table-hover mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th class="ps-4" style="width:140px">Ma mon</th>
-                        <th>Ten mon hoc</th>
-                        <th style="width:160px">So tai lieu</th>
-                        <th class="pe-4 text-end" style="width:160px">Hanh dong</th>
+                        <th class="ps-4" style="width:140px">Mã môn</th>
+                        <th>Tên môn học</th>
+                        <th style="width:160px">Số tài liệu</th>
+                        <th class="pe-4 text-end" style="width:160px">Hành động</th>
                     </tr>
                 </thead>
                 <tbody id="subject-table-body">
@@ -87,13 +87,13 @@
                             <td>
                                 <div class="fw-semibold subject-name" style="color:var(--text)">@subject.Name</div>
                                 <div class="text-muted small subject-description" style="font-size:.8rem;margin-top:.15rem">
-                                    @(string.IsNullOrEmpty(subject.Description) ? "Khong co mo ta" : subject.Description)
+                                    @(string.IsNullOrEmpty(subject.Description) ? "Không có mô tả" : subject.Description)
                                 </div>
                             </td>
                             <td>
                                 <span class="status-chip info">
                                     <i data-lucide="file-text" class="icon-xs"></i>
-                                    <span class="subject-document-count">@subject.DocumentCount</span> tai lieu
+                                    <span class="subject-document-count">@subject.DocumentCount</span> tài liệu
                                 </span>
                             </td>
                             <td class="pe-4 text-end">
@@ -101,13 +101,13 @@
                                     <a asp-page="/Subjects/Details"
                                        asp-route-id="@subject.Id"
                                        class="btn btn-sm btn-outline-info"
-                                       title="Xem chi tiet mon hoc">
+                                       title="Xem chi tiết môn học">
                                         <i data-lucide="eye" class="icon-sm"></i>
                                     </a>
                                     <a asp-page="/Subjects/Edit"
                                        asp-route-id="@subject.Id"
                                        class="btn btn-sm btn-outline-primary"
-                                       title="Chinh sua mon hoc">
+                                       title="Chỉnh sửa môn học">
                                         <i data-lucide="pencil" class="icon-sm"></i>
                                     </a>
                                     <form asp-page-handler="Delete" method="post" class="d-inline">
@@ -115,10 +115,10 @@
                                         <input type="hidden" name="id" value="@subject.Id" />
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger btn-delete-confirm"
-                                                data-item-name="mon hoc @subject.Code - @subject.Name"
-                                                data-item-type="mon hoc"
+                                                data-item-name="môn học @subject.Code - @subject.Name"
+                                                data-item-type="môn học"
                                                 data-can-restore="true"
-                                                title="Xoa mon hoc (co the khoi phuc)">
+                                                title="Xóa môn học (có thể khôi phục)">
                                             <i data-lucide="trash-2" class="icon-sm"></i>
                                         </button>
                                     </form>
@@ -147,7 +147,7 @@
             function subjectRowHtml(subject) {
                 const desc = subject.description
                     ? appHubRealtime.escapeHtml(subject.description)
-                    : "Khong co mo ta";
+                    : "Không có mô tả";
                 return `
                     <tr data-subject-row data-subject-id="${subject.id}" data-subject-code="${appHubRealtime.escapeHtml(subject.code)}">
                         <td class="ps-4">
@@ -162,15 +162,15 @@
                         <td>
                             <span class="status-chip info">
                                 <i data-lucide="file-text" class="icon-xs"></i>
-                                <span class="subject-document-count">${subject.documentCount ?? 0}</span> tai lieu
+                                <span class="subject-document-count">${subject.documentCount ?? 0}</span> tài liệu
                             </span>
                         </td>
                         <td class="pe-4 text-end">
                             <div class="action-btn-group">
-                                <a href="/Subjects/Details/${subject.id}" class="btn btn-sm btn-outline-info" title="Xem chi tiet">
+                                <a href="/Subjects/Details/${subject.id}" class="btn btn-sm btn-outline-info" title="Xem chi tiết">
                                     <i data-lucide="eye" class="icon-sm"></i>
                                 </a>
-                                <a href="/Subjects/Edit/${subject.id}" class="btn btn-sm btn-outline-primary" title="Chinh sua">
+                                <a href="/Subjects/Edit/${subject.id}" class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
                                     <i data-lucide="pencil" class="icon-sm"></i>
                                 </a>
                                 <form method="post" action="?handler=Delete" class="d-inline">
@@ -178,10 +178,10 @@
                                     <input type="hidden" name="id" value="${subject.id}" />
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger btn-delete-confirm"
-                                            data-item-name="mon hoc ${appHubRealtime.escapeHtml(subject.code)}"
-                                            data-item-type="mon hoc"
+                                            data-item-name="môn học ${appHubRealtime.escapeHtml(subject.code)}"
+                                            data-item-type="môn học"
                                             data-can-restore="true"
-                                            title="Xoa mon hoc">
+                                            title="Xóa môn học">
                                         <i data-lucide="trash-2" class="icon-sm"></i>
                                     </button>
                                 </form>
@@ -210,7 +210,7 @@
                 if (existing) {
                     existing.setAttribute("data-subject-code", subject.code || "");
                     existing.querySelector(".subject-name").textContent        = subject.name || "";
-                    existing.querySelector(".subject-description").textContent = subject.description || "Khong co mo ta";
+                    existing.querySelector(".subject-description").textContent = subject.description || "Không có mô tả";
                     const docCount = existing.querySelector(".subject-document-count");
                     if (docCount) docCount.textContent = String(subject.documentCount ?? 0);
                 } else {

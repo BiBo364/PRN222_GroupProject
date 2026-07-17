@@ -1,0 +1,253 @@
+@page
+@model Assignmet1_Presentation.Pages.Learning.QuestionBankModel
+@{
+    ViewData["Title"] = "Ngân hàng câu hỏi";
+}
+
+@functions {
+    private static string QuestionTypeLabel(string type) => type switch
+    {
+        LearningQuestionTypes.TrueFalse => "Đúng hoặc sai",
+        LearningQuestionTypes.ShortAnswer => "Trả lời ngắn",
+        _ => "Nhiều lựa chọn"
+    };
+
+    private static string DifficultyLabel(string difficulty) => difficulty switch
+    {
+        LearningDifficultyLevels.Easy => "Cơ bản",
+        LearningDifficultyLevels.Hard => "Nâng cao",
+        _ => "Trung bình"
+    };
+}
+
+@if (Model.Data is not null)
+{
+    <div class="learning-page-heading learning-page-heading-actions">
+        <div>
+            <a class="learning-back-link" asp-page="/Learning/Index">
+                <i data-lucide="arrow-left" class="icon-sm"></i>
+                Trung tâm ôn tập
+            </a>
+            <span class="eyebrow">Kho nội dung dùng chung</span>
+            <h1>Ngân hàng câu hỏi @Model.Data.Subject.Code</h1>
+            <p>Rà soát, chỉnh sửa và tái sử dụng câu hỏi trong nhiều bộ ôn tập khác nhau.</p>
+        </div>
+        <div class="heading-actions">
+            <a class="btn btn-outline-primary" asp-page="/Learning/Compose">
+                <i data-lucide="layers-3" class="icon-sm"></i>
+                Tổng hợp bộ ôn tập
+            </a>
+            <a class="btn btn-primary" asp-page="/Learning/Generate">
+                <i data-lucide="wand-sparkles" class="icon-sm"></i>
+                Tạo thêm bằng AI
+            </a>
+        </div>
+    </div>
+
+    <form method="get" class="question-filter surface-card">
+        <div class="filter-search">
+            <i data-lucide="search" class="icon-sm"></i>
+            <input asp-for="Search" placeholder="Tìm theo nội dung hoặc chủ đề..." />
+        </div>
+        <select asp-for="QuestionType" class="form-select">
+            <option value="">Tất cả dạng câu hỏi</option>
+            <option value="@LearningQuestionTypes.MultipleChoice">Nhiều lựa chọn</option>
+            <option value="@LearningQuestionTypes.TrueFalse">Đúng hoặc sai</option>
+            <option value="@LearningQuestionTypes.ShortAnswer">Trả lời ngắn</option>
+        </select>
+        <select asp-for="Difficulty" class="form-select">
+            <option value="">Tất cả mức độ</option>
+            <option value="@LearningDifficultyLevels.Easy">Cơ bản</option>
+            <option value="@LearningDifficultyLevels.Medium">Trung bình</option>
+            <option value="@LearningDifficultyLevels.Hard">Nâng cao</option>
+        </select>
+        <label class="filter-check">
+            <input asp-for="IncludeInactive" />
+            <span>Hiện câu đã lưu trữ</span>
+        </label>
+        <button class="btn btn-primary" type="submit">Lọc</button>
+    </form>
+
+    <div class="question-bank-summary">
+        <span><strong>@Model.Data.Questions.Count</strong> câu hỏi phù hợp</span>
+        @if (!string.IsNullOrWhiteSpace(Model.Search)
+             || !string.IsNullOrWhiteSpace(Model.Difficulty)
+             || !string.IsNullOrWhiteSpace(Model.QuestionType)
+             || Model.IncludeInactive)
+        {
+            <a asp-page="/Learning/QuestionBank">Xóa bộ lọc</a>
+        }
+    </div>
+
+    @if (Model.Data.Questions.Count == 0)
+    {
+        <section class="learning-empty surface-card">
+            <span class="learning-icon learning-icon-lg"><i data-lucide="database-zap"></i></span>
+            <h2>Chưa có câu hỏi phù hợp</h2>
+            <p>Thay đổi bộ lọc hoặc dùng AI để tạo câu hỏi từ tài liệu môn học.</p>
+            <a class="btn btn-primary" asp-page="/Learning/Generate">Tạo câu hỏi bằng AI</a>
+        </section>
+    }
+    else
+    {
+        <div class="question-bank-list">
+            @foreach (var question in Model.Data.Questions)
+            {
+                <article class="question-bank-card surface-card @(!question.IsActive ? "is-inactive" : null)">
+                    <div class="question-bank-card-top">
+                        <div class="question-badges">
+                            <span class="question-type-badge">@QuestionTypeLabel(question.QuestionType)</span>
+                            <span class="difficulty-badge difficulty-@question.Difficulty">@DifficultyLabel(question.Difficulty)</span>
+                            @if (!string.IsNullOrWhiteSpace(question.Topic))
+                            {
+                                <span class="topic-badge">@question.Topic</span>
+                            }
+                            @if (!question.IsActive)
+                            {
+                                <span class="publication-badge is-draft">Đã lưu trữ</span>
+                            }
+                        </div>
+                        <div class="question-actions">
+                            <button class="icon-button"
+                                    type="button"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editQuestion-@question.Id"
+                                    title="Chỉnh sửa câu hỏi">
+                                <i data-lucide="pencil"></i>
+                            </button>
+                            <form method="post" asp-page-handler="SetActive">
+                                <input type="hidden" name="id" value="@question.Id" />
+                                <input type="hidden" name="isActive" value="@(!question.IsActive)" />
+                                <button class="icon-button @(!question.IsActive ? "is-success" : "is-danger")"
+                                        type="submit"
+                                        title="@(!question.IsActive ? "Khôi phục câu hỏi" : "Lưu trữ câu hỏi")">
+                                    <i data-lucide="@(!question.IsActive ? "archive-restore" : "archive")"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <h2>@question.Prompt</h2>
+
+                    @if (question.Options.Count > 0)
+                    {
+                        <div class="question-option-preview">
+                            @for (var optionIndex = 0; optionIndex < question.Options.Count; optionIndex++)
+                            {
+                                var option = question.Options[optionIndex];
+                                <div class="question-option-item @(string.Equals(option, question.CorrectAnswer, StringComparison.OrdinalIgnoreCase) ? "is-correct" : null)">
+                                    <span>@((char)('A' + optionIndex))</span>
+                                    <p>@option</p>
+                                    @if (string.Equals(option, question.CorrectAnswer, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <i data-lucide="check" class="icon-sm"></i>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="short-answer-preview">
+                            <span>Đáp án</span>
+                            <strong>@question.CorrectAnswer</strong>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(question.Explanation))
+                    {
+                        <details class="question-explanation">
+                            <summary><i data-lucide="lightbulb" class="icon-sm"></i> Xem giải thích</summary>
+                            <p>@question.Explanation</p>
+                        </details>
+                    }
+
+                    <footer class="question-bank-footer">
+                        <span>
+                            <i data-lucide="book-open" class="icon-xs"></i>
+                            @(question.SourceReferences.FirstOrDefault() ?? "Chưa có nguồn tham khảo")
+                        </span>
+                        <span>Cập nhật @question.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                    </footer>
+                </article>
+
+                <div class="modal fade" id="editQuestion-@question.Id" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content learning-modal">
+                            <form method="post" asp-page-handler="Update">
+                                <div class="modal-header">
+                                    <div>
+                                        <span class="eyebrow">Biên tập ngân hàng đề</span>
+                                        <h2 class="modal-title">Chỉnh sửa câu hỏi</h2>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <input type="hidden" name="id" value="@question.Id" />
+                                    <div class="form-grid">
+                                        <div class="form-field">
+                                            <label for="questionType-@question.Id">Loại câu hỏi</label>
+                                            <select id="questionType-@question.Id" name="questionType" class="form-select">
+                                                <option value="@LearningQuestionTypes.MultipleChoice"
+                                                        selected="@(question.QuestionType == LearningQuestionTypes.MultipleChoice)">Nhiều lựa chọn</option>
+                                                <option value="@LearningQuestionTypes.TrueFalse"
+                                                        selected="@(question.QuestionType == LearningQuestionTypes.TrueFalse)">Đúng hoặc sai</option>
+                                                <option value="@LearningQuestionTypes.ShortAnswer"
+                                                        selected="@(question.QuestionType == LearningQuestionTypes.ShortAnswer)">Trả lời ngắn</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-field">
+                                            <label for="difficulty-@question.Id">Mức độ</label>
+                                            <select id="difficulty-@question.Id" name="difficulty" class="form-select">
+                                                <option value="@LearningDifficultyLevels.Easy"
+                                                        selected="@(question.Difficulty == LearningDifficultyLevels.Easy)">Cơ bản</option>
+                                                <option value="@LearningDifficultyLevels.Medium"
+                                                        selected="@(question.Difficulty == LearningDifficultyLevels.Medium)">Trung bình</option>
+                                                <option value="@LearningDifficultyLevels.Hard"
+                                                        selected="@(question.Difficulty == LearningDifficultyLevels.Hard)">Nâng cao</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-field mt-3">
+                                        <label for="prompt-@question.Id">Nội dung câu hỏi</label>
+                                        <textarea id="prompt-@question.Id" name="prompt" class="form-control" rows="3" required>@question.Prompt</textarea>
+                                    </div>
+                                    <div class="form-field mt-3">
+                                        <label for="options-@question.Id">Các phương án</label>
+                                        <textarea id="options-@question.Id" name="optionsText" class="form-control" rows="5">@string.Join(Environment.NewLine, question.Options)</textarea>
+                                        <span class="form-hint">Mỗi phương án trên một dòng. Câu nhiều lựa chọn cần đúng 4 phương án.</span>
+                                    </div>
+                                    <div class="form-field mt-3">
+                                        <label for="answer-@question.Id">Đáp án đúng</label>
+                                        <input id="answer-@question.Id" name="correctAnswer" value="@question.CorrectAnswer" class="form-control" required />
+                                    </div>
+                                    <div class="form-field mt-3">
+                                        <label for="explanation-@question.Id">Giải thích</label>
+                                        <textarea id="explanation-@question.Id" name="explanation" class="form-control" rows="3">@question.Explanation</textarea>
+                                    </div>
+                                    <div class="form-grid mt-3">
+                                        <div class="form-field">
+                                            <label for="topic-@question.Id">Chủ đề</label>
+                                            <input id="topic-@question.Id" name="topic" value="@question.Topic" class="form-control" />
+                                        </div>
+                                        <div class="form-field">
+                                            <label for="objective-@question.Id">Mục tiêu học tập</label>
+                                            <input id="objective-@question.Id" name="learningObjective" value="@question.LearningObjective" class="form-control" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i data-lucide="save" class="icon-sm"></i>
+                                        Lưu thay đổi
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}

@@ -1,0 +1,166 @@
+@page "{id:int}"
+@model Assignmet1_Presentation.Pages.Learning.DetailsModel
+@{
+    ViewData["Title"] = Model.LearningSet?.Title ?? "Chi tiết bộ ôn tập";
+}
+
+@functions {
+    private static string ActivityLabel(string type) => type switch
+    {
+        LearningActivityTypes.Flashcard => "Thẻ ghi nhớ",
+        LearningActivityTypes.Matching => "Ghép cặp kiến thức",
+        LearningActivityTypes.SpeedChallenge => "Thử thách tốc độ",
+        _ => "Quiz"
+    };
+
+    private static string QuestionTypeLabel(string type) => type switch
+    {
+        LearningQuestionTypes.TrueFalse => "Đúng hoặc sai",
+        LearningQuestionTypes.ShortAnswer => "Trả lời ngắn",
+        _ => "Nhiều lựa chọn"
+    };
+}
+
+@if (Model.LearningSet is not null)
+{
+    var set = Model.LearningSet;
+
+    <div class="learning-page-heading learning-page-heading-actions">
+        <div>
+            <a class="learning-back-link" asp-page="/Learning/Index">
+                <i data-lucide="arrow-left" class="icon-sm"></i>
+                Trung tâm ôn tập
+            </a>
+            <div class="question-badges mb-3">
+                <span class="question-type-badge">@ActivityLabel(set.ActivityType)</span>
+                <span class="publication-badge @(set.IsPublished ? "is-published" : "is-draft")">
+                    @(set.IsPublished ? "Đã phát hành" : "Bản nháp")
+                </span>
+            </div>
+            <h1>@set.Title</h1>
+            <p>@(string.IsNullOrWhiteSpace(set.Description) ? "Bộ nội dung ôn tập dành cho môn học." : set.Description)</p>
+        </div>
+        <div class="heading-actions">
+            <a class="btn btn-outline-primary" asp-page="/Learning/Play" asp-route-id="@set.Id">
+                <i data-lucide="play" class="icon-sm"></i>
+                Xem trải nghiệm
+            </a>
+            @if (set.CanManage)
+            {
+                @if (set.ActivityType == LearningActivityTypes.Quiz)
+                {
+                    <a class="btn btn-outline-primary"
+                       asp-page="/Learning/Analytics"
+                       asp-route-quizId="@set.Id">
+                        <i data-lucide="chart-no-axes-combined" class="icon-sm"></i>
+                        Phân tích
+                    </a>
+                    <a class="btn btn-outline-primary"
+                       asp-page="/Learning/Versions"
+                       asp-route-id="@set.Id">
+                        <i data-lucide="history" class="icon-sm"></i>
+                        Phiên bản
+                    </a>
+                    <a class="btn btn-outline-primary" asp-page="/Learning/ManualEditor" asp-route-id="@set.Id">
+                        <i data-lucide="pencil-line" class="icon-sm"></i>
+                        Chỉnh sửa
+                    </a>
+                }
+                <form method="post" asp-page-handler="Publish">
+                    <input type="hidden" name="id" value="@set.Id" />
+                    <input type="hidden"
+                           name="isPublished"
+                           value="@(set.IsPublished ? "false" : "true")" />
+                    <button class="btn btn-primary" type="submit">
+                        <i data-lucide="@(set.IsPublished ? "eye-off" : "send")" class="icon-sm"></i>
+                        @(set.IsPublished ? "Chuyển về bản nháp" : "Phát hành")
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <div class="learning-detail-grid">
+        <main>
+            <section class="surface-card learning-detail-section">
+                <div class="learning-section-heading">
+                    <div>
+                        <span class="eyebrow">Nội dung đã chọn</span>
+                        <h2>@set.Questions.Count câu hỏi</h2>
+                    </div>
+                </div>
+
+                <div class="set-question-list">
+                    @foreach (var question in set.Questions)
+                    {
+                        <article class="set-question-row">
+                            <span class="set-question-number">@question.OrderIndex.ToString("00")</span>
+                            <div>
+                                <div class="question-badges">
+                                    <span class="question-type-badge">@QuestionTypeLabel(question.QuestionType)</span>
+                                    @if (!string.IsNullOrWhiteSpace(question.Topic))
+                                    {
+                                        <span class="topic-badge">@question.Topic</span>
+                                    }
+                                </div>
+                                <h3>@question.Prompt</h3>
+                                <details class="question-explanation">
+                                    <summary>Xem đáp án và giải thích</summary>
+                                    <p><strong>Đáp án:</strong> @question.CorrectAnswer</p>
+                                    @if (!string.IsNullOrWhiteSpace(question.Explanation))
+                                    {
+                                        <p>@question.Explanation</p>
+                                    }
+                                </details>
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
+        </main>
+
+        <aside>
+            <section class="surface-card learning-detail-meta">
+                <span class="eyebrow">Thông tin hoạt động</span>
+                <dl>
+                    <div><dt>Môn học</dt><dd>@set.SubjectCode - @set.SubjectName</dd></div>
+                    <div><dt>Hình thức</dt><dd>@ActivityLabel(set.ActivityType)</dd></div>
+                    <div><dt>Thời lượng</dt><dd>@(set.DurationMinutes?.ToString() ?? "Không giới hạn") phút</dd></div>
+                    <div><dt>Xáo trộn câu hỏi</dt><dd>@(set.ShuffleQuestions ? "Có" : "Không")</dd></div>
+                    <div><dt>Cập nhật</dt><dd>@set.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd></div>
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(set.Instructions))
+                {
+                    <div class="instruction-box">
+                        <strong>Hướng dẫn</strong>
+                        <p>@set.Instructions</p>
+                    </div>
+                }
+            </section>
+
+            @if (set.CanManage)
+            {
+                <section class="surface-card danger-zone">
+                    <span class="eyebrow">Quản lý bộ ôn tập</span>
+                    <h2>Chuyển vào thùng rác</h2>
+                    <p>Quiz sẽ được ẩn khỏi sinh viên nhưng vẫn có thể khôi phục. Lịch sử làm bài và ngân hàng câu hỏi chưa bị xóa.</p>
+                    <form method="post" asp-page-handler="Delete">
+                        <input type="hidden" name="id" value="@set.Id" />
+                        <button type="submit"
+                                class="btn btn-outline-danger w-100 btn-delete-confirm"
+                                data-item-name="@set.Title"
+                                data-item-type="Quiz"
+                                data-can-restore="true">
+                            <i data-lucide="trash-2" class="icon-sm"></i>
+                            Chuyển vào thùng rác
+                        </button>
+                    </form>
+                    <a class="text-link danger-zone-link" asp-page="/Learning/Recycle">
+                        Mở thùng rác
+                        <i data-lucide="arrow-right" class="icon-sm"></i>
+                    </a>
+                </section>
+            }
+        </aside>
+    </div>
+}

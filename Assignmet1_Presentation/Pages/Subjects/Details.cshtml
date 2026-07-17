@@ -1,7 +1,7 @@
 @page "/Subjects/Details/{id:int}"
 @model Assignmet1_Presentation.Pages.Subjects.DetailsModel
 @{
-    ViewData["Title"] = $"{Model.ViewModel.Subject.Code} - Mon hoc";
+    ViewData["Title"] = $"{Model.ViewModel.Subject.Code} - Môn học";
     var hasDocuments  = Model.ViewModel.Documents.Any();
     var subject       = Model.ViewModel.Subject;
 }
@@ -11,7 +11,7 @@
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
         <div>
             <div class="hero-badge mb-3">
-                <i data-lucide="book-open" class="icon-sm"></i> Chi tiet mon hoc
+                <i data-lucide="book-open" class="icon-sm"></i> Chi tiết môn học
             </div>
             <h1 class="page-title mb-1" id="subject-code">@subject.Code</h1>
             <p class="page-subtitle mb-1" id="subject-name">@subject.Name</p>
@@ -28,11 +28,11 @@
                 <a class="btn btn-primary"
                    asp-page="/Documents/Upload"
                    asp-route-subjectId="@subject.Id">
-                    <i data-lucide="upload-cloud" class="icon-sm"></i> Tai len tai lieu
+                    <i data-lucide="upload-cloud" class="icon-sm"></i> Tải tài liệu lên
                 </a>
             }
             <a class="btn btn-outline-secondary" asp-page="/Documents/Index">
-                <i data-lucide="arrow-left" class="icon-sm"></i> Quay lai
+                <i data-lucide="arrow-left" class="icon-sm"></i> Quay lại
             </a>
         </div>
     </div>
@@ -48,7 +48,7 @@
                 @subject.Chapters.Count
             </div>
             <div class="stat-label">
-                <i data-lucide="bookmark" class="icon-xs me-1"></i> So chuong
+                <i data-lucide="bookmark" class="icon-xs me-1"></i> Số chương
             </div>
         </div>
     </div>
@@ -59,7 +59,7 @@
                 @Model.ViewModel.Documents.Count
             </div>
             <div class="stat-label">
-                <i data-lucide="file-text" class="icon-xs me-1"></i> Tong tai lieu
+                <i data-lucide="file-text" class="icon-xs me-1"></i> Tổng tài liệu
             </div>
         </div>
     </div>
@@ -70,7 +70,7 @@
                 @Model.ViewModel.Documents.Count(d => d.Status == "indexed")
             </div>
             <div class="stat-label">
-                <i data-lucide="check-circle" class="icon-xs me-1"></i> Da lap chi muc
+                <i data-lucide="check-circle" class="icon-xs me-1"></i> Đã lập chỉ mục
             </div>
         </div>
     </div>
@@ -82,14 +82,14 @@
     <div class="card-header-row">
         <h2 class="card-header-title" id="documents-title">
             <i data-lucide="files" class="icon-sm me-1" style="color:var(--primary)"></i>
-            @(hasDocuments ? "Tai lieu mon hoc" : "Chua co tai lieu")
+            @(hasDocuments ? "Tài liệu môn học" : "Chưa có tài liệu")
         </h2>
         @if (Model.ViewModel.CanUploadDocument)
         {
             <a class="btn btn-primary btn-sm"
                asp-page="/Documents/Upload"
                asp-route-subjectId="@subject.Id">
-                <i data-lucide="upload-cloud" class="icon-sm"></i> Tai len
+                <i data-lucide="upload-cloud" class="icon-sm"></i> Tải lên
             </a>
         }
     </div>
@@ -101,15 +101,15 @@
         <div class="empty-state-icon">
             <i data-lucide="file-x" style="width:56px;height:56px;color:var(--text-faint)"></i>
         </div>
-        <div class="empty-state-title">Chua co tai lieu nao</div>
+        <div class="empty-state-title">Chưa có tài liệu nào</div>
         <div class="empty-state-desc">
             @if (Model.ViewModel.CanUploadDocument)
             {
-                <span>Hay tai len tai lieu dau tien de bat dau su dung tinh nang chat AI.</span>
+                <span>Hãy tải tài liệu đầu tiên lên để bắt đầu sử dụng Chat AI và công cụ ôn tập.</span>
             }
             else
             {
-                <span>Mon hoc nay chua co tai lieu nao duoc tai len.</span>
+                <span>Môn học này chưa có tài liệu nào được tải lên.</span>
             }
         </div>
         @if (Model.ViewModel.CanUploadDocument)
@@ -117,7 +117,7 @@
             <a class="btn btn-primary"
                asp-page="/Documents/Upload"
                asp-route-subjectId="@subject.Id">
-                <i data-lucide="upload-cloud" class="icon-sm"></i> Tai len tai lieu dau tien
+                <i data-lucide="upload-cloud" class="icon-sm"></i> Tải tài liệu đầu tiên lên
             </a>
         }
     </div>
@@ -128,14 +128,14 @@
         <table class="table table-hover align-middle mb-0">
             <thead>
                 <tr>
-                    <th class="ps-4">Ten tai lieu</th>
-                    <th>Loai</th>
-                    <th>Chuong</th>
-                    <th>Trang thai</th>
-                    <th>Chunks</th>
-                    <th>Ngay tai len</th>
-                    <th>Ngay lap chi muc</th>
-                    <th class="pe-4 text-end">Hanh dong</th>
+                    <th class="ps-4">Tên tài liệu</th>
+                    <th>Loại</th>
+                    <th>Chương</th>
+                    <th>Trạng thái</th>
+                    <th>Đoạn nội dung</th>
+                    <th>Ngày tải lên</th>
+                    <th>Ngày lập chỉ mục</th>
+                    <th class="pe-4 text-end">Hành động</th>
                 </tr>
             </thead>
             <tbody id="document-table-body">
@@ -146,10 +146,10 @@
                         else if (doc.Status == "failed") statusClass = "danger";
 
                         string statusLabel = doc.Status;
-                        if (doc.Status == "indexed") statusLabel = "Da lap chi muc";
-                        else if (doc.Status == "failed") statusLabel = "That bai";
-                        else if (doc.Status == "processing") statusLabel = "Dang xu ly";
-                        else if (doc.Status == "pending") statusLabel = "Cho xu ly";
+                        if (doc.Status == "indexed") statusLabel = "Đã lập chỉ mục";
+                        else if (doc.Status == "failed") statusLabel = "Thất bại";
+                        else if (doc.Status == "processing") statusLabel = "Đang xử lý";
+                        else if (doc.Status == "pending") statusLabel = "Chờ xử lý";
                     <tr data-document-row
                         data-document-id="@doc.Id"
                         data-document-status="@doc.Status"
@@ -189,7 +189,7 @@
                                     <a class="btn btn-sm btn-outline-info"
                                        asp-page="/Documents/Details"
                                        asp-route-id="@doc.Id"
-                                       title="Xem chi tiet tai lieu">
+                                       title="Xem chi tiết tài liệu">
                                         <i data-lucide="eye" class="icon-sm"></i>
                                     </a>
                                     @if (Model.ViewModel.CanEditDocument)
@@ -197,7 +197,7 @@
                                         <a class="btn btn-sm btn-outline-secondary"
                                            asp-page="/Documents/Details"
                                            asp-route-id="@doc.Id"
-                                           title="Chinh sua tai lieu">
+                                           title="Chỉnh sửa tài liệu">
                                             <i data-lucide="pencil" class="icon-sm"></i>
                                         </a>
                                     }
@@ -210,7 +210,7 @@
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger btn-delete-doc"
                                                 data-doc-name="@doc.OriginalName"
-                                                title="Xoa tai lieu (co the khoi phuc)">
+                                                title="Xóa tài liệu (có thể khôi phục)">
                                             <i data-lucide="trash-2" class="icon-sm"></i>
                                         </button>
                                     </form>
@@ -223,7 +223,7 @@
                                 <a class="btn btn-sm btn-outline-info"
                                    asp-page="/Documents/Details"
                                    asp-route-id="@doc.Id"
-                                   title="Xem chi tiet tai lieu">
+                                   title="Xem chi tiết tài liệu">
                                     <i data-lucide="eye" class="icon-sm"></i>
                                 </a>
                             </td>
@@ -243,26 +243,26 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title text-danger" id="deleteDocModalLabel">
-                        <i data-lucide="alert-triangle" class="icon-md me-2"></i> Xac nhan xoa tai lieu
+                        <i data-lucide="alert-triangle" class="icon-md me-2"></i> Xác nhận xóa tài liệu
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Dong"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body">
                     <p style="color:var(--text-sec);font-size:.9rem;margin-bottom:.5rem">
-                        Ban chuan bi xoa tai lieu:
+                        Bạn chuẩn bị xóa tài liệu:
                     </p>
                     <p class="fw-semibold" id="deleteDocName" style="color:var(--text);font-size:1rem;margin-bottom:1rem"></p>
                     <div class="alert alert-info" style="font-size:.85rem;margin-bottom:0">
                         <i data-lucide="info" class="alert-icon"></i>
-                        <span>Tai lieu se duoc chuyen vao <strong>Thung rac</strong> va co the khoi phuc lai.</span>
+                        <span>Tài liệu sẽ được chuyển vào <strong>thùng rác</strong> và có thể khôi phục lại.</span>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        <i data-lucide="x" class="icon-sm"></i> Huy bo
+                        <i data-lucide="x" class="icon-sm"></i> Hủy bỏ
                     </button>
                     <button type="button" class="btn btn-danger" id="confirmDeleteDocBtn">
-                        <i data-lucide="trash-2" class="icon-sm"></i> Xoa tai lieu
+                        <i data-lucide="trash-2" class="icon-sm"></i> Xóa tài liệu
                     </button>
                 </div>
             </div>
@@ -288,10 +288,10 @@
             const indexedCount  = document.getElementById("subject-indexed-count");
 
             const statusLabels = {
-                indexed:    "Da lap chi muc",
-                failed:     "That bai",
-                processing: "Dang xu ly",
-                pending:    "Cho xu ly"
+                indexed:    "Đã lập chỉ mục",
+                failed:     "Thất bại",
+                processing: "Đang xử lý",
+                pending:    "Chờ xử lý"
             };
 
             function refreshCounters() {
@@ -302,8 +302,8 @@
                 if (indexedCount)  indexedCount.textContent  = String(indexed);
                 if (documentsTitle) {
                     documentsTitle.innerHTML = total > 0
-                        ? `<i data-lucide="files" class="icon-sm me-1" style="color:var(--primary)"></i> Tai lieu mon hoc`
-                        : `<i data-lucide="files" class="icon-sm me-1" style="color:var(--primary)"></i> Chua co tai lieu`;
+                        ? `<i data-lucide="files" class="icon-sm me-1" style="color:var(--primary)"></i> Tài liệu môn học`
+                        : `<i data-lucide="files" class="icon-sm me-1" style="color:var(--primary)"></i> Chưa có tài liệu`;
                     lucide.createIcons();
                 }
                 if (emptyState && tableWrapper) {
@@ -365,8 +365,8 @@
             function removeSubject(id) {
                 if (Number(id) !== Number(subjectId)) return;
                 Swal.fire({
-                    title: "Mon hoc da bi xoa",
-                    text: "Mon hoc nay vua bi xoa. Ban se duoc chuyen ve trang danh sach.",
+                    title: "Môn học đã bị xóa",
+                    text: "Môn học này vừa bị xóa. Bạn sẽ được chuyển về trang danh sách.",
                     icon: "warning",
                     confirmButtonText: "Ve trang chu"
                 }).then(() => { window.location.href = "/Documents"; });
@@ -392,7 +392,7 @@
                     const btn = e.target.closest(".btn-delete-doc");
                     if (!btn) return;
                     formToSubmit = btn.closest("form");
-                    const docName = btn.getAttribute("data-doc-name") || "tai lieu nay";
+                    const docName = btn.getAttribute("data-doc-name") || "tài liệu này";
                     const nameEl  = document.getElementById("deleteDocName");
                     if (nameEl) nameEl.textContent = docName;
                     if (deleteModal) deleteModal.show();

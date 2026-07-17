@@ -48,7 +48,7 @@ public class DetailsModel : PageModel
 
     public IActionResult OnPost(int id)
     {
-        TempData["Error"] = "Thao tac khong hop le. Vui long thu lai.";
+        TempData["Error"] = "Thao tác không hợp lệ. Vui lòng thử lại.";
         return RedirectToPage("/Subjects/Details", new { id });
     }
 

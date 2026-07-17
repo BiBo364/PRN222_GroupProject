@@ -5,15 +5,15 @@ namespace Assignmet1_Presentation.Models;
 
 public class ImportUsersViewModel
 {
-    [Required(ErrorMessage = "Vui long chon file (.xlsx, .csv, .json hoac .txt).")]
-    [Display(Name = "File danh sach nguoi dung")]
+    [Required(ErrorMessage = "Vui lòng chọn tệp (.xlsx, .csv, .json hoặc .txt).")]
+    [Display(Name = "Tệp danh sách người dùng")]
     public IFormFile? File { get; set; }
 
     [Display(Name = "Vai tro")]
-    [Required(ErrorMessage = "Vui long chon vai tro.")]
+    [Required(ErrorMessage = "Vui lòng chọn vai trò.")]
     public int RoleId { get; set; } = 3;
 
-    [Display(Name = "Mon hoc")]
+    [Display(Name = "Môn học")]
     public int? SubjectId { get; set; }
 
     public List<SubjectListItemViewModel> SubjectOptions { get; set; } = [];
@@ -45,10 +45,10 @@ public class ImportRowResultViewModel
 
     public string StatusLabel => Status switch
     {
-        ImportRowStatus.Created => "Thanh cong",
-        ImportRowStatus.Duplicate => "Trung lap",
-        ImportRowStatus.Error => "Loi",
-        _ => "Khong xac dinh"
+        ImportRowStatus.Created => "Thành công",
+        ImportRowStatus.Duplicate => "Trùng lặp",
+        ImportRowStatus.Error => "Lỗi",
+        _ => "Không xác định"
     };
 
     public string StatusCssClass => Status switch

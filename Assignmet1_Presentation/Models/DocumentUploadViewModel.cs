@@ -9,11 +9,11 @@ public class DocumentUploadViewModel
 
     public int? SubjectId { get; set; }
 
-    [Required(ErrorMessage = "Please select a file.")]
-    [Display(Name = "Document file (PDF, DOCX, PPTX)")]
+    [Required(ErrorMessage = "Vui lòng chọn tài liệu.")]
+    [Display(Name = "Tài liệu (PDF, DOCX, PPTX)")]
     public IFormFile? File { get; set; }
 
-    [Display(Name = "Chapter")]
+    [Display(Name = "Chương")]
     public int? ChapterId { get; set; }
 
     public List<SelectListItem> ChapterOptions { get; set; } = [];

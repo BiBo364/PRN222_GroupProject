@@ -63,27 +63,27 @@ public class DocumentService : IDocumentService
         int userId)
     {
         if (string.IsNullOrWhiteSpace(originalName))
-            throw new ArgumentException("Original name is required.", nameof(originalName));
+            throw new ArgumentException("Tên tài liệu là bắt buộc.", nameof(originalName));
 
         var normalizedOriginalName = Path.GetFileName(originalName).Trim();
         fileType = fileType.Trim().ToLowerInvariant();
         if (fileType is not ("pdf" or "docx" or "pptx"))
-            throw new ArgumentException("Unsupported file type.", nameof(fileType));
+            throw new ArgumentException("Loại tệp không được hỗ trợ.", nameof(fileType));
 
         var (allowed, accessError) = await ValidateUploaderSubjectAccessAsync(userId, subjectId);
         if (!allowed)
             throw new InvalidOperationException(accessError);
 
         var subject = await _subjectRepository.GetByIdWithDetailsAsync(subjectId)
-            ?? throw new InvalidOperationException("Selected subject not found.");
+            ?? throw new InvalidOperationException("Không tìm thấy môn học đã chọn.");
 
         if (chapterId.HasValue && subject.Chapters.All(chapter => chapter.Id != chapterId.Value))
-            throw new InvalidOperationException("Selected chapter does not belong to the selected subject.");
+            throw new InvalidOperationException("Chương đã chọn không thuộc môn học.");
 
         if (await _documentRepository.ExistsActiveDocumentNameAsync(subject.Id, normalizedOriginalName))
         {
             await SendDuplicateNotificationAsync(userId, normalizedOriginalName, subject, "Tên tài liệu trùng lặp với tài liệu đã tồn tại trong môn học.");
-            throw new InvalidOperationException("Tai lieu nay da ton tai trong mon hoc nay.");
+            throw new InvalidOperationException("Tài liệu này đã tồn tại trong môn học.");
         }
 
         var document = new Document
@@ -117,10 +117,10 @@ public class DocumentService : IDocumentService
     {
         var document = await _documentRepository.GetByIdWithDetailsAsync(id);
         if (document is null)
-            return (null, "Khong tim thay tai lieu.");
+            return (null, "Không tìm thấy tài liệu.");
 
         if (!document.SubjectId.HasValue)
-            return (null, "Tai lieu nay chua gan mon hoc.");
+            return (null, "Tài liệu này chưa được gắn với môn học.");
 
         var (allowed, accessError) = await ValidateUploaderSubjectAccessAsync(userId, document.SubjectId.Value);
         if (!allowed)
@@ -128,14 +128,14 @@ public class DocumentService : IDocumentService
 
         var subject = await _subjectRepository.GetByIdWithDetailsAsync(document.SubjectId.Value);
         if (subject is null)
-            return (null, "Mon hoc cua tai lieu khong ton tai.");
+            return (null, "Môn học của tài liệu không tồn tại.");
 
         if (chapterId.HasValue && subject.Chapters.All(chapter => chapter.Id != chapterId.Value))
-            return (null, "Chuong duoc chon khong thuoc mon hoc nay.");
+            return (null, "Chương đã chọn không thuộc môn học này.");
 
         var normalizedOriginalName = Path.GetFileName(originalName).Trim();
         if (string.IsNullOrWhiteSpace(normalizedOriginalName))
-            return (null, "Ten tai lieu khong duoc de trong.");
+            return (null, "Tên tài liệu không được để trống.");
 
         if (await _documentRepository.ExistsActiveDocumentNameAsync(
                 document.SubjectId.Value,
@@ -143,7 +143,7 @@ public class DocumentService : IDocumentService
                 document.Id))
         {
             await SendDuplicateNotificationAsync(userId, normalizedOriginalName, subject, "Tên tài liệu trùng lặp với tài liệu khác trong môn học khi cập nhật.");
-            return (null, "Da co tai lieu cung ten trong mon hoc nay.");
+            return (null, "Đã có tài liệu cùng tên trong môn học này.");
         }
 
         document.OriginalName = normalizedOriginalName;
@@ -151,7 +151,7 @@ public class DocumentService : IDocumentService
         await _documentRepository.UpdateDocumentAsync(document);
 
         var updated = await _documentRepository.GetByIdWithDetailsAsync(document.Id);
-        return updated is null ? (null, "Khong tim thay tai lieu sau khi cap nhat.") : (DtoMapper.ToDetailDto(updated), null);
+        return updated is null ? (null, "Không tìm thấy tài liệu sau khi cập nhật.") : (DtoMapper.ToDetailDto(updated), null);
     }
 
     public async Task<bool> DeleteDocumentAsync(int id, string storageRoot, string contentRoot, string webRoot, int? deletedByUserId = null)
@@ -178,22 +178,22 @@ public class DocumentService : IDocumentService
     {
         var document = await _documentRepository.GetDeletedByIdWithDetailsAsync(id);
         if (document is null)
-            return (false, "Khong tim thay tai lieu trong thung rac.");
+            return (false, "Không tìm thấy tài liệu trong thùng rác.");
 
         if (!document.SubjectId.HasValue)
-            return (false, "Tai lieu nay chua gan mon hoc.");
+            return (false, "Tài liệu này chưa được gắn với môn học.");
 
         if (await _documentRepository.ExistsActiveDocumentNameAsync(document.SubjectId.Value, document.OriginalName))
-            return (false, "Da co tai lieu cung ten trong mon hoc nay.");
+            return (false, "Đã có tài liệu cùng tên trong môn học này.");
 
         if (!string.IsNullOrWhiteSpace(document.FileHash)
             && await _documentRepository.ExistsActiveDocumentHashAsync(document.SubjectId.Value, document.FileHash))
         {
-            return (false, "Noi dung tai lieu nay da ton tai trong mon hoc nay.");
+            return (false, "Nội dung tài liệu này đã tồn tại trong môn học.");
         }
 
         var restored = await _documentRepository.RestoreDocumentAsync(id);
-        return restored ? (true, null) : (false, "Khong the khoi phuc tai lieu.");
+        return restored ? (true, null) : (false, "Không thể khôi phục tài liệu.");
     }
 
     public async Task<(DocumentUploadResultDto? Result, string? Error)> ReindexDocumentAsync(
@@ -205,7 +205,7 @@ public class DocumentService : IDocumentService
     {
         var document = await _documentRepository.GetByIdWithDetailsAsync(id);
         if (document is null)
-            return (null, "Document not found.");
+            return (null, "Không tìm thấy tài liệu.");
 
         if (document.SubjectId.HasValue)
         {
@@ -218,7 +218,7 @@ public class DocumentService : IDocumentService
         if (filePath is null)
         {
             return (null,
-                "File not found on server. Documents imported directly into the database need to be uploaded again through the app.");
+                "Không tìm thấy tệp trên máy chủ. Tài liệu được nhập trực tiếp vào cơ sở dữ liệu cần được tải lại qua ứng dụng.");
         }
 
         document.Status = "processing";
@@ -236,7 +236,7 @@ public class DocumentService : IDocumentService
 
             await IndexDocumentContentAsync(document, filePath, webRoot);
             var updated = await _documentRepository.GetByIdWithDetailsAsync(id);
-            return updated is null ? (null, "Document not found after re-index.") : (DtoMapper.ToUploadResult(updated), null);
+            return updated is null ? (null, "Không tìm thấy tài liệu sau khi lập lại chỉ mục.") : (DtoMapper.ToUploadResult(updated), null);
         }
         catch (Exception ex)
         {
@@ -258,7 +258,7 @@ public class DocumentService : IDocumentService
         string webRoot)
     {
         if (!TextExtractor.IsAllowedExtension(originalFileName))
-            return (null, "Only PDF, DOCX, and PPTX files are supported.");
+            return (null, "Chỉ hỗ trợ tệp PDF, DOCX và PPTX.");
 
         var normalizedOriginalName = Path.GetFileName(originalFileName).Trim();
 
@@ -268,15 +268,15 @@ public class DocumentService : IDocumentService
 
         var subject = await _subjectRepository.GetByIdWithDetailsAsync(subjectId);
         if (subject is null)
-            return (null, "Selected subject not found.");
+            return (null, "Không tìm thấy môn học đã chọn.");
 
         if (chapterId.HasValue && subject.Chapters.All(chapter => chapter.Id != chapterId.Value))
-            return (null, "Selected chapter does not belong to the selected subject.");
+            return (null, "Chương đã chọn không thuộc môn học.");
 
         if (await _documentRepository.ExistsActiveDocumentNameAsync(subjectId, normalizedOriginalName))
         {
             await SendDuplicateNotificationAsync(userId, normalizedOriginalName, subject, "Tên tài liệu trùng lặp với tài liệu đã tồn tại trong môn học.");
-            return (null, "Tai lieu nay da ton tai trong mon hoc nay.");
+            return (null, "Tài liệu này đã tồn tại trong môn học.");
         }
 
         Directory.CreateDirectory(storageRoot);
@@ -299,7 +299,7 @@ public class DocumentService : IDocumentService
         {
             DeleteStoredFileQuietly(storagePath);
             await SendDuplicateNotificationAsync(userId, normalizedOriginalName, subject, "Nội dung tài liệu trùng lặp với tài liệu đã tồn tại trong môn học (Trùng mã Hash SHA-256).");
-            return (null, "Noi dung tai lieu nay da ton tai trong mon hoc nay.");
+            return (null, "Nội dung tài liệu này đã tồn tại trong môn học.");
         }
 
         var document = new Document
@@ -323,7 +323,7 @@ public class DocumentService : IDocumentService
         {
             await IndexDocumentContentAsync(document, storagePath, webRoot);
             var updated = await _documentRepository.GetByIdWithDetailsAsync(document.Id);
-            return updated is null ? (null, "Document not found after upload.") : (DtoMapper.ToUploadResult(updated), null);
+            return updated is null ? (null, "Không tìm thấy tài liệu sau khi tải lên.") : (DtoMapper.ToUploadResult(updated), null);
         }
         catch (Exception ex)
         {
@@ -360,7 +360,7 @@ public class DocumentService : IDocumentService
             return (false, "Bạn chưa được gán môn học.");
 
         if (user.SubjectId.Value != subjectId)
-            return (false, "Bạn chỉ được phép upload tài liệu cho môn học được gán.");
+            return (false, "Bạn chỉ được phép tải tài liệu lên môn học được phân công.");
 
         return (true, null);
     }
@@ -369,7 +369,7 @@ public class DocumentService : IDocumentService
     {
         var embeddingModels = await _documentRepository.GetEmbeddingModelsAsync();
         if (embeddingModels.Count == 0)
-            throw new InvalidOperationException("No embedding model configured in the database.");
+            throw new InvalidOperationException("Chưa cấu hình mô hình biểu diễn ngữ nghĩa trong cơ sở dữ liệu.");
 
         // Đọc cấu hình chunk từ DB — bản ghi này đã được sync từ appsettings.json lúc khởi động.
         // Muốn thay đổi: sửa section "Chunking" trong appsettings.json rồi restart app.
@@ -388,7 +388,7 @@ public class DocumentService : IDocumentService
         {
             var pages = TextExtractor.ExtractPages(filePath, document.FileType);
             if (pages.Count == 0)
-                throw new InvalidOperationException("No text could be extracted from the file.");
+                throw new InvalidOperationException("Không thể trích xuất văn bản từ tệp.");
 
             chunkEntities = new List<Chunk>();
             var nextChunkIndex = 0;
@@ -410,7 +410,7 @@ public class DocumentService : IDocumentService
             }
 
             if (chunkEntities.Count == 0)
-                throw new InvalidOperationException("Document has no content to chunk.");
+                throw new InvalidOperationException("Tài liệu không có nội dung để phân đoạn.");
 
             document.PageCount = pages.Count;
         }
@@ -442,7 +442,7 @@ public class DocumentService : IDocumentService
         var slides = SlideExtractor.ExtractSlides(filePath, document.Id, webRoot);
 
         if (slides.Count == 0)
-            throw new InvalidOperationException("No slides found in the presentation.");
+            throw new InvalidOperationException("Không tìm thấy trang chiếu trong tệp trình chiếu.");
 
         return slides.Select((slide, index) =>
         {
@@ -500,7 +500,7 @@ public class DocumentService : IDocumentService
         var vectorsByModelId = await _embeddingService.GenerateDocumentEmbeddingsAsync(texts, embeddingModels);
 
         if (vectorsByModelId.Count == 0)
-            throw new InvalidOperationException("No embedding vectors could be generated for this document.");
+            throw new InvalidOperationException("Không thể tạo véc-tơ biểu diễn ngữ nghĩa cho tài liệu này.");
 
         _logger.LogInformation(
             "Generated embeddings for {ChunkCount} chunk(s) using {ModelCount} embedding model(s).",
@@ -525,7 +525,7 @@ public class DocumentService : IDocumentService
             }
 
             if (embeddings.Count == 0)
-                throw new InvalidOperationException("At least one embedding vector is required for every chunk.");
+                throw new InvalidOperationException("Mỗi đoạn nội dung cần có ít nhất một véc-tơ biểu diễn ngữ nghĩa.");
 
             chunks[index].Embeddings = embeddings;
         }

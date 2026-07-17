@@ -42,7 +42,7 @@ public class ChangePasswordModel : PageModel
 
         if (!Input.IsForcedChange && string.IsNullOrWhiteSpace(Input.CurrentPassword))
         {
-            ModelState.AddModelError(nameof(Input.CurrentPassword), "Vui long nhap mat khau hien tai.");
+            ModelState.AddModelError(nameof(Input.CurrentPassword), "Vui lòng nhập mật khẩu hiện tại.");
             return Page();
         }
 
@@ -52,18 +52,18 @@ public class ChangePasswordModel : PageModel
 
         if (!success)
         {
-            ModelState.AddModelError(string.Empty, error ?? "Doi mat khau that bai.");
+            ModelState.AddModelError(string.Empty, error ?? "Đổi mật khẩu thất bại.");
             return Page();
         }
 
         if (Input.IsForcedChange)
         {
             HttpContext.Session.Remove("ForcePasswordChange");
-            TempData["Success"] = "Doi mat khau thanh cong! Ban co the tiep tuc su dung he thong.";
+            TempData["Success"] = "Đổi mật khẩu thành công. Bạn có thể tiếp tục sử dụng hệ thống.";
             return RedirectToPage("/Home/Index");
         }
 
-        TempData["Success"] = "Doi mat khau thanh cong! Vui long dang nhap lai.";
+        TempData["Success"] = "Đổi mật khẩu thành công. Vui lòng đăng nhập lại.";
         HttpContext.Session.Clear();
         return RedirectToPage("/Account/Login");
     }

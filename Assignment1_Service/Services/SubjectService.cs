@@ -54,10 +54,10 @@ public class SubjectService : ISubjectService
         description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 
         if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("Code is required.", nameof(code));
+            throw new ArgumentException("Mã môn học là bắt buộc.", nameof(code));
 
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Name is required.", nameof(name));
+            throw new ArgumentException("Tên môn học là bắt buộc.", nameof(name));
 
         var existingSubject = await _subjectRepository.GetByCodeAsync(code);
         if (existingSubject is not null)
@@ -96,17 +96,17 @@ public class SubjectService : ISubjectService
     {
         var subject = await _subjectRepository.GetByIdWithDetailsAsync(id);
         if (subject is null)
-            throw new KeyNotFoundException("Subject not found.");
+            throw new KeyNotFoundException("Không tìm thấy môn học.");
 
         code = code.Trim().ToUpperInvariant();
         name = name.Trim();
         description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 
         if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("Code is required.", nameof(code));
+            throw new ArgumentException("Mã môn học là bắt buộc.", nameof(code));
 
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Name is required.", nameof(name));
+            throw new ArgumentException("Tên môn học là bắt buộc.", nameof(name));
 
         var existingWithCode = await _subjectRepository.GetByCodeAsync(code);
         if (existingWithCode is not null && existingWithCode.Id != id)
@@ -142,7 +142,7 @@ public class SubjectService : ISubjectService
     {
         var subject = await _subjectRepository.GetByIdWithDetailsAsync(id);
         if (subject is null)
-            return (false, "Subject not found.");
+            return (false, "Không tìm thấy môn học.");
 
         var deletedAt = DateTime.Now;
         foreach (var doc in subject.Documents)

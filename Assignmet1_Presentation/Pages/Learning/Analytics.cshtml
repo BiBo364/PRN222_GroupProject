@@ -1,0 +1,239 @@
+@page
+@model Assignmet1_Presentation.Pages.Learning.AnalyticsModel
+@{
+    ViewData["Title"] = "Phân tích kết quả Quiz";
+}
+
+@if (Model.Dashboard is not null)
+{
+    var data = Model.Dashboard;
+    var maximumTrendAttempts = Math.Max(1, data.Trend.Max(point => point.AttemptCount));
+
+    <div class="learning-page-heading learning-page-heading-actions">
+        <div>
+            <a class="learning-back-link" asp-page="/Learning/Index">
+                <i data-lucide="arrow-left" class="icon-sm"></i>
+                Trung tâm ôn tập
+            </a>
+            <span class="eyebrow">Dữ liệu học tập</span>
+            <h1>Phân tích kết quả Quiz</h1>
+            <p>
+                Theo dõi hiệu quả của Quiz thuộc
+                <strong>@data.Subject.Code - @data.Subject.Name</strong>
+                và xác định những câu hỏi sinh viên còn gặp khó khăn.
+            </p>
+        </div>
+        <a class="btn btn-outline-primary" asp-page="/Audit/Index">
+            <i data-lucide="scroll-text" class="icon-sm"></i>
+            Nhật ký thao tác
+        </a>
+    </div>
+
+    <form method="get" class="surface-card analytics-filter-bar">
+        <div class="form-field">
+            <label asp-for="QuizId">Quiz cần phân tích</label>
+            <select asp-for="QuizId" class="form-select">
+                <option value="">Tất cả Quiz của môn học</option>
+                @foreach (var quiz in data.LearningSets)
+                {
+                    <option value="@quiz.Id">
+                        @quiz.Title · @(quiz.IsPublished ? "Đã phát hành" : "Bản nháp")
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="form-field">
+            <label asp-for="Days">Khoảng thời gian</label>
+            <select asp-for="Days" class="form-select">
+                <option value="7">7 ngày gần nhất</option>
+                <option value="30">30 ngày gần nhất</option>
+                <option value="90">90 ngày gần nhất</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" type="submit">
+            <i data-lucide="filter" class="icon-sm"></i>
+            Áp dụng
+        </button>
+    </form>
+
+    <section class="analytics-metric-grid">
+        <article class="surface-card analytics-metric">
+            <span class="analytics-metric-icon"><i data-lucide="clipboard-check"></i></span>
+            <span>Tổng lượt làm</span>
+            <strong>@data.TotalAttempts</strong>
+            <small>Trong @data.SelectedDays ngày gần nhất</small>
+        </article>
+        <article class="surface-card analytics-metric">
+            <span class="analytics-metric-icon analytics-metric-icon-violet"><i data-lucide="users"></i></span>
+            <span>Sinh viên tham gia</span>
+            <strong>@data.UniqueStudents</strong>
+            <small>Đếm theo tài khoản duy nhất</small>
+        </article>
+        <article class="surface-card analytics-metric">
+            <span class="analytics-metric-icon analytics-metric-icon-cyan"><i data-lucide="gauge"></i></span>
+            <span>Điểm trung bình</span>
+            <strong>@data.AveragePercentage.ToString("0.#")%</strong>
+            <small>Trên tất cả lượt làm đã lọc</small>
+        </article>
+        <article class="surface-card analytics-metric">
+            <span class="analytics-metric-icon analytics-metric-icon-green"><i data-lucide="badge-check"></i></span>
+            <span>Tỷ lệ đạt</span>
+            <strong>@data.PassRate.ToString("0.#")%</strong>
+            <small>Ngưỡng đạt từ 50%</small>
+        </article>
+        <article class="surface-card analytics-metric">
+            <span class="analytics-metric-icon analytics-metric-icon-amber"><i data-lucide="clock-3"></i></span>
+            <span>Thời gian trung bình</span>
+            <strong>@data.AverageDurationMinutes.ToString("0.#") phút</strong>
+            <small>Không tính phiên kéo dài bất thường</small>
+        </article>
+    </section>
+
+    <section class="surface-card analytics-section">
+        <div class="learning-section-heading">
+            <div>
+                <span class="eyebrow">Xu hướng</span>
+                <h2>Lượt làm và điểm trung bình</h2>
+            </div>
+            <span class="analytics-legend">
+                <span></span>
+                Số lượt làm
+            </span>
+        </div>
+
+        @if (data.TotalAttempts == 0)
+        {
+            <div class="analytics-empty">
+                <span class="learning-icon learning-icon-lg"><i data-lucide="chart-no-axes-column"></i></span>
+                <h3>Chưa có lượt làm Quiz trong khoảng thời gian này</h3>
+                <p>Hãy phát hành Quiz cho sinh viên hoặc chọn một khoảng thời gian dài hơn.</p>
+            </div>
+        }
+        else
+        {
+            <div class="analytics-trend-chart" role="img" aria-label="Biểu đồ lượt làm Quiz theo ngày">
+                @foreach (var point in data.Trend)
+                {
+                    var barHeight = point.AttemptCount == 0
+                        ? 2
+                        : Math.Max(8, (int)Math.Round(point.AttemptCount / (double)maximumTrendAttempts * 100));
+                    <div class="analytics-trend-column" title="@point.Date.ToString("dd/MM/yyyy"): @point.AttemptCount lượt, trung bình @point.AveragePercentage.ToString("0.#")%">
+                        <span class="analytics-trend-score">@point.AveragePercentage.ToString("0")%</span>
+                        <span class="analytics-trend-bar" style="height:@barHeight%"></span>
+                        <small>@point.Date.ToString("dd/MM")</small>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    @if (data.QuizPerformance.Count > 0)
+    {
+        <section class="surface-card analytics-section">
+            <div class="learning-section-heading">
+                <div>
+                    <span class="eyebrow">So sánh Quiz</span>
+                    <h2>Hiệu quả theo từng bài</h2>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Quiz</th>
+                            <th>Lượt làm</th>
+                            <th>Sinh viên</th>
+                            <th>Điểm trung bình</th>
+                            <th>Tỷ lệ đạt</th>
+                            <th>Lần làm gần nhất</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var quiz in data.QuizPerformance)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-page="/Learning/Details" asp-route-id="@quiz.LearningSetId">
+                                        @quiz.Title
+                                    </a>
+                                </td>
+                                <td>@quiz.AttemptCount</td>
+                                <td>@quiz.UniqueStudents</td>
+                                <td><strong>@quiz.AveragePercentage.ToString("0.#")%</strong></td>
+                                <td>@quiz.PassRate.ToString("0.#")%</td>
+                                <td>@quiz.LastAttemptAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+
+    <section class="analytics-section">
+        <div class="learning-section-heading">
+            <div>
+                <span class="eyebrow">Chẩn đoán câu hỏi</span>
+                <h2>Câu khó, câu dễ và tỷ lệ chọn đáp án</h2>
+            </div>
+            <span class="analytics-count">@data.Questions.Count câu đã có dữ liệu</span>
+        </div>
+
+        @if (data.Questions.Count == 0)
+        {
+            <div class="surface-card analytics-empty">
+                <span class="learning-icon learning-icon-lg"><i data-lucide="scan-search"></i></span>
+                <h3>Chưa đủ dữ liệu phân tích câu hỏi</h3>
+                <p>Kết quả sẽ xuất hiện sau khi sinh viên hoàn thành Quiz.</p>
+            </div>
+        }
+        else
+        {
+            <div class="question-analytics-list">
+                @foreach (var question in data.Questions)
+                {
+                    <article class="surface-card question-analytics-card">
+                        <div class="question-analytics-heading">
+                            <div>
+                                <div class="question-badges">
+                                    <span class="difficulty-insight difficulty-insight-@question.DifficultyBand">
+                                        @question.DifficultyLabel
+                                    </span>
+                                    <span class="topic-badge">@question.AnswerCount lượt trả lời</span>
+                                </div>
+                                <h3>@question.Prompt</h3>
+                            </div>
+                            <div class="question-correct-rate">
+                                <strong>@question.CorrectRate.ToString("0.#")%</strong>
+                                <span>trả lời đúng</span>
+                            </div>
+                        </div>
+                        <div class="analytics-progress">
+                            <span style="width:@question.CorrectRate.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%"></span>
+                        </div>
+                        <div class="option-analytics-list">
+                            @foreach (var option in question.Options)
+                            {
+                                <div class="option-analytics-row @(option.IsCorrect ? "is-correct" : "")">
+                                    <div class="option-analytics-copy">
+                                        <span>
+                                            @if (option.IsCorrect)
+                                            {
+                                                <i data-lucide="check-circle-2" class="icon-xs"></i>
+                                            }
+                                            @option.Option
+                                        </span>
+                                        <strong>@option.SelectionCount · @option.SelectionRate.ToString("0.#")%</strong>
+                                    </div>
+                                    <div class="option-analytics-track">
+                                        <span style="width:@option.SelectionRate.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%"></span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+}

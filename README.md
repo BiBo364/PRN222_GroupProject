@@ -1,6 +1,21 @@
 # PRN222_10W_Assignment1
 
-ASP.NET Core MVC app with layered architecture (Repository → Service → Presentation).                                                                                                                                                                                                 
+ASP.NET Core MVC app with layered architecture (Repository → Service → Presentation).
+
+## Technical documentation
+
+The complete Vietnamese technical handbook is available at:
+
+- [Documentation center](docs/README.md)
+- [Architecture handbook](docs/ARCHITECTURE_HANDBOOK.md)
+- [Database reference](docs/DATABASE_REFERENCE.md)
+- [AI, Quiz and learning guide](docs/AI_QUIZ_AND_LEARNING_GUIDE.md)
+- [Security and HTTP guide](docs/SECURITY_AND_HTTP_GUIDE.md)
+- [Operations runbook](docs/OPERATIONS_RUNBOOK.md)
+- [Testing and QA playbook](docs/TESTING_AND_QA_PLAYBOOK.md)
+- [UI/UX design system](docs/UI_UX_DESIGN_SYSTEM.md)
+- [Developer onboarding](docs/DEVELOPER_ONBOARDING.md)
+
 # Setup
 
 Clone the repository.                                                                                                                                            

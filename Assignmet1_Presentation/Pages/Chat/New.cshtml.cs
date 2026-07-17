@@ -23,7 +23,7 @@ public class NewModel : PageModel
 
         if (!subjectId.HasValue || subjectId.Value <= 0)
         {
-            TempData["Error"] = "Please select a subject before starting a new conversation.";
+            TempData["Error"] = "Vui lòng chọn môn học trước khi bắt đầu cuộc trò chuyện mới.";
             return RedirectToPage("/Chat/Index");
         }
 

@@ -5,41 +5,72 @@
 }
 
 <section class="page-hero mb-4">
-    <div class="hero-badge mb-3"><i data-lucide="edit-3" class="icon-sm"></i> Chỉnh sửa</div>
-    <h1 class="page-title mb-2">Cập nhật môn học</h1>
-    <p class="page-subtitle mb-0">Chỉnh sửa thông tin môn học @Model.Input.Code.</p>
+    <div class="hero-badge mb-3"><i data-lucide="square-pen" class="icon-sm"></i> Cập nhật nội dung</div>
+    <h1 class="page-title mb-2">Chỉnh sửa @Model.Input.Code</h1>
+    <p class="page-subtitle mb-0">Điều chỉnh thông tin hiển thị mà không làm mất tài liệu và dữ liệu học tập hiện có.</p>
 </section>
 
-
-<div class="surface-card">
-    <form method="post">
-        @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="Input.Id" />
-        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-
-        <div class="mb-3">
-            <label asp-for="Input.Code" class="form-label">Mã môn học</label>
-            <input asp-for="Input.Code" class="form-control" />
-            <span asp-validation-for="Input.Code" class="text-danger"></span>
+<div class="editor-layout">
+    <div class="surface-card editor-form-card">
+        <div class="editor-form-heading">
+            <div class="editor-form-icon"><i data-lucide="book-open-check"></i></div>
+            <div>
+                <h2>Thông tin môn học</h2>
+                <p>Kiểm tra kỹ mã môn trước khi lưu thay đổi.</p>
+            </div>
         </div>
 
-        <div class="mb-3">
-            <label asp-for="Input.Name" class="form-label">Tên môn học</label>
-            <input asp-for="Input.Name" class="form-control" />
-            <span asp-validation-for="Input.Name" class="text-danger"></span>
-        </div>
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Input.Id" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4"></div>
 
-        <div class="mb-3">
-            <label asp-for="Input.Description" class="form-label">Mô tả</label>
-            <textarea asp-for="Input.Description" class="form-control" rows="4"></textarea>
-            <span asp-validation-for="Input.Description" class="text-danger"></span>
-        </div>
+            <div class="form-field">
+                <label asp-for="Input.Code" class="form-label">Mã môn học <span class="text-danger">*</span></label>
+                <input asp-for="Input.Code" class="form-control" autocomplete="off" />
+                <span asp-validation-for="Input.Code" class="text-danger"></span>
+            </div>
 
-        <div class="d-flex flex-wrap gap-2">
-            <button type="submit" class="btn btn-primary"><i data-lucide="save" class="icon-sm me-2"></i> Lưu thay đổi</button>
-            <a asp-page="/Subjects/Manage" class="btn btn-outline-secondary"><i data-lucide="arrow-left" class="icon-sm me-2"></i> Quay lại</a>
+            <div class="form-field">
+                <label asp-for="Input.Name" class="form-label">Tên môn học <span class="text-danger">*</span></label>
+                <input asp-for="Input.Name" class="form-control" />
+                <span asp-validation-for="Input.Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-field">
+                <label asp-for="Input.Description" class="form-label">Mô tả</label>
+                <textarea asp-for="Input.Description" class="form-control" rows="5"></textarea>
+                <span asp-validation-for="Input.Description" class="text-danger"></span>
+            </div>
+
+            <div class="editor-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="save" class="icon-sm"></i>
+                    Lưu thay đổi
+                </button>
+                <a asp-page="/Subjects/Manage" class="btn btn-outline-secondary">
+                    <i data-lucide="arrow-left" class="icon-sm"></i>
+                    Quay lại danh sách
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <aside class="editor-aside">
+        <div class="editor-aside-card">
+            <div class="editor-aside-icon"><i data-lucide="shield-check"></i></div>
+            <h3>Dữ liệu được giữ nguyên</h3>
+            <p>Việc cập nhật tên hoặc mô tả không xóa tài liệu, chương, lịch sử hội thoại hay nội dung ôn tập của môn học.</p>
         </div>
-    </form>
+        <div class="editor-aside-card">
+            <div class="editor-aside-icon"><i data-lucide="search-check"></i></div>
+            <h3>Khuyến nghị</h3>
+            <ul class="editor-checklist">
+                <li><i data-lucide="check-circle-2"></i><span>Tránh đổi mã môn khi học kỳ đang diễn ra.</span></li>
+                <li><i data-lucide="check-circle-2"></i><span>Dùng mô tả rõ ràng, dễ hiểu với sinh viên.</span></li>
+            </ul>
+        </div>
+    </aside>
 </div>
 
 @section Scripts {

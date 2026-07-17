@@ -3,14 +3,13 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Assignmet1_Presentation.Filters;
 
-public class EnforcePasswordChangeAttribute : ActionFilterAttribute
+public sealed class EnforcePasswordChangeAttribute : Attribute, IPageFilter
 {
-    public override void OnActionExecuting(ActionExecutingContext context)
+    public void OnPageHandlerExecuting(PageHandlerExecutingContext context)
     {
         var httpContext = context.HttpContext;
         if (httpContext.Session.GetInt32("UserId") is null)
         {
-            base.OnActionExecuting(context);
             return;
         }
 
@@ -21,7 +20,6 @@ public class EnforcePasswordChangeAttribute : ActionFilterAttribute
 
         if (!forcePasswordChange)
         {
-            base.OnActionExecuting(context);
             return;
         }
 
@@ -34,9 +32,14 @@ public class EnforcePasswordChangeAttribute : ActionFilterAttribute
         if (!isAllowedRoute)
         {
             context.Result = new RedirectToPageResult("/Account/ChangePassword");
-            return;
         }
+    }
 
-        base.OnActionExecuting(context);
+    public void OnPageHandlerSelected(PageHandlerSelectedContext context)
+    {
+    }
+
+    public void OnPageHandlerExecuted(PageHandlerExecutedContext context)
+    {
     }
 }

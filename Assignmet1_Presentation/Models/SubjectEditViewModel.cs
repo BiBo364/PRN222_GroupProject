@@ -6,14 +6,14 @@ public class SubjectEditViewModel
 {
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "Please provide a subject code.")]
-    [Display(Name = "Subject code")]
+    [Required(ErrorMessage = "Vui lòng nhập mã môn học.")]
+    [Display(Name = "Mã môn học")]
     public string? Code { get; set; }
 
-    [Required(ErrorMessage = "Please provide a subject name.")]
-    [Display(Name = "Subject name")]
+    [Required(ErrorMessage = "Vui lòng nhập tên môn học.")]
+    [Display(Name = "Tên môn học")]
     public string? Name { get; set; }
 
-    [Display(Name = "Description")]
+    [Display(Name = "Mô tả")]
     public string? Description { get; set; }
 }

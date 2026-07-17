@@ -2,14 +2,14 @@
 @model Assignmet1_Presentation.Pages.Admin.ImportUsersModel
 @using Assignment1_Service.Models
 @{
-    ViewData["Title"] = "Import người dùng";
+    ViewData["Title"] = "Nhập người dùng";
 }
 
 <div class="d-flex flex-column gap-4">
     <div class="page-hero d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3">
         <div>
             <div class="hero-badge mb-2"><i data-lucide="upload-cloud" class="icon-sm"></i> Nhập dữ liệu hàng loạt</div>
-            <h1 class="page-title mb-1">Import người dùng</h1>
+            <h1 class="page-title mb-1">Nhập người dùng</h1>
             <p class="page-subtitle mb-0">
                 Tải lên file <strong>.xlsx, .csv, .json, .txt</strong> chỉ cần họ tên. Hệ thống sẽ tự tạo username/email,
                 mật khẩu mặc định <code>1234567</code> và sẽ gửi email thông báo nếu SMTP đã được cấu hình.
@@ -62,7 +62,7 @@
                         <span asp-validation-for="Input.File" class="text-danger small"></span>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn"><i data-lucide="upload" class="icon-sm me-2"></i> Bắt đầu Import</button>
+                    <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn"><i data-lucide="upload" class="icon-sm me-2"></i> Bắt đầu nhập dữ liệu</button>
                 </form>
             </div>
         </div>
@@ -73,7 +73,7 @@
                 <div class="d-flex flex-column gap-3">
                     <div class="mini-panel">
                         <div class="fw-semibold small"><i data-lucide="file-spreadsheet" class="icon-sm me-1"></i> Định dạng file</div>
-                        <div class="text-muted small">Cột 1: FullName/Họ tên. Các cột Email và Username không còn bắt buộc vì hệ thống tự sinh tài khoản.</div>
+                        <div class="text-muted small">Cột 1: Họ tên. Email và tên đăng nhập không bắt buộc vì hệ thống sẽ tự động tạo.</div>
                     </div>
                     <div class="mini-panel">
                         <div class="fw-semibold small"><i data-lucide="lock" class="icon-sm me-1"></i> Mật khẩu mặc định</div>
@@ -95,7 +95,7 @@
     @if (Model.Input.Result is { } result)
     {
         <div class="surface-card mt-4">
-            <h2 class="h5 fw-semibold mb-4"><i data-lucide="bar-chart-2" class="icon-sm me-2"></i> Kết quả import</h2>
+            <h2 class="h5 fw-semibold mb-4"><i data-lucide="bar-chart-2" class="icon-sm me-2"></i> Kết quả nhập dữ liệu</h2>
 
             <div class="row g-3 mb-4">
                 <div class="col-6 col-md-2">
@@ -143,7 +143,7 @@
                             <th>Dòng</th>
                             <th>Họ tên</th>
                             <th>Email</th>
-                            <th>Username</th>
+                            <th>Tên đăng nhập</th>
                             <th>Trạng thái</th>
                             <th>Email thông báo</th>
                             <th>Ghi chú</th>

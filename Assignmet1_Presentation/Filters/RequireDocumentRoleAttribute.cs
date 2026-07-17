@@ -6,60 +6,74 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace Assignmet1_Presentation.Filters;
 
 /// <summary>
-/// Restricts document upload to Lecturers who have been assigned to a subject.
-/// Admin and Student roles are denied.
+/// Chỉ cho phép giảng viên đã được phân công môn học tải tài liệu lên.
 /// </summary>
-public class RequireDocumentUploadAttribute : ActionFilterAttribute
+public sealed class RequireDocumentUploadAttribute : Attribute, IPageFilter
 {
-    public override void OnActionExecuting(ActionExecutingContext context)
+    public void OnPageHandlerExecuting(PageHandlerExecutingContext context)
     {
         var session = context.HttpContext.Session;
-        var roleId  = session.GetInt32("RoleId");
+        var roleId = session.GetInt32("RoleId");
 
-        // Must be a Lecturer (roleId == 2)
         if (roleId is null || !DocumentPermissions.CanUpload(roleId.Value))
         {
-            if (context.Controller is PageModel pageModel)
-                pageModel.TempData["Error"] = "Chi giang vien moi co quyen tai len tai lieu.";
-
+            SetError(context, "Chỉ giảng viên mới có quyền tải tài liệu lên.");
             context.Result = new RedirectToPageResult("/Documents/Index");
             return;
         }
 
-        // Lecturer must be assigned to a subject
-        var userSubjectId = session.GetInt32("SubjectId");
-        if (!userSubjectId.HasValue)
+        if (!session.GetInt32("SubjectId").HasValue)
         {
-            if (context.Controller is PageModel pageModel2)
-                pageModel2.TempData["Error"] = "Ban chua duoc phan cong mon hoc. Vui long lien he quan tri vien.";
-
+            SetError(
+                context,
+                "Bạn chưa được phân công môn học. Vui lòng liên hệ quản trị viên.");
             context.Result = new RedirectToPageResult("/Documents/Index");
-            return;
         }
+    }
 
-        base.OnActionExecuting(context);
+    public void OnPageHandlerSelected(PageHandlerSelectedContext context)
+    {
+    }
+
+    public void OnPageHandlerExecuted(PageHandlerExecutedContext context)
+    {
+    }
+
+    private static void SetError(PageHandlerExecutingContext context, string message)
+    {
+        if (context.HandlerInstance is PageModel pageModel)
+        {
+            pageModel.TempData["Error"] = message;
+        }
     }
 }
 
 /// <summary>
-/// Restricts document deletion to lecturers.
-/// Subject-level ownership checks are performed at the page handler level.
+/// Chỉ cho phép giảng viên xóa tài liệu.
+/// Việc kiểm tra quyền sở hữu theo môn học được thực hiện trong page handler.
 /// </summary>
-public class RequireDocumentDeleteAttribute : ActionFilterAttribute
+public sealed class RequireDocumentDeleteAttribute : Attribute, IPageFilter
 {
-    public override void OnActionExecuting(ActionExecutingContext context)
+    public void OnPageHandlerExecuting(PageHandlerExecutingContext context)
     {
         var roleId = context.HttpContext.Session.GetInt32("RoleId");
 
         if (roleId is null || !DocumentPermissions.CanDelete(roleId.Value))
         {
-            if (context.Controller is PageModel pageModel)
-                pageModel.TempData["Error"] = "Ban khong co quyen xoa tai lieu.";
+            if (context.HandlerInstance is PageModel pageModel)
+            {
+                pageModel.TempData["Error"] = "Bạn không có quyền xóa tài liệu.";
+            }
 
             context.Result = new RedirectToPageResult("/Documents/Index");
-            return;
         }
+    }
 
-        base.OnActionExecuting(context);
+    public void OnPageHandlerSelected(PageHandlerSelectedContext context)
+    {
+    }
+
+    public void OnPageHandlerExecuted(PageHandlerExecutedContext context)
+    {
     }
 }

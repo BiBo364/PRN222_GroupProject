@@ -2,7 +2,7 @@
 @model Assignmet1_Presentation.Pages.Admin.IndexModel
 @using Assignmet1_Presentation.Models
 @{
-    ViewData["Title"] = "Quan ly nguoi dung";
+    ViewData["Title"] = "Quản lý người dùng";
 
     var totalUsers   = Model.ViewModel.Users.Count;
     var activeUsers  = Model.ViewModel.Users.Count(u => u.IsActive);
@@ -17,14 +17,14 @@
     <div class="page-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
         <div>
             <div class="hero-badge mb-2">
-                <i data-lucide="shield-check" class="icon-sm"></i> Quan tri he thong
+                <i data-lucide="shield-check" class="icon-sm"></i> Quản trị hệ thống
             </div>
-            <h1 class="page-title mb-1">Quan ly nguoi dung</h1>
-            <p class="page-subtitle">Xem, phan cong mon hoc va quan ly trang thai tai khoan toan he thong.</p>
+            <h1 class="page-title mb-1">Quản lý người dùng</h1>
+            <p class="page-subtitle">Xem, phân công môn học và quản lý trạng thái tài khoản toàn hệ thống.</p>
         </div>
         <div class="d-flex gap-2 flex-shrink-0">
             <a asp-page="/Admin/ImportUsers" class="btn btn-primary">
-                <i data-lucide="file-up" class="icon-sm"></i> Import nguoi dung
+                <i data-lucide="file-up" class="icon-sm"></i> Nhập người dùng
             </a>
         </div>
     </div>
@@ -36,25 +36,25 @@
         <div class="col-6 col-md-3">
             <div class="stat-card text-center">
                 <div class="stat-value" style="background:var(--grad-cool);-webkit-background-clip:text;-webkit-text-fill-color:transparent">@totalUsers</div>
-                <div class="stat-label">Tong nguoi dung</div>
+                <div class="stat-label">Tổng người dùng</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card text-center">
                 <div class="stat-value" style="background:var(--grad-accent);-webkit-background-clip:text;-webkit-text-fill-color:transparent">@activeUsers</div>
-                <div class="stat-label">Dang hoat dong</div>
+                <div class="stat-label">Đang hoạt động</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card text-center">
                 <div class="stat-value" style="background:var(--grad-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent">@lecturers</div>
-                <div class="stat-label">Giang vien</div>
+                <div class="stat-label">Giảng viên</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card text-center">
                 <div class="stat-value" style="background:var(--grad-warm);-webkit-background-clip:text;-webkit-text-fill-color:transparent">@unassigned</div>
-                <div class="stat-label">GV chua co mon</div>
+                <div class="stat-label">GV chưa có môn</div>
             </div>
         </div>
     </div>
@@ -63,33 +63,33 @@
     <div class="surface-card">
         <div class="d-flex align-items-center gap-2 mb-3">
             <i data-lucide="filter" class="icon-sm" style="color:var(--primary)"></i>
-            <span class="fw-semibold" style="font-size:.9rem;color:var(--text-sec)">Bo loc va tim kiem</span>
+            <span class="fw-semibold" style="font-size:.9rem;color:var(--text-sec)">Bộ lọc và tìm kiếm</span>
         </div>
         <form method="get" asp-page="/Admin/Index" class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label class="form-label">
-                    <i data-lucide="search" class="icon-sm"></i> Tim kiem
+                    <i data-lucide="search" class="icon-sm"></i> Tìm kiếm
                 </label>
                 <input type="text" name="search" value="@Model.ViewModel.SearchTerm"
-                       class="form-control" placeholder="Ten, email, username..." />
+                       class="form-control" placeholder="Tên, email, tên đăng nhập..." />
             </div>
             <div class="col-md-3">
                 <label class="form-label">
-                    <i data-lucide="shield" class="icon-sm"></i> Vai tro
+                    <i data-lucide="shield" class="icon-sm"></i> Vai trò
                 </label>
                 <select name="roleId" class="form-select">
-                    <option value="">Tat ca vai tro</option>
-                    <option value="1" selected="@(Model.ViewModel.FilterRoleId == 1)">Admin</option>
-                    <option value="2" selected="@(Model.ViewModel.FilterRoleId == 2)">Giang vien</option>
-                    <option value="3" selected="@(Model.ViewModel.FilterRoleId == 3)">Sinh vien</option>
+                    <option value="">Tất cả vai trò</option>
+                    <option value="1" selected="@(Model.ViewModel.FilterRoleId == 1)">Quản trị viên</option>
+                    <option value="2" selected="@(Model.ViewModel.FilterRoleId == 2 ? "selected" : null)">Giảng viên</option>
+                    <option value="3" selected="@(Model.ViewModel.FilterRoleId == 3 ? "selected" : null)">Sinh viên</option>
                 </select>
             </div>
             <div class="col-md-3">
                 <label class="form-label">
-                    <i data-lucide="book-open" class="icon-sm"></i> Mon hoc
+                    <i data-lucide="book-open" class="icon-sm"></i> Môn học
                 </label>
                 <select name="subjectId" class="form-select">
-                    <option value="">Tat ca mon hoc</option>
+                    <option value="">Tất cả môn học</option>
                     @foreach (var s in Model.ViewModel.Subjects)
                     {
                         <option value="@s.Id" selected="@(Model.ViewModel.FilterSubjectId == s.Id)">@s.Code — @s.Name</option>
@@ -98,7 +98,7 @@
             </div>
             <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-primary flex-fill">
-                    <i data-lucide="search" class="icon-sm"></i> Loc
+                    <i data-lucide="search" class="icon-sm"></i> Lọc
                 </button>
                 <a asp-page="/Admin/Index" class="btn btn-outline-secondary flex-fill">
                     <i data-lucide="rotate-ccw" class="icon-sm"></i>
@@ -112,7 +112,7 @@
         <div class="card-header-row">
             <h2 class="card-header-title">
                 <i data-lucide="users" class="icon-sm me-1" style="color:var(--primary)"></i>
-                Danh sach nguoi dung — @Model.ViewModel.Users.Count ket qua
+                Danh sách người dùng — @Model.ViewModel.Users.Count kết quả
             </h2>
         </div>
 
@@ -122,8 +122,8 @@
                 <div class="empty-state-icon">
                     <i data-lucide="users" style="width:56px;height:56px;color:var(--text-faint)"></i>
                 </div>
-                <div class="empty-state-title">Khong tim thay nguoi dung</div>
-                <div class="empty-state-desc">Thu thay doi bo loc de xem tat ca nguoi dung trong he thong.</div>
+                <div class="empty-state-title">Không tìm thấy người dùng</div>
+                <div class="empty-state-desc">Thử thay đổi bộ lọc để xem tất cả người dùng trong hệ thống.</div>
             </div>
         }
         else
@@ -132,21 +132,21 @@
                 <table class="table table-hover mb-0 align-middle" id="usersTable">
                     <thead>
                         <tr>
-                            <th class="ps-4">Nguoi dung</th>
-                            <th>Vai tro</th>
-                            <th>Mon hoc duoc phan cong</th>
-                            <th>Trang thai</th>
-                            <th>Dang nhap lan cuoi</th>
-                            <th class="pe-4 text-end">Hanh dong</th>
+                            <th class="ps-4">Người dùng</th>
+                            <th>Vai trò</th>
+                            <th>Môn học được phân công</th>
+                            <th>Trạng thái</th>
+                            <th>Đăng nhập lần cuối</th>
+                            <th class="pe-4 text-end">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var user in Model.ViewModel.Users)
                         {
-                            string roleColor = "#64748b", roleIcon = "user", roleLbl = "Unknown";
-                                if (user.RoleId == 1) { roleColor = "#f59e0b"; roleIcon = "shield-check"; roleLbl = "Admin"; }
-                                else if (user.RoleId == 2) { roleColor = "#6366f1"; roleIcon = "graduation-cap"; roleLbl = "Giang vien"; }
-                                else if (user.RoleId == 3) { roleColor = "#10b981"; roleIcon = "user"; roleLbl = "Sinh vien"; }
+                            string roleColor = "#64748b", roleIcon = "user", roleLbl = "Không xác định";
+                                if (user.RoleId == 1) { roleColor = "#f59e0b"; roleIcon = "shield-check"; roleLbl = "Quản trị viên"; }
+                                else if (user.RoleId == 2) { roleColor = "#6366f1"; roleIcon = "graduation-cap"; roleLbl = "Giảng viên"; }
+                                else if (user.RoleId == 3) { roleColor = "#10b981"; roleIcon = "user"; roleLbl = "Sinh viên"; }
                                 var initials = (user.FullName?.Length > 0
                                     ? user.FullName[0]
                                     : user.Username[0]).ToString().ToUpper();
@@ -187,11 +187,11 @@
                                         }
                                         else if (user.RoleId == 2)
                                         {
-                                            <span style="color:var(--text-faint);font-size:.85rem">Chua phan cong</span>
+                                            <span style="color:var(--text-faint);font-size:.85rem">Chưa phân công</span>
                                         }
                                         else
                                         {
-                                            <span style="color:var(--text-faint);font-size:.85rem">Khong ap dung</span>
+                                            <span style="color:var(--text-faint);font-size:.85rem">Không áp dụng</span>
                                         }
 
                                         @if (user.RoleId == 2)
@@ -199,14 +199,14 @@
                                             <!-- Assign dropdown -->
                                             <div class="dropdown">
                                                 <button class="btn btn-sm btn-outline-secondary py-0 px-2"
-                                                        data-bs-toggle="dropdown" title="Phan cong mon hoc"
+                                                        data-bs-toggle="dropdown" title="Phân công môn học"
                                                         style="height:24px;min-width:28px">
                                                     <i data-lucide="chevrons-up-down" class="icon-xs"></i>
                                                 </button>
                                                 <ul class="dropdown-menu" style="min-width:240px">
                                                     <li>
                                                         <span class="dropdown-header" style="font-size:.72rem;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em">
-                                                            Phan cong mon hoc
+                                                            Phân công môn học
                                                         </span>
                                                     </li>
                                                     <li>
@@ -214,7 +214,7 @@
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="userId" value="@user.Id" />
                                                             <select name="subjectId" class="form-select form-select-sm mb-2">
-                                                                <option value="">— Bo mon hoc —</option>
+                                                                <option value="">— Bỏ môn học —</option>
                                                                 @foreach (var s in Model.ViewModel.Subjects)
                                                                 {
                                                                     var isCurrentUserSubject = user.SubjectId == s.Id;
@@ -223,12 +223,12 @@
                                                                     <option value="@s.Id"
                                                                             selected="@isCurrentUserSubject"
                                                                             disabled="@isTakenByOther">
-                                                                        @s.Code — @s.Name@(isTakenByOther ? $" (da gan: {assignedTeacher})" : "")
+                                                                        @s.Code — @s.Name@(isTakenByOther ? $" (đã gán: {assignedTeacher})" : "")
                                                                     </option>
                                                                 }
                                                             </select>
                                                             <button type="submit" class="btn btn-primary btn-sm w-100">
-                                                                <i data-lucide="save" class="icon-sm"></i> Luu phan cong
+                                                                <i data-lucide="save" class="icon-sm"></i> Lưu phân công
                                                             </button>
                                                         </form>
                                                     </li>
@@ -243,13 +243,13 @@
                                     @if (user.IsActive)
                                     {
                                         <span class="status-chip success">
-                                            <i data-lucide="check-circle" class="icon-xs"></i> Hoat dong
+                                            <i data-lucide="check-circle" class="icon-xs"></i> Hoạt động
                                         </span>
                                     }
                                     else
                                     {
                                         <span class="status-chip danger">
-                                            <i data-lucide="ban" class="icon-xs"></i> Vo hieu
+                                            <i data-lucide="ban" class="icon-xs"></i> Vô hiệu
                                         </span>
                                     }
                                 </td>
@@ -259,7 +259,7 @@
                                     <span style="font-size:.82rem;color:var(--text-muted)">
                                         @(user.LastLoginAt.HasValue
                                             ? user.LastLoginAt.Value.ToString("dd/MM/yyyy HH:mm")
-                                            : "Chua dang nhap")
+                                            : "Chưa đăng nhập")
                                     </span>
                                 </td>
 
@@ -270,11 +270,11 @@
                                         <input type="hidden" name="userId" value="@user.Id" />
                                         <button type="button"
                                                 class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success") btn-toggle-status"
-                                                data-action="@(user.IsActive ? "vo hieu hoa" : "kich hoat")"
+                                                data-action="@(user.IsActive ? "vô hiệu hóa" : "kích hoạt")"
                                                 data-name="@(user.FullName ?? user.Username)"
-                                                title="@(user.IsActive ? "Vo hieu hoa tai khoan" : "Kich hoat tai khoan")">
+                                                title="@(user.IsActive ? "Vô hiệu hóa tài khoản" : "Kích hoạt tài khoản")">
                                             <i data-lucide="@(user.IsActive ? "lock" : "unlock")" class="icon-sm"></i>
-                                            @(user.IsActive ? "Vo hieu" : "Kich hoat")
+                                            @(user.IsActive ? "Vô hiệu" : "Kích hoạt")
                                         </button>
                                     </form>
                                 </td>
@@ -290,13 +290,13 @@
                 <div class="px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2"
                      style="border-top:1px solid var(--surface-border)">
                     <div style="font-size:.82rem;color:var(--text-muted)">
-                        Hien thi
+                        Hiển thị
                         @((Model.ViewModel.CurrentPage - 1) * Model.ViewModel.PageSize + 1)
                         &ndash;
                         @((Model.ViewModel.CurrentPage - 1) * Model.ViewModel.PageSize + Model.ViewModel.Users.Count)
-                        trong @Model.ViewModel.TotalItems nguoi dung
+                        trong @Model.ViewModel.TotalItems người dùng
                     </div>
-                    <nav aria-label="Phan trang">
+                    <nav aria-label="Phân trang">
                         <ul class="pagination pagination-sm mb-0">
                             <li class="page-item @(Model.ViewModel.CurrentPage == 1 ? "disabled" : "")">
                                 <a class="page-link"
@@ -344,17 +344,17 @@
             <div class="modal-header">
                 <h5 class="modal-title" id="toggleStatusModalLabel">
                     <i data-lucide="alert-circle" class="icon-md me-2" style="color:var(--amber)"></i>
-                    Xac nhan thay doi
+                    Xác nhận thay đổi
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Dong"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body" style="font-size:.9rem;color:var(--text-sec)">
-                Ban co chac muon <strong id="toggleActionNameBody"></strong> tai khoan
+                Bạn có chắc muốn <strong id="toggleActionNameBody"></strong> tài khoản
                 <strong id="toggleUserName" style="color:var(--primary)"></strong>?
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Huy bo</button>
-                <button type="button" class="btn btn-primary" id="confirmToggleBtn">Xac nhan</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-primary" id="confirmToggleBtn">Xác nhận</button>
             </div>
         </div>
     </div>

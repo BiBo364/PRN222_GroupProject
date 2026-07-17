@@ -11,7 +11,7 @@ public static class RagAnswerBuilder
             return new ChatReplyDto
             {
                 FoundInDocuments = false,
-                Answer = "I could not find relevant information in the uploaded course materials for this question. Please ask about content from indexed documents only."
+                Answer = "Tôi chưa tìm thấy thông tin phù hợp trong tài liệu môn học đã tải lên. Vui lòng đặt câu hỏi dựa trên nội dung của các tài liệu đã được lập chỉ mục."
             };
         }
 

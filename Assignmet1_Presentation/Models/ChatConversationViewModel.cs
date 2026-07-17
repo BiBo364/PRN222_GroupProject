@@ -16,7 +16,7 @@ public class ChatConversationViewModel
     [ValidateNever]
     public QuotaStatusViewModel? QuotaStatus { get; set; }
 
-    [Required(ErrorMessage = "Please enter a question.")]
-    [Display(Name = "Your question")]
+    [Required(ErrorMessage = "Vui lòng nhập câu hỏi.")]
+    [Display(Name = "Câu hỏi của bạn")]
     public string Question { get; set; } = string.Empty;
 }

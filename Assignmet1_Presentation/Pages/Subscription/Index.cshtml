@@ -2,14 +2,14 @@
 @model Assignmet1_Presentation.Pages.Subscription.IndexModel
 @using Assignmet1_Presentation.Constants
 @{
-    ViewData["Title"] = "Goi Plus";
+    ViewData["Title"] = "Gói Plus";
     var nextResetAt = Model.ViewModel.NextResetAt;
     string StatusLabel(string status) => status switch
     {
-        PaymentStatuses.MomoPending => "Dang cho MoMo",
-        PaymentStatuses.Approved => "Thanh cong",
-        PaymentStatuses.Rejected => "That bai",
-        _ => "Dang xu ly"
+        PaymentStatuses.MomoPending => "Đang chờ MoMo",
+        PaymentStatuses.Approved => "Thành công",
+        PaymentStatuses.Rejected => "Thất bại",
+        _ => "Đang xử lý"
     };
     string StatusBadge(string status) => status switch
     {
@@ -24,24 +24,24 @@
 {
     <section class="page-hero mb-4">
         <div class="hero-badge mb-3">Quản trị viên</div>
-        <h1 class="page-title">Quan ly goi hoc va doanh thu</h1>
+        <h1 class="page-title">Quản lý gói học và doanh thu</h1>
         <p class="page-subtitle mb-0">
-            Xem tat ca goi dang ky hien co, tong doanh thu, goi duoc mua nhieu nhat va bao cao doanh thu theo thoi gian.
+            Theo dõi các gói đăng ký hiện có, tổng doanh thu, gói được mua nhiều nhất và báo cáo theo thời gian.
         </p>
     </section>
 
     <div class="surface-card mb-5">
         <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
             <div>
-                <div class="stat-label mb-2">Danh sach goi</div>
-                <h3 class="h4 mb-0">Tat ca goi hoc hien tai</h3>
+                <div class="stat-label mb-2">Danh sách gói</div>
+                <h3 class="h4 mb-0">Tất cả gói học hiện tại</h3>
             </div>
-            <span class="status-chip primary">@Model.ViewModel.Plans.Count goi</span>
+            <span class="status-chip primary">@Model.ViewModel.Plans.Count gói</span>
         </div>
 
         @if (!Model.ViewModel.AdminPlanReports.Any())
         {
-            <div class="alert alert-warning mb-0">Chua co goi hoc nao duoc cau hinh.</div>
+            <div class="alert alert-warning mb-0">Chưa có gói học nào được cấu hình.</div>
         }
         else
         {
@@ -52,19 +52,19 @@
                         <div class="d-flex flex-column h-100">
                             <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                                 <div>
-                                    <div class="stat-label mb-2 admin-plan-kicker">Goi Plus</div>
+                                    <div class="stat-label mb-2 admin-plan-kicker">Gói Plus</div>
                                     <h4 class="card-title mb-1 admin-plan-title">@plan.Name</h4>
-                                    <p class="card-text admin-plan-description mb-0">@(string.IsNullOrWhiteSpace(plan.Description) ? "Khong co mo ta." : plan.Description)</p>
+                                    <p class="card-text admin-plan-description mb-0">@(string.IsNullOrWhiteSpace(plan.Description) ? "Không có mô tả." : plan.Description)</p>
                                 </div>
-                                <span class="plan-duration-pill">@plan.DurationDays ngay</span>
+                                <span class="plan-duration-pill">@plan.DurationDays ngày</span>
                             </div>
 
-                            <div class="plan-price mb-3 admin-plan-price">@plan.Price.ToString("N0") d</div>
+                            <div class="plan-price mb-3 admin-plan-price">@plan.Price.ToString("N0") đ</div>
 
                             <ul class="plan-benefits admin-plan-benefits">
-                                <li><strong>@plan.PurchaseCount luot mua thanh cong</strong></li>
-                                <li><strong>@plan.Revenue.ToString("N0") d doanh thu</strong></li>
-                                <li><strong>Chiem @plan.PurchaseSharePercent%</strong> tong don thanh cong.</li>
+                                <li><strong>@plan.PurchaseCount lượt mua thành công</strong></li>
+                                <li><strong>@plan.Revenue.ToString("N0") đ doanh thu</strong></li>
+                                <li><strong>Chiếm @plan.PurchaseSharePercent%</strong> tổng đơn thành công.</li>
                             </ul>
                         </div>
                     </article>
@@ -76,51 +76,51 @@
     <div class="surface-card mb-4 admin-filter-card">
         <form method="get" asp-page="/Subscription/Index" class="row g-3 align-items-end">
             <div class="col-12 col-md-4">
-                <label class="form-label" for="fromDate">Tu ngay</label>
+                <label class="form-label" for="fromDate">Từ ngày</label>
                 <input class="form-control" id="fromDate" name="fromDate" type="date" value="@(Model.ViewModel.FilterFromDate?.ToString("yyyy-MM-dd"))" />
             </div>
             <div class="col-12 col-md-4">
-                <label class="form-label" for="toDate">Den ngay</label>
+                <label class="form-label" for="toDate">Đến ngày</label>
                 <input class="form-control" id="toDate" name="toDate" type="date" value="@(Model.ViewModel.FilterToDate?.ToString("yyyy-MM-dd"))" />
             </div>
             <div class="col-12 col-md-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary flex-fill">Loc bao cao</button>
-                <a class="btn btn-outline-light flex-fill" asp-page="/Subscription/Index">Xem toan bo</a>
+                <button type="submit" class="btn btn-primary flex-fill">Lọc báo cáo</button>
+                <a class="btn btn-outline-light flex-fill" asp-page="/Subscription/Index">Xem toàn bộ</a>
             </div>
         </form>
         <p class="small text-muted mb-0 mt-3">
             @(Model.ViewModel.FilterFromDate.HasValue || Model.ViewModel.FilterToDate.HasValue
-                ? $"Dang xem doanh thu trong khoang {(Model.ViewModel.FilterFromDate?.ToString("dd/MM/yyyy") ?? "tat ca")} - {(Model.ViewModel.FilterToDate?.ToString("dd/MM/yyyy") ?? "hien tai")}."
-                : "Chua chon thoi gian, he thong dang hien thi toan bo doanh thu tu truoc den hien tai.")
+                ? $"Đang xem doanh thu trong khoảng {(Model.ViewModel.FilterFromDate?.ToString("dd/MM/yyyy") ?? "tất cả")} - {(Model.ViewModel.FilterToDate?.ToString("dd/MM/yyyy") ?? "hiện tại")}."
+                : "Chưa chọn thời gian, hệ thống đang hiển thị toàn bộ doanh thu từ trước đến hiện tại.")
         </p>
     </div>
 
     <div class="subscription-summary-grid admin-summary-grid mb-4">
         <article class="surface-card subscription-summary-card">
-            <div class="stat-label mb-2">Tong goi dang co</div>
+            <div class="stat-label mb-2">Tổng gói đang có</div>
             <div class="subscription-summary-value">@Model.ViewModel.Plans.Count</div>
-            <p class="mb-0 text-muted">Tong so goi hien website dang cau hinh cho sinh vien mua.</p>
+            <p class="mb-0 text-muted">Tổng số gói hệ thống đang cấu hình cho sinh viên mua.</p>
         </article>
 
         <article class="surface-card subscription-summary-card">
-            <div class="stat-label mb-2">Tong doanh thu</div>
-            <div class="subscription-summary-value">@Model.ViewModel.AdminTotalRevenue.ToString("N0") d</div>
-            <p class="mb-0 text-muted">Chi tinh giao dich thanh cong trong khoang dang loc.</p>
+            <div class="stat-label mb-2">Tổng doanh thu</div>
+            <div class="subscription-summary-value">@Model.ViewModel.AdminTotalRevenue.ToString("N0") đ</div>
+            <p class="mb-0 text-muted">Chỉ tính giao dịch thành công trong khoảng đang lọc.</p>
         </article>
 
         <article class="surface-card subscription-summary-card">
-            <div class="stat-label mb-2">Don thanh cong</div>
+            <div class="stat-label mb-2">Đơn thành công</div>
             <div class="subscription-summary-value">@Model.ViewModel.AdminSuccessfulOrders</div>
-            <p class="mb-0 text-muted">Tong so don MoMo da thanh toan va kich hoat goi thanh cong.</p>
+            <p class="mb-0 text-muted">Tổng số đơn MoMo đã thanh toán và kích hoạt gói thành công.</p>
         </article>
 
         <article class="surface-card subscription-summary-card">
-            <div class="stat-label mb-2">Goi mua nhieu nhat</div>
+            <div class="stat-label mb-2">Gói mua nhiều nhất</div>
             <div class="subscription-summary-value">@Model.ViewModel.AdminTopPlanName</div>
             <p class="mb-0 text-muted">
                 @(Model.ViewModel.AdminTopPlanCount > 0
-                    ? $"{Model.ViewModel.AdminTopPlanCount} luot mua trong khoang dang xem."
-                    : "Chua co giao dich thanh cong nao.")
+                    ? $"{Model.ViewModel.AdminTopPlanCount} lượt mua trong khoảng đang xem."
+                    : "Chưa có giao dịch thành công nào.")
             </p>
         </article>
     </div>
@@ -128,15 +128,15 @@
     <div class="surface-card mb-5 admin-chart-panel">
         <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
             <div>
-                <div class="stat-label mb-2">Bieu do mua goi</div>
-                <h3 class="h4 mb-0">Goi nao duoc mua nhieu nhat</h3>
+                <div class="stat-label mb-2">Biểu đồ mua gói</div>
+                <h3 class="h4 mb-0">Gói nào được mua nhiều nhất</h3>
             </div>
-            <span class="status-chip info">Gia tri TB @Model.ViewModel.AdminAverageOrderValue.ToString("N0") d</span>
+            <span class="status-chip info">Giá trị trung bình @Model.ViewModel.AdminAverageOrderValue.ToString("N0") đ</span>
         </div>
 
         @if (!Model.ViewModel.AdminPlanReports.Any() || Model.ViewModel.AdminPlanReports.All(plan => plan.PurchaseCount == 0))
         {
-            <div class="alert alert-info mb-0">Chua co giao dich thanh cong nao de hien thi bieu do.</div>
+            <div class="alert alert-info mb-0">Chưa có giao dịch thành công nào để hiển thị biểu đồ.</div>
         }
         else
         {
@@ -146,13 +146,13 @@
                     <div class="admin-column-item">
                         <div class="admin-column-meta">
                             <strong>@plan.PurchaseCount</strong>
-                            <span>luot mua</span>
+                            <span>lượt mua</span>
                         </div>
                         <div class="admin-column-track" aria-hidden="true">
-                            <div class="admin-column-fill" style="height:@Math.Max(plan.PurchaseSharePercent, 8)m%"></div>
+                            <div class="admin-column-fill" style="height:@Math.Max(plan.PurchaseSharePercent, 8)%"></div>
                         </div>
                         <div class="admin-column-label">@plan.Name</div>
-                        <div class="admin-column-subtitle">@plan.Revenue.ToString("N0") d</div>
+                        <div class="admin-column-subtitle">@plan.Revenue.ToString("N0") đ</div>
                     </div>
                 }
             </div>
@@ -161,19 +161,19 @@
 
     <div class="surface-card p-0 overflow-hidden">
         <div class="p-4 pb-0">
-            <div class="stat-label mb-2">Bang chi tiet</div>
-            <h3 class="h4 mb-0">Doanh thu theo tung goi</h3>
+            <div class="stat-label mb-2">Bảng chi tiết</div>
+            <h3 class="h4 mb-0">Doanh thu theo từng gói</h3>
         </div>
 
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>Goi hoc</th>
-                        <th>Gia</th>
-                        <th>Thoi han</th>
-                        <th>Luot mua</th>
-                        <th>Ty trong</th>
+                        <th>Gói học</th>
+                        <th>Giá</th>
+                        <th>Thời hạn</th>
+                        <th>Lượt mua</th>
+                        <th>Tỷ trọng</th>
                         <th>Doanh thu</th>
                     </tr>
                 </thead>
@@ -185,11 +185,11 @@
                                 <strong>@plan.Name</strong><br />
                                 <small class="text-muted">@(string.IsNullOrWhiteSpace(plan.Description) ? "-" : plan.Description)</small>
                             </td>
-                            <td>@plan.Price.ToString("N0") d</td>
-                            <td>@plan.DurationDays ngay</td>
+                            <td>@plan.Price.ToString("N0") đ</td>
+                            <td>@plan.DurationDays ngày</td>
                             <td>@plan.PurchaseCount</td>
                             <td>@plan.PurchaseSharePercent%</td>
-                            <td>@plan.Revenue.ToString("N0") d</td>
+                            <td>@plan.Revenue.ToString("N0") đ</td>
                         </tr>
                     }
                 </tbody>
@@ -201,15 +201,15 @@ else
 {
     <section class="page-hero mb-4">
         <div class="hero-badge mb-3">Sinh viên</div>
-        <h1 class="page-title">Mua goi Plus cho sinh vien</h1>
+        <h1 class="page-title">Mua gói Plus cho sinh viên</h1>
         <p class="page-subtitle mb-0">
-            Xem goi hien tai, quota con lai theo mon hoc, thoi diem reset va nang cap Plus ngay bang cong thanh toan MoMo.
+            Xem gói hiện tại, hạn mức còn lại theo môn học, thời điểm đặt lại và nâng cấp Plus bằng cổng thanh toán MoMo.
         </p>
     </section>
 
     <div class="subscription-summary-grid mb-4">
         <article class="surface-card subscription-summary-card">
-            <div class="stat-label mb-2">Goi hien tai</div>
+            <div class="stat-label mb-2">Gói hiện tại</div>
             <div class="subscription-summary-value">@Model.ViewModel.CurrentPlanName</div>
             <p class="mb-0 text-muted">
                 @if (!Model.ViewModel.IsPlus)
@@ -220,35 +220,35 @@ else
         </article>
 
         <article class="surface-card subscription-summary-card">
-            <div class="stat-label mb-2">So lan hoi con lai</div>
+            <div class="stat-label mb-2">Số lần hỏi còn lại</div>
             <div class="subscription-summary-value">
                 @(Model.ViewModel.IsPlus ? "Không giới hạn" : Model.ViewModel.TotalQuestionsRemaining.ToString())
             </div>
             <p class="mb-0 text-muted">
                 @if (Model.ViewModel.IsPlus)
                 {
-                    <span>Goi Plus bo gioi han so cau hoi cua student.</span>
+                    <span>Gói Plus bỏ giới hạn số câu hỏi của sinh viên.</span>
                 }
                 else
                 {
-                    <span>Day la tong so lan hoi con lai cua ban trong cua so hien tai.</span>
+                    <span>Đây là tổng số lần hỏi còn lại của bạn trong chu kỳ hiện tại.</span>
                 }
             </p>
         </article>
 
         <article class="surface-card subscription-summary-card">
-            <div class="stat-label mb-2">Reset / het han</div>
+            <div class="stat-label mb-2">Đặt lại hoặc hết hạn</div>
             <div class="subscription-summary-value">
                 @(nextResetAt.HasValue ? nextResetAt.Value.ToLocalTime().ToString("dd/MM HH:mm") : "-")
             </div>
             <p class="mb-0 text-muted">
                 @if (Model.ViewModel.IsPlus && Model.ViewModel.ActiveSubscription is not null)
                 {
-                    <span>Day la moc het han goi Plus hien tai.</span>
+                    <span>Đây là mốc hết hạn của gói Plus hiện tại.</span>
                 }
                 else
                 {
-                    <span>Quota Free duoc reset dong loat theo cua so @Model.ViewModel.FreeQuotaWindowHours gio.</span>
+                    <span>Hạn mức miễn phí được đặt lại sau mỗi @Model.ViewModel.FreeQuotaWindowHours giờ.</span>
                 }
             </p>
         </article>
@@ -257,21 +257,21 @@ else
     <div class="surface-card mb-5">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
             <div>
-                <div class="stat-label mb-2">Free quota</div>
-                <h3 class="h5 mb-0">Quota hien tai theo tung mon hoc</h3>
+                <div class="stat-label mb-2">Hạn mức miễn phí</div>
+                <h3 class="h5 mb-0">Hạn mức hiện tại theo từng môn học</h3>
             </div>
             <span class="small text-muted">
                 @(nextResetAt.HasValue
                     ? (Model.ViewModel.IsPlus
-                        ? $"Goi Plus het han luc {nextResetAt.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
-                        : $"Cua so hien tai ket thuc luc {nextResetAt.Value.ToLocalTime():dd/MM/yyyy HH:mm}")
-                    : $"Moi cua so reset sau {Model.ViewModel.FreeQuotaWindowHours} gio")
+                        ? $"Gói Plus hết hạn lúc {nextResetAt.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
+                        : $"Chu kỳ hiện tại kết thúc lúc {nextResetAt.Value.ToLocalTime():dd/MM/yyyy HH:mm}")
+                    : $"Mỗi chu kỳ được đặt lại sau {Model.ViewModel.FreeQuotaWindowHours} giờ")
             </span>
         </div>
 
         @if (!Model.ViewModel.SubjectQuotas.Any())
         {
-            <div class="alert alert-info mb-0">Chua co mon hoc nao san sang cho chat.</div>
+            <div class="alert alert-info mb-0">Chưa có môn học nào sẵn sàng cho Chat AI.</div>
         }
         else
         {
@@ -279,11 +279,11 @@ else
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>Mon hoc</th>
-                            <th>Plan</th>
-                            <th>Da dung</th>
-                            <th>Con lai</th>
-                            <th>Reset luc</th>
+                            <th>Môn học</th>
+                            <th>Gói</th>
+                            <th>Đã dùng</th>
+                            <th>Còn lại</th>
+                            <th>Đặt lại lúc</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -305,11 +305,11 @@ else
                                     }
                                     else
                                     {
-                                        <span class="status-chip bg-warning text-dark">Het quota</span>
+                                        <span class="status-chip bg-warning text-dark">Hết hạn mức</span>
                                     }
                                 </td>
                                 <td>@(quota.IsPlus ? "-" : $"{quota.QuestionsUsed}/{quota.QuestionLimit}")</td>
-                                <td>@(quota.IsPlus ? "Unlimited" : quota.QuestionsRemaining.ToString())</td>
+                                <td>@(quota.IsPlus ? "Không giới hạn" : quota.QuestionsRemaining.ToString())</td>
                                 <td>@(quota.IsPlus ? "-" : quota.WindowEndAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))</td>
                             </tr>
                         }
@@ -325,7 +325,7 @@ else
             @if (!Model.ViewModel.Plans.Any())
             {
                 <div class="col-12">
-                    <div class="alert alert-warning mb-0">Chua co goi Plus nao duoc cau hinh.</div>
+                    <div class="alert alert-warning mb-0">Chưa có gói Plus nào được cấu hình.</div>
                 </div>
             }
             else
@@ -337,25 +337,25 @@ else
                             <div class="d-flex flex-column h-100">
                                 <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                                     <div>
-                                        <div class="stat-label mb-2">Goi Plus</div>
+                                        <div class="stat-label mb-2">Gói Plus</div>
                                         <h5 class="card-title mb-1">@plan.Name</h5>
                                         <p class="card-text text-muted mb-0">@plan.Description</p>
                                     </div>
-                                    <span class="plan-duration-pill">@plan.DurationDays ngay</span>
+                                    <span class="plan-duration-pill">@plan.DurationDays ngày</span>
                                 </div>
 
-                                <div class="plan-price mb-3">@plan.Price.ToString("N0") d</div>
+                                <div class="plan-price mb-3">@plan.Price.ToString("N0") đ</div>
 
                                 <ul class="plan-benefits">
-                                    <li>Mo khoa hoi dap khong gioi han trong thoi gian goi.</li>
-                                    <li>Kich hoat tu dong ngay sau khi MoMo xac nhan thanh toan.</li>
-                                    <li>Co the gia han tiep noi neu student da dang dung Plus.</li>
+                                    <li>Mở khóa hỏi đáp không giới hạn trong thời gian sử dụng gói.</li>
+                                    <li>Kích hoạt tự động ngay sau khi MoMo xác nhận thanh toán.</li>
+                                    <li>Có thể gia hạn nối tiếp khi sinh viên đang sử dụng Plus.</li>
                                 </ul>
 
                                 <form asp-page="/MoMoPayment/Checkout" asp-route-planId="@plan.Id" method="post" class="mt-auto">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-primary w-100 plan-buy-button">
-                                        Nang cap len Plus bang MoMo
+                                        Nâng cấp Plus bằng MoMo
                                     </button>
                                 </form>
                             </div>
@@ -367,10 +367,10 @@ else
     }
 
     <div>
-        <h4>Lich su giao dich MoMo</h4>
+        <h4>Lịch sử giao dịch MoMo</h4>
         @if (!Model.ViewModel.Tickets.Any())
         {
-            <div class="alert alert-info">Chua co giao dich MoMo nao.</div>
+            <div class="alert alert-info">Chưa có giao dịch MoMo nào.</div>
         }
         else
         {
@@ -380,12 +380,12 @@ else
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Goi</th>
-                                <th>So tien</th>
-                                <th>Ma don</th>
-                                <th>Trang thai</th>
-                                <th>Ghi chu</th>
-                                <th>Ngay tao</th>
+                                <th>Gói học</th>
+                                <th>Số tiền</th>
+                                <th>Mã đơn</th>
+                                <th>Trạng thái</th>
+                                <th>Ghi chú</th>
+                                <th>Ngày tạo</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -394,7 +394,7 @@ else
                                 <tr>
                                     <td>@ticket.Id</td>
                                     <td>@ticket.PlanName</td>
-                                    <td>@ticket.Amount.ToString("N0") d</td>
+                                    <td>@ticket.Amount.ToString("N0") đ</td>
                                     <td>@(string.IsNullOrWhiteSpace(ticket.TransferReference) ? "-" : ticket.TransferReference)</td>
                                     <td><span class="status-chip @StatusBadge(ticket.Status)">@StatusLabel(ticket.Status)</span></td>
                                     <td>@(string.IsNullOrWhiteSpace(ticket.AdminNote) ? "-" : ticket.AdminNote)</td>

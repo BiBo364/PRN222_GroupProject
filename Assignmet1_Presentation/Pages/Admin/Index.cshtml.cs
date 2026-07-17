@@ -73,11 +73,11 @@ public class IndexModel : PageModel
         var (success, error) = await _userServices.AssignSubjectAsync(userId, subjectId);
 
         if (!success)
-            TempData["Error"] = error ?? "Phan cong mon hoc that bai.";
+            TempData["Error"] = error ?? "Phân công môn học thất bại.";
         else
             TempData["Success"] = subjectId.HasValue
-                ? "Phan cong mon hoc thanh cong!"
-                : "Da go bo mon hoc khoi nguoi dung nay.";
+                ? "Phân công môn học thành công."
+                : "Đã gỡ môn học khỏi người dùng này.";
 
         return RedirectToPage("/Admin/Index");
     }
@@ -87,9 +87,9 @@ public class IndexModel : PageModel
         var (success, error) = await _userServices.ToggleUserStatusAsync(userId);
 
         if (!success)
-            TempData["Error"] = error ?? "Thao tac that bai.";
+            TempData["Error"] = error ?? "Thao tác thất bại.";
         else
-            TempData["Success"] = "Cap nhat trang thai tai khoan thanh cong!";
+            TempData["Success"] = "Cập nhật trạng thái tài khoản thành công.";
 
         return RedirectToPage("/Admin/Index");
     }

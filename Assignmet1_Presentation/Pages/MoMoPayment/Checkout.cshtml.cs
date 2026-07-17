@@ -34,7 +34,7 @@ public class CheckoutModel : PageModel
         var result = await _momoPaymentService.CreateCheckoutAsync(userId, planId, returnUrl, ipnUrl);
         if (!result.Success || string.IsNullOrWhiteSpace(result.PayUrl))
         {
-            TempData["Error"] = result.Message ?? "Khong the khoi tao thanh toan MoMo.";
+            TempData["Error"] = result.Message ?? "Không thể khởi tạo thanh toán MoMo.";
             return RedirectToPage("/Subscription/Index");
         }
 

@@ -36,13 +36,13 @@ public class CreateModel : PageModel
     {
         if (subjectId.HasValue && !CanUploadToSubject(subjectId.Value))
         {
-            TempData["Error"] = "Bạn chỉ được phép upload tài liệu cho môn học được gán.";
+            TempData["Error"] = "Bạn chỉ được phép tải tài liệu lên môn học được phân công.";
             return RedirectToPage("/Documents/Index");
         }
 
         ViewModel = await BuildCreateViewModelAsync(subjectId, allowFallback: true);
         if (ViewModel.Subject is null)
-            TempData["Error"] = GetSubjectAccessError() ?? "No subject found in database. Please create a subject first.";
+            TempData["Error"] = GetSubjectAccessError() ?? "Chưa có môn học trong hệ thống. Vui lòng tạo môn học trước.";
 
         return Page();
     }
@@ -56,13 +56,13 @@ public class CreateModel : PageModel
 
         if (ViewModel.Subject is null || !ViewModel.SubjectId.HasValue)
         {
-            ModelState.AddModelError(string.Empty, GetSubjectAccessError() ?? "No subject configured. Please create a subject first.");
+            ModelState.AddModelError(string.Empty, GetSubjectAccessError() ?? "Chưa có môn học được cấu hình. Vui lòng tạo môn học trước.");
             return Page();
         }
 
         if (!CanUploadToSubject(ViewModel.SubjectId.Value))
         {
-            ModelState.AddModelError(string.Empty, "Bạn chỉ được phép upload tài liệu cho môn học được gán.");
+            ModelState.AddModelError(string.Empty, "Bạn chỉ được phép tải tài liệu lên môn học được phân công.");
             return Page();
         }
 
@@ -82,13 +82,13 @@ public class CreateModel : PageModel
 
         if (created is null)
         {
-            TempData["Error"] = "Create document entry failed.";
+            TempData["Error"] = "Không thể tạo thông tin tài liệu.";
             return Page();
         }
 
         await BroadcastDocumentCreatedAsync(created);
         await BroadcastCourseUpdatedAsync(created.SubjectId);
-        TempData["Success"] = $"Created file entry: {created.OriginalName}";
+        TempData["Success"] = $"Đã tạo thông tin tài liệu: {created.OriginalName}.";
         return RedirectToPage("/Documents/Details", new { id = created.Id });
     }
 
@@ -120,7 +120,7 @@ public class CreateModel : PageModel
                 .Select(c => new SelectListItem
                 {
                     Value = c.Id.ToString(),
-                    Text = $"Chapter {c.Number}: {c.Title}"
+                    Text = $"Chương {c.Number}: {c.Title}"
                 })
                 .ToList() ?? []
         };
@@ -182,6 +182,6 @@ public class CreateModel : PageModel
         var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
         return userSubjectId.HasValue
             ? null
-            : "Bạn chưa được gán môn học. Vui lòng liên hệ quản trị viên.";
+            : "Bạn chưa được phân công môn học. Vui lòng liên hệ quản trị viên.";
     }
 }

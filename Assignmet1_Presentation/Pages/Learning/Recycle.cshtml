@@ -1,0 +1,105 @@
+@page
+@model Assignmet1_Presentation.Pages.Learning.RecycleModel
+@{
+    ViewData["Title"] = "Thùng rác Quiz";
+}
+
+@if (Model.Data is not null)
+{
+    <div class="learning-page-heading learning-page-heading-actions">
+        <div>
+            <a class="learning-back-link" asp-page="/Learning/Index">
+                <i data-lucide="arrow-left" class="icon-sm"></i>
+                Trung tâm ôn tập
+            </a>
+            <span class="eyebrow">Vùng khôi phục an toàn</span>
+            <h1>Thùng rác Quiz</h1>
+            <p>
+                Khôi phục Quiz đã xóa nhầm hoặc xóa vĩnh viễn khi bạn chắc chắn không còn cần đến.
+                Quiz được khôi phục sẽ trở về trạng thái bản nháp.
+            </p>
+        </div>
+        <div class="heading-actions">
+            <a class="btn btn-outline-primary" asp-page="/Learning/ManualEditor">
+                <i data-lucide="file-plus-2" class="icon-sm"></i>
+                Tạo Quiz thủ công
+            </a>
+        </div>
+    </div>
+
+    <section class="recycle-summary surface-card">
+        <span class="learning-icon learning-icon-violet">
+            <i data-lucide="archive-restore"></i>
+        </span>
+        <div>
+            <strong>@Model.Data.Items.Count Quiz trong thùng rác</strong>
+            <span>@Model.Data.Subject.Code · @Model.Data.Subject.Name</span>
+        </div>
+    </section>
+
+    @if (Model.Data.Items.Count == 0)
+    {
+        <section class="learning-empty surface-card">
+            <span class="learning-icon learning-icon-lg"><i data-lucide="trash-2"></i></span>
+            <h2>Thùng rác đang trống</h2>
+            <p>Các Quiz được chuyển vào thùng rác sẽ xuất hiện tại đây để bạn có thể khôi phục khi cần.</p>
+            <a class="btn btn-primary" asp-page="/Learning/Index">Quay lại trung tâm ôn tập</a>
+        </section>
+    }
+    else
+    {
+        <div class="recycle-grid">
+            @foreach (var item in Model.Data.Items)
+            {
+                <article class="recycle-card surface-card">
+                    <header>
+                        <span class="learning-icon">
+                            <i data-lucide="file-question"></i>
+                        </span>
+                        <div class="question-badges">
+                            <span class="publication-badge is-draft">Đã xóa</span>
+                            @if (item.WasPublished)
+                            {
+                                <span class="topic-badge">Từng phát hành</span>
+                            }
+                        </div>
+                    </header>
+                    <div class="recycle-card-copy">
+                        <h2>@item.Title</h2>
+                        <p>@(string.IsNullOrWhiteSpace(item.Description) ? "Quiz chưa có mô tả." : item.Description)</p>
+                    </div>
+                    <dl>
+                        <div>
+                            <dt>Nội dung</dt>
+                            <dd>@item.QuestionCount câu hỏi</dd>
+                        </div>
+                        <div>
+                            <dt>Thời điểm xóa</dt>
+                            <dd>@(item.DeletedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Không xác định")</dd>
+                        </div>
+                    </dl>
+                    <footer>
+                        <form method="post" asp-page-handler="Restore">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit" class="btn btn-primary">
+                                <i data-lucide="archive-restore" class="icon-sm"></i>
+                                Khôi phục
+                            </button>
+                        </form>
+                        <form method="post" asp-page-handler="PermanentlyDelete">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit"
+                                    class="btn btn-outline-danger btn-delete-confirm"
+                                    data-item-name="@item.Title"
+                                    data-item-type="Quiz"
+                                    data-can-restore="false">
+                                <i data-lucide="trash-2" class="icon-sm"></i>
+                                Xóa vĩnh viễn
+                            </button>
+                        </form>
+                    </footer>
+                </article>
+            }
+        </div>
+    }
+}

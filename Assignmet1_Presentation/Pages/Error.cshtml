@@ -1,19 +1,35 @@
 @page "/Error"
 @model Assignmet1_Presentation.Pages.ErrorModel
 @{
-    ViewData["Title"] = "Lỗi";
+    ViewData["Title"] = "Lỗi hệ thống";
 }
 
-<div class="page-hero">
-    <div class="hero-badge mb-3">Có lỗi xảy ra</div>
-    <h1 class="page-title text-danger">Lỗi hệ thống</h1>
-    <p class="page-subtitle">Huỳ xảy ra lỗi trong quá trình xử lý yêu cầu của bạn.</p>
-
-    @if (Model.ErrorViewModel.ShowRequestId)
-    {
-        <div class="mini-panel mt-4">
-            <div class="stat-label">Mã yêu cầu</div>
-            <div class="fw-semibold">@Model.ErrorViewModel.RequestId</div>
+<section class="error-state">
+    <div class="surface-card error-state-card">
+        <div class="error-state-icon">
+            <i data-lucide="triangle-alert"></i>
         </div>
-    }
-</div>
+        <div class="hero-badge mb-3">Mã trạng thái @Model.StatusCodeValue</div>
+        <h1 class="page-title">@Model.Heading</h1>
+        <p class="page-subtitle">@Model.Description</p>
+
+        @if (Model.ErrorViewModel.ShowRequestId)
+        {
+            <div class="mini-panel mt-4 text-start">
+                <div class="stat-label">Mã yêu cầu hỗ trợ</div>
+                <div class="fw-semibold text-break mt-1">@Model.ErrorViewModel.RequestId</div>
+            </div>
+        }
+
+        <div class="error-state-actions">
+            <a class="btn btn-primary" asp-page="/Home/Index">
+                <i data-lucide="home" class="icon-sm"></i>
+                Về trang chủ
+            </a>
+            <button class="btn btn-outline-secondary" type="button" onclick="window.location.reload()">
+                <i data-lucide="refresh-cw" class="icon-sm"></i>
+                Tải lại trang
+            </button>
+        </div>
+    </div>
+</section>

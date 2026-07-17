@@ -39,13 +39,13 @@ public class UploadModel : PageModel
     {
         if (subjectId.HasValue && !CanUploadToSubject(subjectId.Value))
         {
-            TempData["Error"] = "Bạn chỉ được phép upload tài liệu cho môn học được gán.";
+            TempData["Error"] = "Bạn chỉ được phép tải tài liệu lên môn học được phân công.";
             return RedirectToPage("/Documents/Index");
         }
 
         ViewModel = await BuildUploadViewModelAsync(subjectId, allowFallback: true);
         if (ViewModel.Subject is null)
-            TempData["Error"] = GetSubjectAccessError() ?? "No subject found in database. Please create a subject first.";
+            TempData["Error"] = GetSubjectAccessError() ?? "Chưa có môn học trong hệ thống. Vui lòng tạo môn học trước.";
 
         return Page();
     }
@@ -59,7 +59,7 @@ public class UploadModel : PageModel
 
         if (ViewModel.Subject is null || !ViewModel.SubjectId.HasValue)
         {
-            var subjectError = GetSubjectAccessError() ?? "No subject configured. Please create a subject first.";
+            var subjectError = GetSubjectAccessError() ?? "Chưa có môn học được cấu hình. Vui lòng tạo môn học trước.";
             ModelState.AddModelError(string.Empty, subjectError);
 
             if (IsAjaxRequest())
@@ -70,7 +70,7 @@ public class UploadModel : PageModel
 
         if (!CanUploadToSubject(ViewModel.SubjectId.Value))
         {
-            const string accessError = "Bạn chỉ được phép upload tài liệu cho môn học được gán.";
+            const string accessError = "Bạn chỉ được phép tải tài liệu lên môn học được phân công.";
             ModelState.AddModelError(string.Empty, accessError);
 
             if (IsAjaxRequest())
@@ -84,7 +84,7 @@ public class UploadModel : PageModel
         if (!ModelState.IsValid)
         {
             if (IsAjaxRequest())
-                return BadRequest(new { error = GetFirstModelError() ?? "Please select a valid file before uploading." });
+                return BadRequest(new { error = GetFirstModelError() ?? "Vui lòng chọn tài liệu hợp lệ trước khi tải lên." });
 
             return Page();
         }
@@ -93,7 +93,7 @@ public class UploadModel : PageModel
         if (userId is null)
         {
             if (IsAjaxRequest())
-                return StatusCode(401, new { error = "Your login session has expired. Please sign in again." });
+                return StatusCode(401, new { error = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
 
             return RedirectToPage("/Account/Login");
         }
@@ -113,10 +113,10 @@ public class UploadModel : PageModel
 
         if (result is null)
         {
-            ModelState.AddModelError(string.Empty, error ?? "Upload failed.");
+            ModelState.AddModelError(string.Empty, error ?? "Tải tài liệu lên thất bại.");
 
             if (IsAjaxRequest())
-                return BadRequest(new { error = error ?? "Upload failed." });
+                return BadRequest(new { error = error ?? "Tải tài liệu lên thất bại." });
 
             return Page();
         }
@@ -125,15 +125,15 @@ public class UploadModel : PageModel
         await BroadcastCourseUpdatedAsync(ViewModel.SubjectId);
         if (IsAjaxRequest())
         {
-            TempData["Success"] = $"Uploaded and indexed: {result.OriginalName}";
+            TempData["Success"] = $"Đã tải lên và lập chỉ mục: {result.OriginalName}.";
             return new JsonResult(new
             {
-                message = $"Uploaded and indexed: {result.OriginalName}",
+                message = $"Đã tải lên và lập chỉ mục: {result.OriginalName}.",
                 redirectUrl = Url.Page("/Subjects/Details", new { id = ViewModel.SubjectId.Value })
             });
         }
 
-        TempData["Success"] = $"Uploaded and indexed: {result.OriginalName}";
+        TempData["Success"] = $"Đã tải lên và lập chỉ mục: {result.OriginalName}.";
         return RedirectToPage("/Subjects/Details", new { id = ViewModel.SubjectId.Value });
     }
 
@@ -208,7 +208,7 @@ public class UploadModel : PageModel
                 .Select(c => new SelectListItem
                 {
                     Value = c.Id.ToString(),
-                    Text = $"Chapter {c.Number}: {c.Title}"
+                    Text = $"Chương {c.Number}: {c.Title}"
                 })
                 .ToList() ?? []
         };
@@ -230,7 +230,7 @@ public class UploadModel : PageModel
                 .Select(c => new SelectListItem
                 {
                     Value = c.Id.ToString(),
-                    Text = $"Chapter {c.Number}: {c.Title}"
+                    Text = $"Chương {c.Number}: {c.Title}"
                 })
                 .ToList() ?? []
         };
@@ -292,7 +292,7 @@ public class UploadModel : PageModel
         var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
         return userSubjectId.HasValue
             ? null
-            : "Bạn chưa được gán môn học. Vui lòng liên hệ quản trị viên.";
+            : "Bạn chưa được phân công môn học. Vui lòng liên hệ quản trị viên.";
     }
 
     private bool IsAjaxRequest()

@@ -1,0 +1,179 @@
+@page "{id:int?}"
+@model Assignmet1_Presentation.Pages.Learning.ManualEditorModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = Model.Editor?.Id is null ? "Tạo Quiz thủ công" : "Chỉnh sửa Quiz";
+    var initialJson = JsonSerializer.Serialize(Model.Input, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+    var editorUrl = Url.Page("/Learning/ManualEditor", new { id = Model.Editor?.Id })
+        ?? "/Learning/ManualEditor";
+    var autosaveUrl = $"{editorUrl}?handler=Autosave";
+    var serverUpdatedAt = Model.Editor?.UpdatedAt is DateTime updatedAt
+        ? DateTime.SpecifyKind(updatedAt, DateTimeKind.Utc).ToString("O")
+        : string.Empty;
+}
+
+@if (Model.Editor is not null)
+{
+    <div class="manual-editor-shell"
+         id="manualQuizEditor"
+         data-storage-key="@Model.DraftStorageKey"
+         data-autosave-url="@autosaveUrl"
+         data-edit-base-url="@Url.Page("/Learning/ManualEditor")"
+         data-server-updated-at="@serverUpdatedAt">
+        <div class="learning-page-heading learning-page-heading-actions">
+            <div>
+                <a class="learning-back-link" asp-page="/Learning/Index">
+                    <i data-lucide="arrow-left" class="icon-sm"></i>
+                    Trung tâm ôn tập
+                </a>
+                <span class="eyebrow">Trình soạn Quiz thủ công</span>
+                <h1>@(Model.Editor.Id is null ? "Tạo Quiz theo cách của bạn" : "Chỉnh sửa nội dung Quiz")</h1>
+                <p>
+                    Soạn, sắp xếp và quản lý câu hỏi cho môn
+                    <strong>@Model.Editor.Subject.Code — @Model.Editor.Subject.Name</strong>.
+                </p>
+            </div>
+            <div class="manual-save-state" id="manualSaveState" role="status" aria-live="polite">
+                <span class="manual-save-dot"></span>
+                <span id="manualSaveText">Mọi thay đổi sẽ được tự động lưu.</span>
+            </div>
+        </div>
+
+        <form method="post" id="manualQuizForm" class="manual-editor-layout">
+            @Html.AntiForgeryToken()
+            <input asp-for="Input.Id" type="hidden" id="manualQuizId" />
+            <input asp-for="Input.IsPublished" type="hidden" id="manualQuizPublished" />
+
+            <main class="manual-editor-main">
+                <section class="surface-card manual-editor-card">
+                    <div class="manual-section-heading">
+                        <span class="manual-section-number">01</span>
+                        <div>
+                            <h2>Thông tin Quiz</h2>
+                            <p>Tiêu đề rõ ràng giúp sinh viên chọn đúng nội dung cần ôn tập.</p>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label asp-for="Input.Title">Tiêu đề Quiz</label>
+                        <input asp-for="Input.Title"
+                               class="form-control form-control-lg"
+                               maxlength="300"
+                               placeholder="Ví dụ: Ôn tập chương 3 — Lập trình hướng đối tượng" />
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label asp-for="Input.Description">Mô tả ngắn</label>
+                            <textarea asp-for="Input.Description"
+                                      class="form-control"
+                                      rows="3"
+                                      maxlength="2000"
+                                      placeholder="Nội dung và mục tiêu chính của Quiz."></textarea>
+                        </div>
+                        <div class="form-field">
+                            <label asp-for="Input.Instructions">Hướng dẫn làm bài</label>
+                            <textarea asp-for="Input.Instructions"
+                                      class="form-control"
+                                      rows="3"
+                                      maxlength="2000"
+                                      placeholder="Những lưu ý sinh viên cần biết trước khi bắt đầu."></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="manual-question-section">
+                    <div class="manual-question-toolbar">
+                        <div>
+                            <span class="eyebrow">Ngân hàng câu hỏi của Quiz</span>
+                            <h2><span id="manualQuestionCount">0</span> câu hỏi</h2>
+                        </div>
+                        <button type="button" class="btn btn-primary" id="addManualQuestion">
+                            <i data-lucide="plus" class="icon-sm"></i>
+                            Thêm câu hỏi
+                        </button>
+                    </div>
+
+                    <div id="manualQuestionList" class="manual-question-list"></div>
+
+                    <button type="button" class="manual-add-question" id="addManualQuestionBottom">
+                        <span class="learning-icon"><i data-lucide="plus" class="icon-sm"></i></span>
+                        <span>
+                            <strong>Thêm câu hỏi mới</strong>
+                            <small>Hỗ trợ nhiều lựa chọn, đúng hoặc sai và trả lời ngắn.</small>
+                        </span>
+                    </button>
+                </section>
+            </main>
+
+            <aside class="manual-editor-aside">
+                <section class="surface-card manual-editor-card">
+                    <span class="eyebrow">Thiết lập phát hành</span>
+                    <div class="form-field">
+                        <label asp-for="Input.DurationMinutes">Thời lượng làm bài</label>
+                        <div class="input-group">
+                            <input asp-for="Input.DurationMinutes"
+                                   type="number"
+                                   min="1"
+                                   max="300"
+                                   class="form-control" />
+                            <span class="input-group-text">phút</span>
+                        </div>
+                    </div>
+                    <label class="manual-toggle">
+                        <input asp-for="Input.ShuffleQuestions" />
+                        <span class="manual-toggle-control"></span>
+                        <span>
+                            <strong>Xáo trộn câu hỏi</strong>
+                            <small>Mỗi lượt làm bài có thứ tự khác nhau.</small>
+                        </span>
+                    </label>
+                    <label class="manual-toggle">
+                        <input asp-for="Input.ShuffleOptions" />
+                        <span class="manual-toggle-control"></span>
+                        <span>
+                            <strong>Xáo trộn phương án</strong>
+                            <small>Giảm việc ghi nhớ vị trí đáp án.</small>
+                        </span>
+                    </label>
+                </section>
+
+                <section class="surface-card manual-editor-card manual-editor-actions">
+                    <div class="manual-draft-note">
+                        <i data-lucide="cloud-check" class="icon-sm"></i>
+                        <p>
+                            Tiến trình được lưu trên thiết bị ngay khi bạn nhập và đồng bộ lên máy chủ khi có mạng.
+                        </p>
+                    </div>
+                    @if (Model.Editor.Id.HasValue)
+                    {
+                        <a class="btn btn-outline-secondary w-100"
+                           asp-page="/Learning/Details"
+                           asp-route-id="@Model.Editor.Id">
+                            <i data-lucide="eye" class="icon-sm"></i>
+                            Xem trước Quiz
+                        </a>
+                    }
+                    <button type="submit"
+                            name="submitAction"
+                            value="draft"
+                            class="btn btn-outline-primary w-100">
+                        <i data-lucide="save" class="icon-sm"></i>
+                        Lưu thành bản nháp
+                    </button>
+                    <button type="submit"
+                            name="submitAction"
+                            value="publish"
+                            class="btn btn-primary w-100">
+                        <i data-lucide="send" class="icon-sm"></i>
+                        Lưu và phát hành
+                    </button>
+                </section>
+            </aside>
+        </form>
+
+        <script id="manualQuizInitialData" type="application/json">@Html.Raw(initialJson)</script>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/manual-quiz-editor.js" asp-append-version="true"></script>
+}

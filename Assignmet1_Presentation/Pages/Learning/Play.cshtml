@@ -1,0 +1,453 @@
+@page "{id:int}"
+@model Assignmet1_Presentation.Pages.Learning.PlayModel
+@{
+    ViewData["Title"] = Model.LearningSet?.Title ?? "Hoạt động ôn tập";
+}
+
+@if (Model.LearningSet is not null)
+{
+    var set = Model.LearningSet;
+
+    <div class="play-shell">
+        <header class="play-header">
+            <a class="learning-back-link" asp-page="/Learning/Index">
+                <i data-lucide="arrow-left" class="icon-sm"></i>
+                Trung tâm ôn tập
+            </a>
+            <div class="play-title">
+                <span class="eyebrow">@set.SubjectCode · Hoạt động ôn tập</span>
+                <h1>@set.Title</h1>
+                @if (!string.IsNullOrWhiteSpace(set.Instructions))
+                {
+                    <p>@set.Instructions</p>
+                }
+            </div>
+            <div class="play-meta">
+                <span><i data-lucide="circle-help" class="icon-sm"></i> @set.Questions.Count nội dung</span>
+                @if (set.DurationMinutes.HasValue)
+                {
+                    <span><i data-lucide="clock-3" class="icon-sm"></i> @set.DurationMinutes phút</span>
+                }
+            </div>
+        </header>
+
+        @if (set.ActivityType == LearningActivityTypes.Quiz)
+        {
+            @if (Model.Result is null)
+            {
+                <form method="post" class="quiz-form">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    <input type="hidden" asp-for="StartedAt" />
+
+                    @for (var questionIndex = 0; questionIndex < set.Questions.Count; questionIndex++)
+                    {
+                        var question = set.Questions[questionIndex];
+                        <article class="quiz-question surface-card">
+                            <div class="quiz-question-heading">
+                                <span>Câu @(questionIndex + 1)</span>
+                                <small>@question.Points.ToString("0.#") điểm</small>
+                            </div>
+                            <h2>@question.Prompt</h2>
+
+                            @if (question.Options.Count > 0)
+                            {
+                                <div class="quiz-options">
+                                    @for (var optionIndex = 0; optionIndex < question.Options.Count; optionIndex++)
+                                    {
+                                        var option = question.Options[optionIndex];
+                                        <label class="quiz-option">
+                                            <input type="radio" name="Answers[@question.Id]" value="@option" />
+                                            <span class="quiz-option-letter">@((char)('A' + optionIndex))</span>
+                                            <span>@option</span>
+                                            <i data-lucide="check" class="icon-sm"></i>
+                                        </label>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-field">
+                                    <label for="answer-@question.Id">Câu trả lời của bạn</label>
+                                    <input id="answer-@question.Id"
+                                           name="Answers[@question.Id]"
+                                           class="form-control form-control-lg"
+                                           autocomplete="off"
+                                           placeholder="Nhập câu trả lời ngắn..." />
+                                </div>
+                            }
+                        </article>
+                    }
+
+                    <div class="quiz-submit-bar surface-card">
+                        <div>
+                            <strong>Hoàn thành bài Quiz?</strong>
+                            <span>Hệ thống sẽ chấm điểm và giải thích từng câu.</span>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i data-lucide="send" class="icon-sm"></i>
+                            Nộp bài
+                        </button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                var result = Model.Result;
+                <section class="result-hero surface-card">
+                    <div class="result-ring" style="--score: @result.Percentage.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                        <span>@result.Percentage.ToString("0.#")%</span>
+                    </div>
+                    <div>
+                        <span class="eyebrow">Kết quả vừa hoàn thành</span>
+                        <h2>@(result.Percentage >= 80 ? "Bạn đã nắm vững phần lớn nội dung" : result.Percentage >= 50 ? "Bạn đang tiến bộ tốt" : "Hãy xem lại phần giải thích")</h2>
+                        <p>Trả lời đúng @result.CorrectCount/@result.TotalQuestions câu, đạt @result.Score.ToString("0.#")/@result.TotalPoints.ToString("0.#") điểm.</p>
+                        <div class="result-actions">
+                            <a class="btn btn-primary" asp-page="/Learning/Play" asp-route-id="@set.Id">
+                                <i data-lucide="rotate-ccw" class="icon-sm"></i>
+                                Làm lại
+                            </a>
+                            <a class="btn btn-outline-primary" asp-page="/Learning/Index">Chọn hoạt động khác</a>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="result-review">
+                    <div class="learning-section-heading">
+                        <div>
+                            <span class="eyebrow">Phân tích đáp án</span>
+                            <h2>Xem lại từng câu</h2>
+                        </div>
+                    </div>
+                    @for (var answerIndex = 0; answerIndex < result.Answers.Count; answerIndex++)
+                    {
+                        var answer = result.Answers[answerIndex];
+                        <article class="result-answer surface-card @(answer.IsCorrect ? "is-correct" : "is-wrong")">
+                            <span class="result-answer-icon">
+                                <i data-lucide="@(answer.IsCorrect ? "check" : "x")"></i>
+                            </span>
+                            <div>
+                                <span class="result-answer-label">Câu @(answerIndex + 1) · @(answer.IsCorrect ? "Chính xác" : "Chưa chính xác")</span>
+                                <h3>@answer.Prompt</h3>
+                                <dl>
+                                    <div><dt>Bạn trả lời</dt><dd>@(string.IsNullOrWhiteSpace(answer.SelectedAnswer) ? "Chưa trả lời" : answer.SelectedAnswer)</dd></div>
+                                    @if (!answer.IsCorrect)
+                                    {
+                                        <div><dt>Đáp án đúng</dt><dd>@answer.CorrectAnswer</dd></div>
+                                    }
+                                </dl>
+                                @if (!string.IsNullOrWhiteSpace(answer.Explanation))
+                                {
+                                    <p class="result-explanation">@answer.Explanation</p>
+                                }
+                            </div>
+                        </article>
+                    }
+                </section>
+            }
+        }
+        else if (set.ActivityType == LearningActivityTypes.Flashcard)
+        {
+            <section class="flashcard-stage" data-flashcard-stage>
+                <div class="flashcard-progress">
+                    <div><span data-flashcard-current>1</span> / @set.Questions.Count</div>
+                    <div class="progress-track"><span data-flashcard-progress></span></div>
+                </div>
+
+                @for (var index = 0; index < set.Questions.Count; index++)
+                {
+                    var question = set.Questions[index];
+                    <button type="button"
+                            class="study-flashcard @(index == 0 ? "is-active" : null)"
+                            data-flashcard
+                            aria-label="Lật thẻ để xem đáp án">
+                        <span class="study-flashcard-inner">
+                            <span class="study-flashcard-face study-flashcard-front">
+                                <span class="eyebrow">Mặt trước · Câu @(index + 1)</span>
+                                <strong>@question.Prompt</strong>
+                                <small><i data-lucide="rotate-3d" class="icon-sm"></i> Chọn thẻ để xem đáp án</small>
+                            </span>
+                            <span class="study-flashcard-face study-flashcard-back">
+                                <span class="eyebrow">Mặt sau · Đáp án</span>
+                                <strong>@question.CorrectAnswer</strong>
+                                @if (!string.IsNullOrWhiteSpace(question.Explanation))
+                                {
+                                    <p>@question.Explanation</p>
+                                }
+                                <small><i data-lucide="rotate-3d" class="icon-sm"></i> Chọn thẻ để quay lại</small>
+                            </span>
+                        </span>
+                    </button>
+                }
+
+                <div class="flashcard-controls">
+                    <button type="button" class="btn btn-outline-primary" data-flashcard-prev disabled>
+                        <i data-lucide="arrow-left" class="icon-sm"></i>
+                        Thẻ trước
+                    </button>
+                    <button type="button" class="btn btn-primary" data-flashcard-next>
+                        Thẻ tiếp theo
+                        <i data-lucide="arrow-right" class="icon-sm"></i>
+                    </button>
+                </div>
+            </section>
+        }
+        else if (set.ActivityType == LearningActivityTypes.Matching)
+        {
+            var shuffledAnswers = set.Questions.OrderBy(_ => Guid.NewGuid()).ToList();
+            <section class="matching-stage" data-matching-stage>
+                <div class="matching-status surface-card">
+                    <div>
+                        <span class="eyebrow">Ghép cặp kiến thức</span>
+                        <h2>Chọn một câu hỏi, sau đó chọn đáp án tương ứng</h2>
+                    </div>
+                    <strong><span data-matching-score>0</span>/@set.Questions.Count cặp đúng</strong>
+                </div>
+                <div class="matching-board">
+                    <div class="matching-column">
+                        <span class="matching-column-title">Câu hỏi</span>
+                        @foreach (var question in set.Questions)
+                        {
+                            <button type="button" class="matching-card" data-match-question="@question.Id">
+                                @question.Prompt
+                            </button>
+                        }
+                    </div>
+                    <div class="matching-column">
+                        <span class="matching-column-title">Đáp án</span>
+                        @foreach (var question in shuffledAnswers)
+                        {
+                            <button type="button" class="matching-card matching-answer" data-match-answer="@question.Id">
+                                @question.CorrectAnswer
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="matching-complete surface-card" data-matching-complete hidden>
+                    <span class="learning-icon learning-icon-lg"><i data-lucide="badge-check"></i></span>
+                    <h2>Bạn đã ghép đúng tất cả nội dung</h2>
+                    <p>Hãy thử lại để củng cố tốc độ gợi nhớ.</p>
+                    <button type="button" class="btn btn-primary" onclick="window.location.reload()">Chơi lại</button>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="speed-stage" data-speed-stage data-total="@set.Questions.Count">
+                <div class="speed-topbar surface-card">
+                    <div>
+                        <span class="eyebrow">Thử thách tốc độ</span>
+                        <strong>Câu <span data-speed-current>1</span>/@set.Questions.Count</strong>
+                    </div>
+                    <div class="speed-score">Điểm <strong data-speed-score>0</strong></div>
+                    <div class="speed-timer"><i data-lucide="timer" class="icon-sm"></i> <strong data-speed-timer>15</strong>s</div>
+                </div>
+
+                @for (var index = 0; index < set.Questions.Count; index++)
+                {
+                    var question = set.Questions[index];
+                    <article class="speed-question surface-card @(index == 0 ? "is-active" : null)"
+                             data-speed-question
+                             data-correct="@question.CorrectAnswer">
+                        <span class="question-type-badge">Câu @(index + 1)</span>
+                        <h2>@question.Prompt</h2>
+                        <div class="speed-options">
+                            @foreach (var option in question.Options)
+                            {
+                                <button type="button" data-speed-option="@option">@option</button>
+                            }
+                        </div>
+                        <p class="speed-feedback" data-speed-feedback></p>
+                    </article>
+                }
+
+                <div class="speed-complete surface-card" data-speed-complete hidden>
+                    <span class="learning-icon learning-icon-lg learning-icon-rose"><i data-lucide="gauge"></i></span>
+                    <span class="eyebrow">Hoàn thành thử thách</span>
+                    <h2>Bạn đạt <span data-speed-final>0</span>/@set.Questions.Count điểm</h2>
+                    <p>Trả lời nhanh là tốt, nhưng hiểu rõ lý do mới giúp kiến thức bền vững.</p>
+                    <div class="result-actions">
+                        <button type="button" class="btn btn-primary" onclick="window.location.reload()">Chơi lại</button>
+                        <a class="btn btn-outline-primary" asp-page="/Learning/Index">Chọn hoạt động khác</a>
+                    </div>
+                </div>
+            </section>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (() => {
+            const flashcardStage = document.querySelector('[data-flashcard-stage]');
+            if (flashcardStage) {
+                const cards = [...flashcardStage.querySelectorAll('[data-flashcard]')];
+                const currentLabel = flashcardStage.querySelector('[data-flashcard-current]');
+                const progress = flashcardStage.querySelector('[data-flashcard-progress]');
+                const previousButton = flashcardStage.querySelector('[data-flashcard-prev]');
+                const nextButton = flashcardStage.querySelector('[data-flashcard-next]');
+                let currentIndex = 0;
+
+                const renderFlashcard = () => {
+                    cards.forEach((card, index) => {
+                        card.classList.toggle('is-active', index === currentIndex);
+                        if (index !== currentIndex) card.classList.remove('is-flipped');
+                    });
+                    currentLabel.textContent = currentIndex + 1;
+                    progress.style.width = `${((currentIndex + 1) / cards.length) * 100}%`;
+                    previousButton.disabled = currentIndex === 0;
+                    nextButton.innerHTML = currentIndex === cards.length - 1
+                        ? 'Hoàn thành <i data-lucide="check" class="icon-sm"></i>'
+                        : 'Thẻ tiếp theo <i data-lucide="arrow-right" class="icon-sm"></i>';
+                    lucide.createIcons();
+                };
+
+                cards.forEach(card => card.addEventListener('click', () => card.classList.toggle('is-flipped')));
+                previousButton.addEventListener('click', () => {
+                    if (currentIndex > 0) {
+                        currentIndex -= 1;
+                        renderFlashcard();
+                    }
+                });
+                nextButton.addEventListener('click', () => {
+                    if (currentIndex < cards.length - 1) {
+                        currentIndex += 1;
+                        renderFlashcard();
+                    } else {
+                        window.location.href = '@Url.Page("/Learning/Index")';
+                    }
+                });
+                renderFlashcard();
+            }
+
+            const matchingStage = document.querySelector('[data-matching-stage]');
+            if (matchingStage) {
+                let selectedQuestion = null;
+                let selectedAnswer = null;
+                let score = 0;
+                const total = matchingStage.querySelectorAll('[data-match-question]').length;
+                const scoreLabel = matchingStage.querySelector('[data-matching-score]');
+
+                const evaluate = () => {
+                    if (!selectedQuestion || !selectedAnswer) return;
+                    if (selectedQuestion.dataset.matchQuestion === selectedAnswer.dataset.matchAnswer) {
+                        selectedQuestion.classList.add('is-matched');
+                        selectedAnswer.classList.add('is-matched');
+                        selectedQuestion.disabled = true;
+                        selectedAnswer.disabled = true;
+                        score += 1;
+                        scoreLabel.textContent = score;
+                        if (score === total) {
+                            matchingStage.querySelector('[data-matching-complete]').hidden = false;
+                        }
+                    } else {
+                        selectedQuestion.classList.add('is-error');
+                        selectedAnswer.classList.add('is-error');
+                        setTimeout(() => {
+                            selectedQuestion?.classList.remove('is-error');
+                            selectedAnswer?.classList.remove('is-error');
+                        }, 500);
+                    }
+                    selectedQuestion.classList.remove('is-selected');
+                    selectedAnswer.classList.remove('is-selected');
+                    selectedQuestion = null;
+                    selectedAnswer = null;
+                };
+
+                matchingStage.querySelectorAll('[data-match-question]').forEach(button => {
+                    button.addEventListener('click', () => {
+                        matchingStage.querySelectorAll('[data-match-question]').forEach(item => item.classList.remove('is-selected'));
+                        selectedQuestion = button;
+                        button.classList.add('is-selected');
+                        evaluate();
+                    });
+                });
+                matchingStage.querySelectorAll('[data-match-answer]').forEach(button => {
+                    button.addEventListener('click', () => {
+                        matchingStage.querySelectorAll('[data-match-answer]').forEach(item => item.classList.remove('is-selected'));
+                        selectedAnswer = button;
+                        button.classList.add('is-selected');
+                        evaluate();
+                    });
+                });
+            }
+
+            const speedStage = document.querySelector('[data-speed-stage]');
+            if (speedStage) {
+                const questions = [...speedStage.querySelectorAll('[data-speed-question]')];
+                const timerLabel = speedStage.querySelector('[data-speed-timer]');
+                const currentLabel = speedStage.querySelector('[data-speed-current]');
+                const scoreLabel = speedStage.querySelector('[data-speed-score]');
+                let current = 0;
+                let score = 0;
+                let seconds = 15;
+                let timerId;
+                let locked = false;
+
+                const normalize = value => value.trim().toLocaleLowerCase('vi-VN');
+
+                const finish = () => {
+                    clearInterval(timerId);
+                    questions.forEach(question => question.classList.remove('is-active'));
+                    speedStage.querySelector('[data-speed-complete]').hidden = false;
+                    speedStage.querySelector('[data-speed-final]').textContent = score;
+                };
+
+                const showNext = () => {
+                    if (current >= questions.length - 1) {
+                        finish();
+                        return;
+                    }
+                    questions[current].classList.remove('is-active');
+                    current += 1;
+                    questions[current].classList.add('is-active');
+                    currentLabel.textContent = current + 1;
+                    startTimer();
+                };
+
+                const answer = (button, timedOut = false) => {
+                    if (locked) return;
+                    locked = true;
+                    clearInterval(timerId);
+                    const question = questions[current];
+                    const correct = question.dataset.correct || '';
+                    const isCorrect = !timedOut && normalize(button?.dataset.speedOption || '') === normalize(correct);
+                    if (isCorrect) {
+                        score += 1;
+                        scoreLabel.textContent = score;
+                        button.classList.add('is-correct');
+                    } else if (button) {
+                        button.classList.add('is-wrong');
+                    }
+                    question.querySelectorAll('[data-speed-option]').forEach(option => {
+                        option.disabled = true;
+                        if (normalize(option.dataset.speedOption || '') === normalize(correct)) {
+                            option.classList.add('is-correct');
+                        }
+                    });
+                    const feedback = question.querySelector('[data-speed-feedback]');
+                    feedback.textContent = timedOut
+                        ? `Hết thời gian. Đáp án đúng: ${correct}`
+                        : isCorrect ? 'Chính xác.' : `Đáp án đúng: ${correct}`;
+                    setTimeout(showNext, 1300);
+                };
+
+                const startTimer = () => {
+                    clearInterval(timerId);
+                    seconds = 15;
+                    locked = false;
+                    timerLabel.textContent = seconds;
+                    timerId = setInterval(() => {
+                        seconds -= 1;
+                        timerLabel.textContent = seconds;
+                        if (seconds <= 0) answer(null, true);
+                    }, 1000);
+                };
+
+                speedStage.querySelectorAll('[data-speed-option]').forEach(button => {
+                    button.addEventListener('click', () => answer(button));
+                });
+                startTimer();
+            }
+        })();
+    </script>
+}

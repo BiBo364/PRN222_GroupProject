@@ -46,7 +46,7 @@ public class ImportUsersModel : PageModel
 
         if (Input.RoleId is not 2 and not 3)
         {
-            ModelState.AddModelError(nameof(Input.RoleId), "Chi ho tro import giang vien hoac hoc sinh/sinh vien.");
+            ModelState.AddModelError(nameof(Input.RoleId), "Chỉ hỗ trợ nhập giảng viên hoặc học sinh, sinh viên.");
             return Page();
         }
 
@@ -60,7 +60,7 @@ public class ImportUsersModel : PageModel
 
             if (!isAvailable)
             {
-                ModelState.AddModelError(nameof(Input.SubjectId), availabilityError ?? "Mon hoc nay da co giang vien phu trach.");
+                ModelState.AddModelError(nameof(Input.SubjectId), availabilityError ?? "Môn học này đã có giảng viên phụ trách.");
                 return Page();
             }
         }
@@ -69,7 +69,7 @@ public class ImportUsersModel : PageModel
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (ext != ".xlsx" && ext != ".csv" && ext != ".json" && ext != ".txt")
         {
-            ModelState.AddModelError(nameof(Input.File), "Chi ho tro file .xlsx, .csv, .json hoac .txt");
+            ModelState.AddModelError(nameof(Input.File), "Chỉ hỗ trợ tệp .xlsx, .csv, .json hoặc .txt.");
             return Page();
         }
 
@@ -100,14 +100,14 @@ public class ImportUsersModel : PageModel
             };
 
             if (result.CreatedCount > 0)
-                TempData["Success"] = $"Import thanh cong {result.CreatedCount} tai khoan moi. Gui mail thanh cong: {result.NotificationSentCount}.";
+                TempData["Success"] = $"Đã nhập thành công {result.CreatedCount} tài khoản mới. Đã gửi email cho {result.NotificationSentCount} tài khoản.";
 
             if (result.ErrorCount > 0 || result.SkippedDuplicateCount > 0 || result.NotificationFailedCount > 0)
-                TempData["Warning"] = $"{result.SkippedDuplicateCount} trung lap, {result.ErrorCount} loi, {result.NotificationFailedCount} email chua gui duoc.";
+                TempData["Warning"] = $"{result.SkippedDuplicateCount} bản ghi trùng lặp, {result.ErrorCount} lỗi, {result.NotificationFailedCount} email chưa gửi được.";
         }
         catch (Exception ex)
         {
-            ModelState.AddModelError(string.Empty, $"Khong the doc file: {ex.Message}");
+            ModelState.AddModelError(string.Empty, $"Không thể đọc tệp: {ex.Message}");
         }
 
         return Page();

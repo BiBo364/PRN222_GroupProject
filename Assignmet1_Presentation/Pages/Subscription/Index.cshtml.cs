@@ -175,7 +175,7 @@ public class IndexModel : PageModel
             FilterToDate = toDate?.Date,
             AdminTotalRevenue = totalRevenue,
             AdminSuccessfulOrders = totalPurchaseCount,
-            AdminTopPlanName = topPlan?.Name ?? "Chua co giao dich",
+            AdminTopPlanName = topPlan?.Name ?? "Chưa có giao dịch",
             AdminTopPlanCount = topPlan?.PurchaseCount ?? 0,
             AdminAverageOrderValue = totalPurchaseCount == 0
                 ? 0

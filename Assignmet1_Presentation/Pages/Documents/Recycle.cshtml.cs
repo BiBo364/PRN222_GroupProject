@@ -34,7 +34,7 @@ public class RecycleModel : PageModel
         var roleId = HttpContext.Session.GetInt32("RoleId");
         if (roleId is null || !DocumentPermissions.CanUpload(roleId.Value))
         {
-            TempData["Error"] = "Ban khong co quyen xem thung rac tai lieu.";
+            TempData["Error"] = "Bạn không có quyền xem thùng rác tài liệu.";
             return RedirectToPage("/Home/Index");
         }
 
@@ -56,7 +56,7 @@ public class RecycleModel : PageModel
         var roleId = HttpContext.Session.GetInt32("RoleId");
         if (roleId is null || !DocumentPermissions.CanUpload(roleId.Value))
         {
-            TempData["Error"] = "Ban khong co quyen khoi phuc tai lieu.";
+            TempData["Error"] = "Bạn không có quyền khôi phục tài liệu.";
             return RedirectToPage("/Home/Index");
         }
 
@@ -64,7 +64,7 @@ public class RecycleModel : PageModel
         var deletedDocument = await _documentService.GetDeletedDocumentByIdAsync(id);
         if (deletedDocument is null)
         {
-            TempData["Error"] = "Khong tim thay tai lieu trong thung rac.";
+            TempData["Error"] = "Không tìm thấy tài liệu trong thùng rác.";
             return RedirectToPage("/Documents/Recycle");
         }
 
@@ -73,7 +73,7 @@ public class RecycleModel : PageModel
             var doc = deletedDocument;
             if (doc != null && doc.SubjectId != userSubjectId)
             {
-                TempData["Error"] = "Ban chi co the khoi phuc tai lieu trong mon hoc duoc gan.";
+                TempData["Error"] = "Bạn chỉ có thể khôi phục tài liệu thuộc môn học được phân công.";
                 return RedirectToPage("/Documents/Recycle");
             }
         }
@@ -92,11 +92,11 @@ public class RecycleModel : PageModel
                         await _appHub.Clients.All.SendAsync("CourseUpdated", ViewModelMapper.ToListItemViewModel(subject));
                 }
             }
-            TempData["Success"] = $"Da khoi phuc tai lieu: {deletedDocument.OriginalName}.";
+            TempData["Success"] = $"Đã khôi phục tài liệu: {deletedDocument.OriginalName}.";
         }
         else
         {
-            TempData["Error"] = restoreError ?? "Khoi phuc tai lieu that bai.";
+            TempData["Error"] = restoreError ?? "Khôi phục tài liệu thất bại.";
         }
 
         return RedirectToPage("/Documents/Recycle");

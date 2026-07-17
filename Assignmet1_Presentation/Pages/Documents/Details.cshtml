@@ -2,6 +2,13 @@
 @model Assignmet1_Presentation.Pages.Documents.DetailsModel
 @{
     ViewData["Title"] = Model.ViewModel.OriginalName;
+    var statusLabel = Model.ViewModel.Status switch
+    {
+        "indexed" => "Đã lập chỉ mục",
+        "failed" => "Thất bại",
+        "processing" => "Đang xử lý",
+        _ => "Chờ xử lý"
+    };
 }
 
 <section class="page-hero mb-4">
@@ -50,7 +57,7 @@
     <div class="col-md-3">
         <div class="stat-card">
             <div class="stat-label"><i data-lucide="activity" class="icon-sm me-1"></i> Trạng thái</div>
-            <div class="stat-value fs-6 @(Model.ViewModel.Status == "indexed" ? "text-success" : Model.ViewModel.Status == "failed" ? "text-danger" : "text-warning")">@Model.ViewModel.Status</div>
+            <div class="stat-value fs-6 @(Model.ViewModel.Status == "indexed" ? "text-success" : Model.ViewModel.Status == "failed" ? "text-danger" : "text-warning")">@statusLabel</div>
         </div>
     </div>
     <div class="col-md-3">

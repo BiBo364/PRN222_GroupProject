@@ -20,7 +20,7 @@ public class MomoPaymentService : IMomoPaymentService
         WriteIndented = false
     };
 
-    private const string DefaultOrderInfo = "Thanh toan subscription plan";
+    private const string DefaultOrderInfo = "Thanh toán gói dịch vụ";
 
     private readonly HttpClient _httpClient;
     private readonly ISubscriptionRepository _repository;
@@ -72,7 +72,7 @@ public class MomoPaymentService : IMomoPaymentService
             {
                 Success = false,
                 ResultCode = -1,
-                Message = "Goi dang ky khong hop le."
+                Message = "Gói đăng ký không hợp lệ."
             };
         }
 
@@ -85,7 +85,7 @@ public class MomoPaymentService : IMomoPaymentService
             {
                 Success = false,
                 ResultCode = -1,
-                Message = $"Ban da co giao dich dang cho xu ly cho goi nay. Neu chua thanh toan, vui long doi {pendingExpirationMinutes} phut roi tao lai."
+                Message = $"Bạn đã có giao dịch đang chờ xử lý cho gói này. Nếu chưa thanh toán, vui lòng đợi {pendingExpirationMinutes} phút rồi tạo lại."
             };
         }
 
@@ -154,7 +154,7 @@ public class MomoPaymentService : IMomoPaymentService
         catch (Exception ex)
         {
             ticket.Status = PaymentTicketStatus.Rejected;
-            ticket.AdminNote = $"MoMo checkout failed: {ex.Message}";
+            ticket.AdminNote = $"Không thể khởi tạo thanh toán MoMo: {ex.Message}";
             ticket.MomoResponseJson = JsonSerializer.Serialize(new { error = ex.Message }, JsonOptions);
             await _repository.UpdateTicketAsync(ticket);
 
@@ -162,7 +162,7 @@ public class MomoPaymentService : IMomoPaymentService
             {
                 Success = false,
                 ResultCode = -1,
-                Message = "Khong the khoi tao thanh toan MoMo."
+                Message = "Không thể khởi tạo thanh toán MoMo."
             };
         }
 
@@ -173,14 +173,14 @@ public class MomoPaymentService : IMomoPaymentService
         if (momoResponse is null || momoResponse.ResultCode != 0 || string.IsNullOrWhiteSpace(momoResponse.PayUrl))
         {
             ticket.Status = PaymentTicketStatus.Rejected;
-            ticket.AdminNote = momoResponse?.Message ?? "MoMo checkout failed.";
+            ticket.AdminNote = momoResponse?.Message ?? "Không thể khởi tạo thanh toán MoMo.";
             await _repository.UpdateTicketAsync(ticket);
 
             return new MoMoCheckoutResultDto
             {
                 Success = false,
                 ResultCode = momoResponse?.ResultCode ?? -1,
-                Message = momoResponse?.Message ?? "Khong the khoi tao thanh toan MoMo."
+                Message = momoResponse?.Message ?? "Không thể khởi tạo thanh toán MoMo."
             };
         }
 
@@ -204,7 +204,7 @@ public class MomoPaymentService : IMomoPaymentService
 
         var ticket = await _repository.GetTicketByOrderIdAsync(callback.OrderId);
         if (ticket is null)
-            return (false, "Khong tim thay giao dich MoMo.");
+            return (false, "Không tìm thấy giao dịch MoMo.");
 
         ticket.MomoIpnJson = JsonSerializer.Serialize(callback, JsonOptions);
         ticket.MomoTransId = callback.TransId?.ToString(CultureInfo.InvariantCulture);
@@ -219,34 +219,34 @@ public class MomoPaymentService : IMomoPaymentService
         if (DecimalToInteger(ticket.Amount) != DecimalToInteger(callback.Amount))
         {
             ticket.Status = PaymentTicketStatus.Rejected;
-            ticket.AdminNote = "MoMo amount mismatch.";
+            ticket.AdminNote = "Số tiền MoMo không khớp với yêu cầu.";
             await _repository.UpdateTicketAsync(ticket);
-            return (false, "So tien thanh toan khong khop.");
+            return (false, "Số tiền thanh toán không khớp.");
         }
 
         if (!string.Equals(callback.PartnerCode, SanitizeSetting(_settings.PartnerCode), StringComparison.Ordinal))
         {
             ticket.Status = PaymentTicketStatus.Rejected;
-            ticket.AdminNote = "MoMo partner code mismatch.";
+            ticket.AdminNote = "Mã đối tác MoMo không khớp.";
             await _repository.UpdateTicketAsync(ticket);
-            return (false, "Giao dich MoMo khong hop le.");
+            return (false, "Giao dịch MoMo không hợp lệ.");
         }
 
         if (!string.IsNullOrWhiteSpace(callback.RequestId) &&
             !string.Equals(callback.RequestId, ticket.MomoRequestId, StringComparison.Ordinal))
         {
             ticket.Status = PaymentTicketStatus.Rejected;
-            ticket.AdminNote = "MoMo request id mismatch.";
+            ticket.AdminNote = "Mã yêu cầu MoMo không khớp.";
             await _repository.UpdateTicketAsync(ticket);
-            return (false, "Giao dich MoMo khong hop le.");
+            return (false, "Giao dịch MoMo không hợp lệ.");
         }
 
         if (!VerifyCallbackSignature(callback))
         {
             ticket.Status = PaymentTicketStatus.Rejected;
-            ticket.AdminNote = "MoMo signature invalid.";
+            ticket.AdminNote = "Chữ ký MoMo không hợp lệ.";
             await _repository.UpdateTicketAsync(ticket);
-            return (false, "Chu ky MoMo khong hop le.");
+            return (false, "Chữ ký MoMo không hợp lệ.");
         }
 
         if (callback.ResultCode == 0)
@@ -259,10 +259,10 @@ public class MomoPaymentService : IMomoPaymentService
         }
 
         ticket.Status = PaymentTicketStatus.Rejected;
-        ticket.AdminNote = callback.Message ?? "MoMo payment failed.";
+        ticket.AdminNote = callback.Message ?? "Thanh toán MoMo không thành công.";
         await _repository.UpdateTicketAsync(ticket);
 
-        return (false, callback.Message ?? "Thanh toan MoMo that bai.");
+        return (false, callback.Message ?? "Thanh toán MoMo thất bại.");
     }
 
     public async Task<PaymentTicketDto?> GetTicketByOrderIdAsync(string orderId)
@@ -278,13 +278,13 @@ public class MomoPaymentService : IMomoPaymentService
     {
         var ticket = await _repository.GetTicketByIdAsync(ticketId);
         if (ticket is null)
-            return (false, "Khong tim thay giao dich MoMo.");
+            return (false, "Không tìm thấy giao dịch MoMo.");
 
         if (ticket.Status == PaymentTicketStatus.Approved)
             return (true, null);
 
         if (ticket.Status != PaymentTicketStatus.MomoPending)
-            return (false, "Giao dich nay khong con cho MoMo xac nhan.");
+            return (false, "Giao dịch này không còn chờ MoMo xác nhận.");
 
         var accessKey = SanitizeSetting(_settings.AccessKey);
         var secretKey = SanitizeSetting(_settings.SecretKey);
@@ -317,7 +317,7 @@ public class MomoPaymentService : IMomoPaymentService
         }
         catch (Exception ex)
         {
-            return (false, $"Khong the truy van trang thai MoMo: {ex.Message}");
+            return (false, $"Không thể truy vấn trạng thái MoMo: {ex.Message}");
         }
 
         if (response is null ||
@@ -326,7 +326,7 @@ public class MomoPaymentService : IMomoPaymentService
             !string.Equals(response.OrderId, ticket.MomoOrderId, StringComparison.Ordinal) ||
             DecimalToInteger(response.Amount) != DecimalToInteger(ticket.Amount))
         {
-            return (false, "Phan hoi truy van MoMo khong hop le.");
+            return (false, "Phản hồi truy vấn MoMo không hợp lệ.");
         }
 
         ticket.MomoResultCode = response.ResultCode;
@@ -334,7 +334,7 @@ public class MomoPaymentService : IMomoPaymentService
 
         if (response.ResultCode != 0)
         {
-            ticket.AdminNote = $"MoMo query: {response.Message ?? "Chua co ket qua thanh toan."}";
+            ticket.AdminNote = $"Truy vấn MoMo: {response.Message ?? "Chưa có kết quả thanh toán."}";
             await _repository.UpdateTicketAsync(ticket);
             return (false, ticket.AdminNote);
         }

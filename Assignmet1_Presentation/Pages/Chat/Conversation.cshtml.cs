@@ -66,7 +66,7 @@ public class ConversationModel : PageModel
         var session = await _chatService.GetSessionAsync(id, userId);
         if (session is null)
         {
-            TempData["Error"] = "Conversation not found. Please start a new chat.";
+            TempData["Error"] = "Không tìm thấy cuộc trò chuyện. Vui lòng bắt đầu một cuộc trò chuyện mới.";
             return RedirectToPage("/Chat/Index");
         }
 
@@ -86,7 +86,7 @@ public class ConversationModel : PageModel
             if (ViewModel.QuotaStatus is not null && !ViewModel.QuotaStatus.IsAllowed)
             {
                 var blockedMessage = ViewModel.QuotaStatus.Message
-                    ?? "Free quota da het. Vui long doi reset hoac nang cap Plus.";
+                    ?? "Bạn đã hết lượt miễn phí. Vui lòng chờ chu kỳ mới hoặc nâng cấp gói Plus.";
 
                 if (IsAjaxRequest())
                     return StatusCode(403, new { error = blockedMessage });
@@ -98,9 +98,9 @@ public class ConversationModel : PageModel
 
         if (string.IsNullOrWhiteSpace(ViewModel.Question))
         {
-            ModelState.AddModelError(nameof(ViewModel.Question), "Please enter a question.");
+            ModelState.AddModelError(nameof(ViewModel.Question), "Vui lòng nhập câu hỏi.");
             if (IsAjaxRequest())
-                return BadRequest(new { error = "Please enter a question." });
+                return BadRequest(new { error = "Vui lòng nhập câu hỏi." });
             return Page();
         }
 

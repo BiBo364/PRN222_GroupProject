@@ -18,7 +18,7 @@ public static class SimpleEmbedder
     public static float[] GenerateVectorArray(string text, int dimension)
     {
         if (dimension <= 0)
-            throw new ArgumentOutOfRangeException(nameof(dimension), "Embedding dimension must be greater than zero.");
+            throw new ArgumentOutOfRangeException(nameof(dimension), "Số chiều biểu diễn ngữ nghĩa phải lớn hơn 0.");
 
         var vector = new float[dimension];
         var normalized = NormalizeText(text);

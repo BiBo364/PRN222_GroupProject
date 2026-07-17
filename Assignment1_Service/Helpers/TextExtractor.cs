@@ -36,7 +36,7 @@ public static class TextExtractor
             "pdf" => ExtractFromPdf(filePath),
             "docx" => ExtractFromDocx(filePath),
             "pptx" => ExtractFromPptx(filePath),
-            _ => throw new NotSupportedException($"File type '{fileType}' is not supported.")
+            _ => throw new NotSupportedException($"Loại tệp '{fileType}' không được hỗ trợ.")
         };
     }
 

@@ -35,7 +35,7 @@ public class ReturnModel : PageModel
             var ticket = await _momoPaymentService.GetTicketByOrderIdAsync(orderId);
             if (ticket is not null && ticket.Status == PaymentStatuses.Approved)
             {
-                TempData["Success"] = "Thanh toan MoMo thanh cong. Subscription da duoc kich hoat.";
+                TempData["Success"] = "Thanh toán MoMo thành công. Gói dịch vụ đã được kích hoạt.";
                 return RedirectToPage("/Subscription/Index");
             }
 
@@ -62,22 +62,22 @@ public class ReturnModel : PageModel
 
                 if (completed.Success)
                 {
-                    TempData["Success"] = "Thanh toan MoMo thanh cong. Subscription da duoc kich hoat.";
+                    TempData["Success"] = "Thanh toán MoMo thành công. Gói dịch vụ đã được kích hoạt.";
                     return RedirectToPage("/Subscription/Index");
                 }
 
-                TempData["Error"] = completed.Error ?? "MoMo da bao thanh cong nhung khong the kich hoat goi.";
+                TempData["Error"] = completed.Error ?? "MoMo đã xác nhận thành công nhưng hệ thống chưa thể kích hoạt gói.";
                 return RedirectToPage("/Subscription/Index");
             }
         }
 
         if (resultCode == 0)
         {
-            TempData["Info"] = "MoMo da ghi nhan giao dich. He thong dang cho xac nhan callback.";
+            TempData["Info"] = "MoMo đã ghi nhận giao dịch. Hệ thống đang chờ xác nhận từ cổng thanh toán.";
         }
         else
         {
-            TempData["Error"] = message ?? "Thanh toan MoMo chua hoan tat.";
+            TempData["Error"] = message ?? "Thanh toán MoMo chưa hoàn tất.";
         }
 
         return RedirectToPage("/Subscription/Index");

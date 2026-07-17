@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Assignment1_Repository.Models;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,7 @@ public static class DatabaseSchemaSynchronizer
         }
 
         await NormalizeSoftDeleteColumnsAsync(context);
+        await EnsureLearningSchemaConstraintsAsync(context);
     }
 
     private static async Task CreateTableAsync(
@@ -85,6 +87,32 @@ public static class DatabaseSchemaSynchronizer
         }
 
         await SyncIndexesAsync(context, entityType, schema, tableName, storeObject);
+        await SyncDefaultConstraintsAsync(context, entityType, schema, tableName, storeObject);
+    }
+
+    private static async Task SyncDefaultConstraintsAsync(
+        RagEduContext context,
+        IEntityType entityType,
+        string schema,
+        string tableName,
+        StoreObjectIdentifier storeObject)
+    {
+        foreach (var property in entityType.GetProperties())
+        {
+            var defaultExpression = ResolveDefaultExpression(property);
+            if (string.IsNullOrWhiteSpace(defaultExpression))
+                continue;
+
+            var columnName = ResolveColumnName(property, storeObject);
+            if (await DefaultConstraintExistsAsync(context, schema, tableName, columnName))
+                continue;
+
+            var constraintName = GetDefaultConstraintName(storeObject, columnName);
+            var sql =
+                $"ALTER TABLE [{schema}].[{tableName}] ADD CONSTRAINT [{constraintName}] " +
+                $"DEFAULT ({defaultExpression}) FOR [{columnName}];";
+            await context.Database.ExecuteSqlRawAsync(sql);
+        }
     }
 
     private static async Task SyncIndexesAsync(
@@ -122,6 +150,91 @@ public static class DatabaseSchemaSynchronizer
     {
         await NormalizeSoftDeleteColumnAsync(context, "dbo", "documents");
         await NormalizeSoftDeleteColumnAsync(context, "dbo", "subjects");
+        await NormalizeSoftDeleteColumnAsync(context, "dbo", "learning_sets");
+    }
+
+    private static Task EnsureLearningSchemaConstraintsAsync(RagEduContext context)
+    {
+        const string sql = """
+            IF OBJECT_ID(N'[dbo].[question_bank_items]', N'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_question_bank_subject')
+                    ALTER TABLE [dbo].[question_bank_items] WITH CHECK ADD CONSTRAINT [FK_question_bank_subject]
+                    FOREIGN KEY ([subject_id]) REFERENCES [dbo].[subjects] ([id]);
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_question_bank_chapter')
+                    ALTER TABLE [dbo].[question_bank_items] WITH CHECK ADD CONSTRAINT [FK_question_bank_chapter]
+                    FOREIGN KEY ([chapter_id]) REFERENCES [dbo].[chapters] ([id]) ON DELETE SET NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_question_bank_creator')
+                    ALTER TABLE [dbo].[question_bank_items] WITH CHECK ADD CONSTRAINT [FK_question_bank_creator]
+                    FOREIGN KEY ([created_by_user_id]) REFERENCES [dbo].[users] ([id]);
+            END;
+
+            IF OBJECT_ID(N'[dbo].[learning_sets]', N'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_sets_subject')
+                    ALTER TABLE [dbo].[learning_sets] WITH CHECK ADD CONSTRAINT [FK_learning_sets_subject]
+                    FOREIGN KEY ([subject_id]) REFERENCES [dbo].[subjects] ([id]);
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_sets_creator')
+                    ALTER TABLE [dbo].[learning_sets] WITH CHECK ADD CONSTRAINT [FK_learning_sets_creator]
+                    FOREIGN KEY ([created_by_user_id]) REFERENCES [dbo].[users] ([id]);
+            END;
+
+            IF OBJECT_ID(N'[dbo].[learning_set_items]', N'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_set_items_set')
+                    ALTER TABLE [dbo].[learning_set_items] WITH CHECK ADD CONSTRAINT [FK_learning_set_items_set]
+                    FOREIGN KEY ([learning_set_id]) REFERENCES [dbo].[learning_sets] ([id]) ON DELETE CASCADE;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_set_items_question')
+                    ALTER TABLE [dbo].[learning_set_items] WITH CHECK ADD CONSTRAINT [FK_learning_set_items_question]
+                    FOREIGN KEY ([question_bank_item_id]) REFERENCES [dbo].[question_bank_items] ([id]);
+            END;
+
+            IF OBJECT_ID(N'[dbo].[learning_attempts]', N'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_attempts_set')
+                    ALTER TABLE [dbo].[learning_attempts] WITH CHECK ADD CONSTRAINT [FK_learning_attempts_set]
+                    FOREIGN KEY ([learning_set_id]) REFERENCES [dbo].[learning_sets] ([id]) ON DELETE CASCADE;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_attempts_user')
+                    ALTER TABLE [dbo].[learning_attempts] WITH CHECK ADD CONSTRAINT [FK_learning_attempts_user]
+                    FOREIGN KEY ([user_id]) REFERENCES [dbo].[users] ([id]);
+            END;
+
+            IF OBJECT_ID(N'[dbo].[learning_attempt_answers]', N'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_answers_attempt')
+                    ALTER TABLE [dbo].[learning_attempt_answers] WITH CHECK ADD CONSTRAINT [FK_learning_answers_attempt]
+                    FOREIGN KEY ([learning_attempt_id]) REFERENCES [dbo].[learning_attempts] ([id]) ON DELETE CASCADE;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_answers_question')
+                    ALTER TABLE [dbo].[learning_attempt_answers] WITH CHECK ADD CONSTRAINT [FK_learning_answers_question]
+                    FOREIGN KEY ([question_bank_item_id]) REFERENCES [dbo].[question_bank_items] ([id]);
+            END;
+
+            IF OBJECT_ID(N'[dbo].[learning_set_versions]', N'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_set_versions_set')
+                    ALTER TABLE [dbo].[learning_set_versions] WITH CHECK ADD CONSTRAINT [FK_learning_set_versions_set]
+                    FOREIGN KEY ([learning_set_id]) REFERENCES [dbo].[learning_sets] ([id]) ON DELETE CASCADE;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_learning_set_versions_creator')
+                    ALTER TABLE [dbo].[learning_set_versions] WITH CHECK ADD CONSTRAINT [FK_learning_set_versions_creator]
+                    FOREIGN KEY ([created_by_user_id]) REFERENCES [dbo].[users] ([id]);
+            END;
+
+            IF OBJECT_ID(N'[dbo].[audit_logs]', N'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_audit_logs_user')
+                    ALTER TABLE [dbo].[audit_logs] WITH CHECK ADD CONSTRAINT [FK_audit_logs_user]
+                    FOREIGN KEY ([user_id]) REFERENCES [dbo].[users] ([id]) ON DELETE SET NULL;
+            END;
+            """;
+
+        return context.Database.ExecuteSqlRawAsync(sql);
     }
 
     private static async Task NormalizeSoftDeleteColumnAsync(
@@ -150,7 +263,7 @@ public static class DatabaseSchemaSynchronizer
         var identity = allowIdentity && property.ValueGenerated == ValueGenerated.OnAdd && IsIntegerType(property.ClrType)
             ? " IDENTITY(1,1)"
             : string.Empty;
-        var defaultSql = property.GetDefaultValueSql();
+        var defaultSql = ResolveDefaultExpression(property);
 
         if (identity.Length > 0)
         {
@@ -207,6 +320,32 @@ public static class DatabaseSchemaSynchronizer
             return $"NVARCHAR({maxLength.Value})";
 
         return "NVARCHAR(MAX)";
+    }
+
+    private static string? ResolveDefaultExpression(IProperty property)
+    {
+        var defaultSql = property.GetDefaultValueSql();
+        if (!string.IsNullOrWhiteSpace(defaultSql))
+            return defaultSql;
+
+        var defaultValueAnnotation = property.FindAnnotation(RelationalAnnotationNames.DefaultValue);
+        if (defaultValueAnnotation is null)
+            return null;
+
+        var defaultValue = defaultValueAnnotation.Value;
+        return defaultValue switch
+        {
+            null => null,
+            bool value => value ? "1" : "0",
+            string value => $"N'{value.Replace("'", "''")}'",
+            char value => $"N'{value.ToString().Replace("'", "''")}'",
+            DateTime value => $"'{value:yyyy-MM-ddTHH:mm:ss.fffffff}'",
+            DateTimeOffset value => $"'{value:yyyy-MM-ddTHH:mm:ss.fffffffzzz}'",
+            Guid value => $"'{value:D}'",
+            Enum value => Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
+            IFormattable value => value.ToString(null, CultureInfo.InvariantCulture),
+            _ => null
+        };
     }
 
     private static string GetPrimaryKeyName(IEntityType entityType)
@@ -283,6 +422,33 @@ public static class DatabaseSchemaSynchronizer
             new SqlParameter("@schema", schema),
             new SqlParameter("@tableName", tableName),
             new SqlParameter("@indexName", indexName)) > 0;
+    }
+
+    private static async Task<bool> DefaultConstraintExistsAsync(
+        RagEduContext context,
+        string schema,
+        string tableName,
+        string columnName)
+    {
+        const string sql = """
+                           SELECT COUNT(1)
+                           FROM sys.default_constraints dc
+                           INNER JOIN sys.columns c
+                               ON c.object_id = dc.parent_object_id
+                               AND c.column_id = dc.parent_column_id
+                           INNER JOIN sys.tables t ON t.object_id = dc.parent_object_id
+                           INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
+                           WHERE s.name = @schema
+                             AND t.name = @tableName
+                             AND c.name = @columnName
+                           """;
+
+        return await ExecuteCountAsync(
+            context,
+            sql,
+            new SqlParameter("@schema", schema),
+            new SqlParameter("@tableName", tableName),
+            new SqlParameter("@columnName", columnName)) > 0;
     }
 
     private static async Task<int> ExecuteCountAsync(

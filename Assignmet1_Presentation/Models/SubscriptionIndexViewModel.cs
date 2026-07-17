@@ -21,7 +21,7 @@ public class SubscriptionIndexViewModel
     public DateTime? FilterToDate { get; set; }
     public decimal AdminTotalRevenue { get; set; }
     public int AdminSuccessfulOrders { get; set; }
-    public string AdminTopPlanName { get; set; } = "Chua co";
+    public string AdminTopPlanName { get; set; } = "Chưa có";
     public int AdminTopPlanCount { get; set; }
     public decimal AdminAverageOrderValue { get; set; }
     public List<AdminSubscriptionPlanReportViewModel> AdminPlanReports { get; set; } = [];

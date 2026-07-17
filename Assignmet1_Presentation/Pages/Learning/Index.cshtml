@@ -1,0 +1,265 @@
+@page
+@model Assignmet1_Presentation.Pages.Learning.IndexModel
+@{
+    ViewData["Title"] = "Trung tâm ôn tập";
+}
+
+@functions {
+    private static string ActivityLabel(string type) => type switch
+    {
+        LearningActivityTypes.Flashcard => "Thẻ ghi nhớ",
+        LearningActivityTypes.Matching => "Ghép cặp kiến thức",
+        LearningActivityTypes.SpeedChallenge => "Thử thách tốc độ",
+        _ => "Quiz"
+    };
+
+    private static string ActivityIcon(string type) => type switch
+    {
+        LearningActivityTypes.Flashcard => "copy",
+        LearningActivityTypes.Matching => "workflow",
+        LearningActivityTypes.SpeedChallenge => "timer",
+        _ => "list-checks"
+    };
+}
+
+@if (Model.Dashboard is null)
+{
+    <section class="learning-empty surface-card">
+        <span class="learning-icon learning-icon-lg">
+            <i data-lucide="book-dashed"></i>
+        </span>
+        <h1>Chưa có môn học để ôn tập</h1>
+        <p>Tài khoản của bạn chưa được phân công môn học. Vui lòng liên hệ quản trị viên để được hỗ trợ.</p>
+        <a class="btn btn-primary" asp-page="/Home/Index">Về trang chủ</a>
+    </section>
+}
+else
+{
+    var data = Model.Dashboard;
+    var subject = data.Subject;
+
+    <section class="learning-hero">
+        <div class="learning-hero-copy">
+            <span class="eyebrow">Không gian học tập thông minh</span>
+            @if (data.IsGlobalCatalog)
+            {
+                <h1>Quiz từ mọi môn học, dành cho mọi sinh viên</h1>
+                <p>
+                    Khám phá và làm tất cả Quiz đã được giảng viên phát hành.
+                    Bạn không cần được phân công vào từng môn học.
+                </p>
+            }
+            else if (subject is not null)
+            {
+                <h1>Ôn tập chủ động cùng @subject.Code</h1>
+                <p>
+                    Quiz, thẻ ghi nhớ và trò chơi được xây dựng từ chính tài liệu của
+                    <strong>@subject.Name</strong>.
+                </p>
+            }
+            <div class="learning-hero-actions">
+                @if (data.CanManage)
+                {
+                    <a class="btn btn-light" asp-page="/Learning/Generate">
+                        <i data-lucide="wand-sparkles" class="icon-sm"></i>
+                        Tạo câu hỏi bằng AI
+                    </a>
+                    <a class="btn btn-outline-light" asp-page="/Learning/ManualEditor">
+                        <i data-lucide="file-plus-2" class="icon-sm"></i>
+                        Tạo Quiz thủ công
+                    </a>
+                    <a class="btn btn-outline-light" asp-page="/Learning/Compose">
+                        <i data-lucide="layers-3" class="icon-sm"></i>
+                        Tổng hợp bộ ôn tập
+                    </a>
+                }
+                else
+                {
+                    <a class="btn btn-light" href="#published-learning-sets">
+                        <i data-lucide="play" class="icon-sm"></i>
+                        Bắt đầu ôn tập
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="learning-hero-orbit" aria-hidden="true">
+            <span class="orbit-ring orbit-ring-one"></span>
+            <span class="orbit-ring orbit-ring-two"></span>
+            <span class="orbit-core"><i data-lucide="brain-circuit"></i></span>
+            <span class="orbit-node orbit-node-one"><i data-lucide="check"></i></span>
+            <span class="orbit-node orbit-node-two"><i data-lucide="book-open-check"></i></span>
+            <span class="orbit-node orbit-node-three"><i data-lucide="timer"></i></span>
+        </div>
+    </section>
+
+    @if (data.CanManage)
+    {
+        <section class="learning-stat-grid">
+            <article class="learning-stat surface-card">
+                <span class="learning-icon"><i data-lucide="database"></i></span>
+                <div>
+                    <strong>@data.ActiveQuestionCount</strong>
+                    <span>Câu hỏi đang hoạt động</span>
+                </div>
+            </article>
+            <article class="learning-stat surface-card">
+                <span class="learning-icon learning-icon-violet"><i data-lucide="library-big"></i></span>
+                <div>
+                    <strong>@data.LearningSets.Count</strong>
+                    <span>Bộ ôn tập đã thiết kế</span>
+                </div>
+            </article>
+            <article class="learning-quick surface-card">
+                <div>
+                    <strong>Quản lý nội dung</strong>
+                    <span>Rà soát, chỉnh sửa và tái sử dụng câu hỏi.</span>
+                </div>
+                <div class="learning-quick-actions">
+                    <a class="btn btn-outline-primary btn-sm" asp-page="/Learning/Analytics">
+                        <i data-lucide="chart-no-axes-combined" class="icon-sm"></i>
+                        Xem thống kê
+                    </a>
+                    <a class="btn btn-outline-primary btn-sm" asp-page="/Learning/QuestionBank">
+                        Mở ngân hàng đề
+                        <i data-lucide="arrow-up-right" class="icon-sm"></i>
+                    </a>
+                    <a class="btn btn-outline-secondary btn-sm" asp-page="/Audit/Index">
+                        <i data-lucide="scroll-text" class="icon-sm"></i>
+                        Nhật ký
+                    </a>
+                    <a class="btn btn-outline-secondary btn-sm" asp-page="/Learning/Recycle">
+                        <i data-lucide="archive-restore" class="icon-sm"></i>
+                        Thùng rác
+                    </a>
+                </div>
+            </article>
+        </section>
+    }
+    else if (data.IsGlobalCatalog)
+    {
+        <section class="learning-stat-grid learning-stat-grid-compact">
+            <article class="learning-stat surface-card">
+                <span class="learning-icon"><i data-lucide="library-big"></i></span>
+                <div>
+                    <strong>@data.LearningSets.Count</strong>
+                    <span>Hoạt động đã phát hành</span>
+                </div>
+            </article>
+            <article class="learning-stat surface-card">
+                <span class="learning-icon learning-icon-violet"><i data-lucide="book-open-check"></i></span>
+                <div>
+                    <strong>@data.SubjectCount</strong>
+                    <span>Môn học đang có nội dung</span>
+                </div>
+            </article>
+            <article class="learning-stat surface-card">
+                <span class="learning-icon learning-icon-amber"><i data-lucide="history"></i></span>
+                <div>
+                    <strong>@data.RecentAttempts.Count</strong>
+                    <span>Lần làm bài gần đây</span>
+                </div>
+            </article>
+        </section>
+    }
+
+    <section class="learning-section" id="published-learning-sets">
+        <div class="learning-section-heading">
+            <div>
+                <span class="eyebrow">Bộ sưu tập ôn tập</span>
+                <h2>@(data.CanManage ? "Nội dung của môn học" : "Quiz từ tất cả môn học")</h2>
+            </div>
+            @if (data.CanManage)
+            {
+                <a class="text-link" asp-page="/Learning/Compose">
+                    Tạo bộ mới
+                    <i data-lucide="arrow-right" class="icon-sm"></i>
+                </a>
+            }
+        </div>
+
+        @if (data.LearningSets.Count == 0)
+        {
+            <div class="learning-empty-inline surface-card">
+                <span class="learning-icon"><i data-lucide="panel-top-open"></i></span>
+                <div>
+                    <h3>Chưa có bộ ôn tập</h3>
+                    <p>
+                        @(data.CanManage
+                            ? "Hãy tạo câu hỏi từ tài liệu bằng AI, tự soạn Quiz thủ công hoặc tổng hợp nội dung từ ngân hàng đề."
+                            : "Hiện chưa có giảng viên phát hành hoạt động ôn tập. Hãy quay lại sau.")
+                    </p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="learning-card-grid">
+                @foreach (var set in data.LearningSets)
+                {
+                    <article class="learning-set-card surface-card">
+                        <div class="learning-set-top">
+                            <span class="learning-icon learning-icon-violet">
+                                <i data-lucide="@ActivityIcon(set.ActivityType)"></i>
+                            </span>
+                            @if (data.IsGlobalCatalog)
+                            {
+                                <span class="topic-badge" title="@set.SubjectName">
+                                    @set.SubjectCode
+                                </span>
+                            }
+                            else if (data.CanManage)
+                            {
+                                <span class="publication-badge @(set.IsPublished ? "is-published" : "is-draft")">
+                                    @(set.IsPublished ? "Đã phát hành" : "Bản nháp")
+                                </span>
+                            }
+                        </div>
+                        <div class="learning-set-content">
+                            <span class="learning-set-type">@ActivityLabel(set.ActivityType)</span>
+                            <h3>@set.Title</h3>
+                            <p>@(string.IsNullOrWhiteSpace(set.Description) ? "Bộ nội dung ôn tập dành cho môn học." : set.Description)</p>
+                        </div>
+                        <div class="learning-set-meta">
+                            <span><i data-lucide="circle-help" class="icon-xs"></i> @set.QuestionCount nội dung</span>
+                            @if (set.DurationMinutes.HasValue)
+                            {
+                                <span><i data-lucide="clock-3" class="icon-xs"></i> @set.DurationMinutes phút</span>
+                            }
+                        </div>
+                        <a class="learning-set-link"
+                           asp-page="@(data.CanManage ? "/Learning/Details" : "/Learning/Play")"
+                           asp-route-id="@set.Id">
+                            @(data.CanManage ? "Xem và quản lý" : "Bắt đầu hoạt động")
+                            <i data-lucide="arrow-right" class="icon-sm"></i>
+                        </a>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    @if (!data.CanManage && data.RecentAttempts.Count > 0)
+    {
+        <section class="learning-section">
+            <div class="learning-section-heading">
+                <div>
+                    <span class="eyebrow">Tiến độ gần đây</span>
+                    <h2>Kết quả Quiz của bạn</h2>
+                </div>
+            </div>
+            <div class="attempt-list surface-card">
+                @foreach (var attempt in data.RecentAttempts.Take(6))
+                {
+                    <a class="attempt-row" asp-page="/Learning/Play" asp-route-id="@attempt.LearningSetId">
+                        <span class="attempt-score">@attempt.Percentage.ToString("0.#")%</span>
+                        <span class="attempt-copy">
+                            <strong>@attempt.SubjectCode · @attempt.LearningSetTitle</strong>
+                            <small>@attempt.CorrectCount/@attempt.TotalQuestions câu đúng · @attempt.CompletedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                        </span>
+                        <i data-lucide="chevron-right" class="icon-sm"></i>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+}

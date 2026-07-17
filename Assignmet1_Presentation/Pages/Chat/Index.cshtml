@@ -32,7 +32,7 @@
         @Model.ViewModel.QuotaStatus.Message
         @if (!Model.ViewModel.QuotaStatus.IsPlus)
         {
-            <a class="ms-2" asp-page="/Subscription/Index">Xem goi Plus</a>
+            <a class="ms-2" asp-page="/Subscription/Index">Xem gói Plus</a>
         }
     </div>
 }
@@ -46,7 +46,7 @@
                 <option value="">-- Chọn môn học --</option>
                 @foreach (var subject in Model.ViewModel.AvailableSubjects)
                 {
-                    <option value="@subject.Id" selected="@(subject.Id == Model.ViewModel.SelectedSubjectId)">@subject.Code - @subject.Name</option>
+                    <option value="@subject.Id" selected="@(subject.Id == Model.ViewModel.SelectedSubjectId ? "selected" : null)">@subject.Code - @subject.Name</option>
                 }
             </select>
         </div>

@@ -4,53 +4,145 @@
     ViewData["Title"] = "Trang chủ";
     var userId = Model.UserId;
     var displayName = Model.DisplayName;
+    var roleId = HttpContext.Session.GetInt32("RoleId");
 }
 
-<section class="page-hero mb-4">
-    <div class="hero-badge mb-3">Nền tảng học tập trực tuyến</div>
-    <div class="hero-grid align-items-center">
-        <div>
-            <h1 class="page-title">Không gian học tập tích hợp tài liệu, Chat AI và quản lý học phí.</h1>
-            <p class="page-subtitle fs-5">
-                Duyệt tài liệu, đặt câu hỏi với câu trả lời có trích dẫn, và quản lý thanh toán trong một ứng dụng.
+<section class="page-hero home-hero mb-4">
+    <div class="home-hero-grid">
+        <div class="home-hero-copy">
+            <div class="hero-badge mb-4">
+                <i data-lucide="sparkles" class="icon-sm"></i>
+                Không gian học tập thông minh
+            </div>
+
+            <h1 class="home-hero-title">
+                Biến tài liệu thành <span>trải nghiệm học tập chủ động.</span>
+            </h1>
+
+            <p class="home-hero-subtitle">
+                Quản lý học liệu, hỏi đáp có nguồn tham khảo và dùng AI để tạo câu hỏi,
+                thẻ ghi nhớ cùng trò chơi ôn tập trong một quy trình thống nhất.
             </p>
-            <div class="d-flex flex-wrap gap-2 mt-4">
+
+            <div class="home-hero-actions">
                 @if (userId is not null)
                 {
-                    <a class="btn btn-primary" asp-page="/Documents/Index">Mở thư viện</a>
-                    <a class="btn btn-outline-light" asp-page="/Chat/Index">Bắt đầu chat</a>
-                    <a class="btn btn-outline-secondary" asp-page="/Subscription/Index">Gói học</a>
+                    @if (roleId == 1)
+                    {
+                        <a class="btn btn-primary btn-lg" asp-page="/Subjects/Manage">
+                            <i data-lucide="layout-dashboard" class="icon-sm"></i>
+                            Mở trang quản trị
+                        </a>
+                        <a class="btn btn-outline-primary btn-lg" asp-page="/Admin/Index">
+                            <i data-lucide="users" class="icon-sm"></i>
+                            Quản lý người dùng
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-primary btn-lg" asp-page="/Learning/Index">
+                            <i data-lucide="brain-circuit" class="icon-sm"></i>
+                            Mở trung tâm ôn tập
+                        </a>
+                        <a class="btn btn-outline-primary btn-lg" asp-page="/Documents/Index">
+                            <i data-lucide="library" class="icon-sm"></i>
+                            Khám phá thư viện
+                        </a>
+                    }
                 }
                 else
                 {
-                    <a class="btn btn-primary" asp-page="/Account/Login">Đăng nhập</a>
-                    <a class="btn btn-outline-light" asp-page="/Home/Privacy">Tìm hiểu thêm</a>
+                    <a class="btn btn-primary btn-lg" asp-page="/Account/Login">
+                        <i data-lucide="log-in" class="icon-sm"></i>
+                        Bắt đầu học tập
+                    </a>
+                    <a class="btn btn-outline-primary btn-lg" asp-page="/Home/Privacy">
+                        <i data-lucide="shield-check" class="icon-sm"></i>
+                        Tìm hiểu nền tảng
+                    </a>
                 }
             </div>
+
+            <div class="home-trust-row" aria-label="Điểm nổi bật của nền tảng">
+                <span><i data-lucide="check-circle-2"></i> Câu trả lời bám sát tài liệu</span>
+                <span><i data-lucide="check-circle-2"></i> Phân quyền theo vai trò</span>
+                <span><i data-lucide="check-circle-2"></i> Giao diện thích ứng mọi thiết bị</span>
+            </div>
         </div>
-        <div class="surface-card">
-            <div class="stat-label mb-2">Trạng thái</div>
-            <div class="stat-value mb-2">@((userId is not null) ? "Sẵn sàng" : "Vui lòng đăng nhập")</div>
-            <p class="page-subtitle mb-3">
-                @if (userId is not null)
-                {
-                    <span>Đăng nhập với tên <strong>@displayName</strong>. Tài liệu, phiên chat và thông tin học phí sẵn sàng.</span>
-                }
-                else
-                {
-                    <span>Hãy đăng nhập để truy cập tài liệu, chat AI và các tính năng khác.</span>
-                }
-            </p>
-            <div class="d-grid gap-2">
-                <div class="mini-panel">
-                    <div class="stat-label">Giao diện</div>
-                    <div class="fw-semibold">Kiến trúc MVC 3 lớp</div>
+
+        <div class="home-workspace-preview" aria-label="Mô phỏng không gian làm việc">
+            <div class="home-preview-bar">
+                <div class="home-preview-dots" aria-hidden="true">
+                    <span></span><span></span><span></span>
                 </div>
-                <div class="mini-panel">
-                    <div class="stat-label">Backend</div>
-                    <div class="fw-semibold">Phân tách Service + Repository</div>
+                <div class="home-preview-status">
+                    @(userId is not null ? "Phiên học đã sẵn sàng" : "Hệ thống đang hoạt động")
+                </div>
+            </div>
+
+            <div class="home-preview-main">
+                <div class="home-preview-sidebar" aria-hidden="true">
+                    <span><i data-lucide="home"></i></span>
+                    <span><i data-lucide="library"></i></span>
+                    <span><i data-lucide="message-square"></i></span>
+                    <span><i data-lucide="brain-circuit"></i></span>
+                </div>
+
+                <div class="home-preview-content">
+                    <div class="home-preview-welcome">
+                        <small>@(userId is not null ? "Chào mừng bạn trở lại" : "Chào mừng đến RAG Edu Hub")</small>
+                        <strong>@(userId is not null ? displayName : "Học đúng trọng tâm, ghi nhớ lâu hơn")</strong>
+                    </div>
+
+                    <div class="home-preview-grid">
+                        <div class="home-preview-card">
+                            <i data-lucide="files"></i>
+                            <strong>Thư viện học liệu</strong>
+                        </div>
+                        <div class="home-preview-card">
+                            <i data-lucide="bot"></i>
+                            <strong>Hỏi đáp cùng AI</strong>
+                        </div>
+                        <div class="home-preview-card">
+                            <i data-lucide="clipboard-check"></i>
+                            <strong>Bài kiểm tra ôn tập</strong>
+                        </div>
+                        <div class="home-preview-card">
+                            <i data-lucide="panels-top-left"></i>
+                            <strong>Thẻ ghi nhớ và trò chơi</strong>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+</section>
+
+<section class="home-capabilities" aria-label="Các năng lực chính">
+    <article class="home-capability-card">
+        <div class="home-capability-icon"><i data-lucide="scan-text"></i></div>
+        <h2>Học liệu có cấu trúc</h2>
+        <p>
+            Tài liệu được tổ chức theo môn học và chương, giúp giảng viên quản lý thuận tiện
+            và sinh viên tìm đúng nội dung cần học.
+        </p>
+    </article>
+
+    <article class="home-capability-card">
+        <div class="home-capability-icon"><i data-lucide="message-circle-more"></i></div>
+        <h2>Hỏi đáp có căn cứ</h2>
+        <p>
+            Câu trả lời được xây dựng từ nội dung đã lập chỉ mục, đi kèm nguồn tham khảo
+            để người học dễ dàng kiểm chứng.
+        </p>
+    </article>
+
+    <article class="home-capability-card">
+        <div class="home-capability-icon"><i data-lucide="wand-sparkles"></i></div>
+        <h2>Ôn tập bằng AI</h2>
+        <p>
+            Giảng viên tạo ngân hàng câu hỏi từ tài liệu, sau đó tái sử dụng để phối hợp
+            bài kiểm tra, thẻ ghi nhớ và trò chơi học tập.
+        </p>
+    </article>
 </section>

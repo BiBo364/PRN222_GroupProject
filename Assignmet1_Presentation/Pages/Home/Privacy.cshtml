@@ -1,9 +1,61 @@
+@page "/Home/Privacy"
 @{
     ViewData["Title"] = "Chính sách riêng tư";
 }
 
-<section class="page-hero">
-    <div class="hero-badge mb-3">Chính sách</div>
-    <h1 class="page-title">Chính sách riêng tư</h1>
-    <p class="page-subtitle">Trang này mô tả chính sách bảo mật thông tin cá nhân của chúng tôi.</p>
+<section class="page-hero mb-4">
+    <div class="hero-badge mb-3">
+        <i data-lucide="shield-check" class="icon-sm"></i>
+        Quyền riêng tư và dữ liệu
+    </div>
+    <h1 class="page-title">Minh bạch trong cách dữ liệu học tập được sử dụng.</h1>
+    <p class="page-subtitle">
+        RAG Edu Hub chỉ xử lý thông tin cần thiết để vận hành tài khoản, học liệu,
+        hoạt động ôn tập và các tính năng hỗ trợ học tập.
+    </p>
 </section>
+
+<section class="privacy-grid">
+    <article class="privacy-card">
+        <div class="privacy-card-icon"><i data-lucide="database"></i></div>
+        <h2>Dữ liệu được lưu trữ</h2>
+        <p>
+            Hệ thống lưu thông tin tài khoản, môn học, tài liệu, lịch sử hỏi đáp,
+            kết quả ôn tập và dữ liệu giao dịch cần thiết cho chức năng mà bạn sử dụng.
+        </p>
+    </article>
+
+    <article class="privacy-card">
+        <div class="privacy-card-icon"><i data-lucide="bot"></i></div>
+        <h2>Sử dụng AI</h2>
+        <p>
+            Khi giảng viên tạo nội dung ôn tập hoặc người học dùng chức năng AI,
+            phần nội dung tài liệu liên quan có thể được gửi đến nhà cung cấp AI để xử lý yêu cầu.
+        </p>
+    </article>
+
+    <article class="privacy-card">
+        <div class="privacy-card-icon"><i data-lucide="key-round"></i></div>
+        <h2>Quyền truy cập</h2>
+        <p>
+            Dữ liệu được giới hạn theo vai trò quản trị viên, giảng viên và sinh viên.
+            Mỗi người dùng chỉ truy cập các chức năng và môn học được cấp quyền.
+        </p>
+    </article>
+</section>
+
+<div class="surface-card mt-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <div class="stat-label mb-2">Lưu ý sử dụng</div>
+            <h2 class="h5 fw-bold mb-1">Không tải lên thông tin nhạy cảm không phục vụ học tập.</h2>
+            <p class="text-muted mb-0">
+                Người dùng chịu trách nhiệm bảo vệ mật khẩu và kiểm tra quyền chia sẻ của tài liệu trước khi tải lên.
+            </p>
+        </div>
+        <a class="btn btn-outline-primary flex-shrink-0" asp-page="/Home/Index">
+            <i data-lucide="arrow-left" class="icon-sm"></i>
+            Về trang chủ
+        </a>
+    </div>
+</div>

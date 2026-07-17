@@ -108,7 +108,7 @@ Model sinh câu trả lời là **Google Gemini**, gọi REST API `:generateCont
 Model mặc định trong `GeminiOptions` và `appsettings.example.json` là:
 
 ```text
-gemini-2.5-flash
+gemini-3.1-flash-lite
 ```
 
 API key, model và BaseUrl lấy từ section `Gemini` trong appsettings/user-secrets. Prompt yêu cầu trả lời bằng tiếng Việt và chỉ dựa trên context đã truy xuất.

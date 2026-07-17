@@ -67,7 +67,7 @@ public class DetailsModel : PageModel
         var document = await _documentService.GetDocumentByIdAsync(id);
         if (document is null)
         {
-            TempData["Error"] = "Khong tim thay tai lieu can cap nhat.";
+            TempData["Error"] = "Không tìm thấy tài liệu cần cập nhật.";
             return RedirectToPage("/Documents/Index");
         }
 
@@ -79,13 +79,13 @@ public class DetailsModel : PageModel
 
         if (updated is null)
         {
-            TempData["Error"] = error ?? "Cap nhat tai lieu that bai.";
+            TempData["Error"] = error ?? "Cập nhật tài liệu thất bại.";
             return RedirectToPage("/Documents/Details", new { id });
         }
 
         await BroadcastDocumentUpdatedAsync(updated.Id);
         await BroadcastCourseUpdatedAsync(updated.SubjectId);
-        TempData["Success"] = $"Da cap nhat tai lieu: {updated.OriginalName}.";
+        TempData["Success"] = $"Đã cập nhật tài liệu: {updated.OriginalName}.";
         return RedirectToPage("/Documents/Details", new { id });
     }
 
@@ -108,7 +108,7 @@ public class DetailsModel : PageModel
 
         if (result is null)
         {
-            TempData["Error"] = error ?? "Re-index failed.";
+            TempData["Error"] = error ?? "Lập lại chỉ mục thất bại.";
             return RedirectToPage("/Documents/Details", new { id });
         }
 
@@ -124,14 +124,14 @@ public class DetailsModel : PageModel
         var userId = HttpContext.Session.GetInt32("UserId");
         if (roleId is null || userId is null || !DocumentPermissions.CanDelete(roleId.Value))
         {
-            TempData["Error"] = "Ban khong co quyen xoa tai lieu.";
+            TempData["Error"] = "Bạn không có quyền xóa tài liệu.";
             return RedirectAfterDelete(returnSubjectId);
         }
 
         var document = await _documentService.GetDocumentByIdAsync(id);
         if (document is null)
         {
-            TempData["Error"] = "Khong tim thay tai lieu can xoa.";
+            TempData["Error"] = "Không tìm thấy tài liệu cần xóa.";
             return RedirectAfterDelete(returnSubjectId);
         }
 
@@ -141,7 +141,7 @@ public class DetailsModel : PageModel
                 HttpContext.Session.GetInt32("SubjectId"),
                 document.SubjectId.Value))
         {
-            TempData["Error"] = "Ban chi co the xoa tai lieu trong mon hoc duoc gan.";
+            TempData["Error"] = "Bạn chỉ có thể xóa tài liệu thuộc môn học được phân công.";
             return RedirectAfterDelete(returnSubjectId ?? document.SubjectId);
         }
 
@@ -153,13 +153,13 @@ public class DetailsModel : PageModel
 
         if (!deleted)
         {
-            TempData["Error"] = "Khong the xoa tai lieu. Vui long thu lai.";
+            TempData["Error"] = "Không thể xóa tài liệu. Vui lòng thử lại.";
             return RedirectAfterDelete(returnSubjectId ?? document.SubjectId);
         }
 
         await BroadcastDocumentDeletedAsync(id);
         await BroadcastCourseUpdatedAsync(deletedSubjectId);
-        TempData["Success"] = $"Da xoa mem tai lieu: {deletedDocumentName}. Ban co the khoi phuc trong Thung rac tai lieu.";
+        TempData["Success"] = $"Đã chuyển tài liệu vào thùng rác: {deletedDocumentName}. Bạn có thể khôi phục trong thùng rác tài liệu.";
         return RedirectAfterDelete(returnSubjectId ?? deletedSubjectId);
     }
 

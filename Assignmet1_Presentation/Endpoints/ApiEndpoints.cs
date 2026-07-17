@@ -23,11 +23,11 @@ public static class ApiEndpoints
         {
             var roleId = httpContext.Session.GetInt32("RoleId");
             if (roleId is null || !DocumentPermissions.CanDelete(roleId.Value))
-                return Results.Json(new { message = "Ban khong co quyen xoa tai lieu." }, statusCode: StatusCodes.Status403Forbidden);
+                return Results.Json(new { message = "Bạn không có quyền xóa tài liệu." }, statusCode: StatusCodes.Status403Forbidden);
 
             var document = await documentService.GetDocumentByIdAsync(id);
             if (document is null)
-                return Results.NotFound(new { message = "Document not found." });
+                return Results.NotFound(new { message = "Không tìm thấy tài liệu." });
 
             if (!document.SubjectId.HasValue
                 || !DocumentPermissions.CanUploadToSubject(
@@ -35,7 +35,7 @@ public static class ApiEndpoints
                     httpContext.Session.GetInt32("SubjectId"),
                     document.SubjectId.Value))
             {
-                return Results.Json(new { message = "Ban chi co the xoa tai lieu trong mon hoc duoc gan." }, statusCode: StatusCodes.Status403Forbidden);
+                return Results.Json(new { message = "Bạn chỉ có thể xóa tài liệu thuộc môn học được phân công." }, statusCode: StatusCodes.Status403Forbidden);
             }
 
             var deletedDocumentName = document.OriginalName;
@@ -49,7 +49,7 @@ public static class ApiEndpoints
                 httpContext.Session.GetInt32("UserId"));
 
             if (!deleted)
-                return Results.NotFound(new { message = "Document not found." });
+                return Results.NotFound(new { message = "Không tìm thấy tài liệu." });
 
             await appHub.Clients.All.SendAsync("DocumentDeleted", id);
             if (deletedSubjectId is int subjectId)
@@ -60,7 +60,7 @@ public static class ApiEndpoints
                     await appHub.Clients.All.SendAsync("CourseUpdated", ViewModelMapper.ToListItemViewModel(subject));
             }
 
-            return Results.Ok(new { message = $"Da xoa mem tai lieu: {deletedDocumentName}." });
+            return Results.Ok(new { message = $"Đã chuyển tài liệu vào thùng rác: {deletedDocumentName}." });
         });
 
         app.MapPost("/api/subjects", async (
@@ -74,7 +74,7 @@ public static class ApiEndpoints
                 return Results.Forbid();
 
             if (string.IsNullOrWhiteSpace(model.Code) || string.IsNullOrWhiteSpace(model.Name))
-                return Results.BadRequest(new { message = "Code and Name are required." });
+                return Results.BadRequest(new { message = "Mã và tên môn học là bắt buộc." });
 
             try
             {

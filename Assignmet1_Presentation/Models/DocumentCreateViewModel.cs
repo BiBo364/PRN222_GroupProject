@@ -9,15 +9,15 @@ public class DocumentCreateViewModel
 
     public int? SubjectId { get; set; }
 
-    [Required(ErrorMessage = "Please provide a file name.")]
-    [Display(Name = "File name")]
+    [Required(ErrorMessage = "Vui lòng nhập tên tệp.")]
+    [Display(Name = "Tên tệp")]
     public string? OriginalName { get; set; }
 
-    [Required]
-    [Display(Name = "Type")]
+    [Required(ErrorMessage = "Vui lòng chọn loại tệp.")]
+    [Display(Name = "Loại tệp")]
     public string FileType { get; set; } = "pdf";
 
-    [Display(Name = "Chapter")]
+    [Display(Name = "Chương")]
     public int? ChapterId { get; set; }
 
     public List<SelectListItem> ChapterOptions { get; set; } = [];

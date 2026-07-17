@@ -44,7 +44,7 @@ public class LoginModel : PageModel
         var user = await _userServices.LoginAsync(Input.Username, Input.Password);
         if (user is null)
         {
-            ModelState.AddModelError(string.Empty, "Ten dang nhap hoac mat khau khong dung.");
+            ModelState.AddModelError(string.Empty, "Tên đăng nhập hoặc mật khẩu không đúng.");
             return Page();
         }
 
@@ -61,7 +61,7 @@ public class LoginModel : PageModel
         if (user.RequirePasswordChange)
         {
             HttpContext.Session.SetString("ForcePasswordChange", "true");
-            TempData["Warning"] = "Tai khoan cua ban dang dung mat khau mac dinh. Vui long dat mat khau moi truoc khi tiep tuc.";
+            TempData["Warning"] = "Tài khoản của bạn đang sử dụng mật khẩu mặc định. Vui lòng đặt mật khẩu mới trước khi tiếp tục.";
             return RedirectToPage("/Account/ChangePassword");
         }
 

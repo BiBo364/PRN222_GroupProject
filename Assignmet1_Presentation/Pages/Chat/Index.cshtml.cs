@@ -41,7 +41,7 @@ public class IndexModel : PageModel
 
             if (selectedSubject is null)
             {
-                TempData["Error"] = "Selected subject is not available for chat.";
+                TempData["Error"] = "Môn học đã chọn hiện không khả dụng cho Chat AI.";
             }
             else
             {

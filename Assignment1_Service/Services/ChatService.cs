@@ -86,13 +86,13 @@ public class ChatService : IChatService
     public async Task<ChatReplyDto> AskAsync(string sessionId, string userId, string question)
     {
         var session = await _chatRepository.GetSessionForUserAsync(sessionId, userId)
-            ?? throw new InvalidOperationException("Session not found.");
+            ?? throw new InvalidOperationException("Không tìm thấy cuộc trò chuyện.");
 
         if (string.IsNullOrWhiteSpace(question))
-            throw new ArgumentException("Question is required.");
+            throw new ArgumentException("Câu hỏi là bắt buộc.");
 
         var subjectId = session.SubjectId
-            ?? throw new InvalidOperationException("Session has no subject.");
+            ?? throw new InvalidOperationException("Cuộc trò chuyện chưa được gắn với môn học.");
 
         var subject = await GetAvailableSubjectAsync(subjectId);
 
@@ -113,15 +113,15 @@ public class ChatService : IChatService
 
         var embeddingModels = await _chatRepository.GetEmbeddingModelsAsync();
         if (embeddingModels.Count == 0)
-            throw new InvalidOperationException("No embedding model configured.");
+            throw new InvalidOperationException("Chưa cấu hình mô hình biểu diễn ngữ nghĩa.");
 
         var queryVectors = await _embeddingService.GenerateQueryEmbeddingsAsync(question, embeddingModels);
         if (queryVectors.Count == 0)
-            throw new InvalidOperationException("Unable to generate embeddings for this question.");
+            throw new InvalidOperationException("Không thể tạo biểu diễn ngữ nghĩa cho câu hỏi này.");
 
         var retrieved = await RetrieveChunksAsync(question, subject.Id, queryVectors, embeddingModels);
         if (retrieved.Count == 0)
-            throw new InvalidOperationException("Selected subject has no indexed documents.");
+            throw new InvalidOperationException("Môn học đã chọn chưa có tài liệu được lập chỉ mục.");
 
         _logger.LogInformation(
             "Retrieved {RetrievedCount} chunk(s) for session {SessionId} and subject {SubjectId} after batch-scanning indexed content.",
@@ -250,7 +250,7 @@ public class ChatService : IChatService
     {
         var subjects = await GetAvailableSubjectsAsync();
         return subjects.FirstOrDefault(subject => subject.Id == subjectId)
-            ?? throw new InvalidOperationException("Selected subject is not available for chat.");
+            ?? throw new InvalidOperationException("Môn học đã chọn hiện không khả dụng cho Chat AI.");
     }
 
     private static List<ChatCitationDto> BuildCitations(List<RetrievedChunk> chunks)

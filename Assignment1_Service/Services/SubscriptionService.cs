@@ -144,13 +144,13 @@ public class SubscriptionService : ISubscriptionService
     {
         var ticket = await _repository.GetTicketByIdAsync(ticketId);
         if (ticket is null)
-            return (false, "Khong tim thay ticket.");
+            return (false, "Không tìm thấy yêu cầu thanh toán.");
 
         if (ticket.Status == PaymentTicketStatuses.Approved)
             return (true, null);
 
         if (ticket.Status != PaymentTicketStatuses.Pending && ticket.Status != PaymentTicketStatuses.MomoPending)
-            return (false, "Ticket nay da duoc xu ly.");
+            return (false, "Yêu cầu thanh toán này đã được xử lý.");
 
         return await CompleteSubscriptionAsync(ticket, null, note);
     }
@@ -162,7 +162,7 @@ public class SubscriptionService : ISubscriptionService
     {
         var plan = ticket.Plan ?? await _repository.GetPlanByIdAsync(ticket.PlanId);
         if (plan is null)
-            return (false, "Goi dang ky khong ton tai.");
+            return (false, "Gói đăng ký không tồn tại.");
 
         var existingSubscription = await _repository.GetSubscriptionByPaymentTicketIdAsync(ticket.Id);
         if (existingSubscription is not null)
@@ -219,7 +219,7 @@ public class SubscriptionService : ISubscriptionService
             WindowEndAt = DateTime.UtcNow.AddHours(GetWindowHours()),
             CurrentPlanName = "Plus",
             CurrentPackageName = packageName,
-            Message = "Goi Plus dang hoat dong. Ban co the dat cau hoi khong gioi han."
+            Message = "Gói Plus đang hoạt động. Bạn có thể đặt câu hỏi không giới hạn."
         };
     }
 
@@ -247,7 +247,7 @@ public class SubscriptionService : ISubscriptionService
             CurrentPackageName = null,
             Message = isAllowed
                 ? $"Free plan: con {remaining}/{limit} cau hoi cho mon nay den {windowEnd.ToLocalTime():dd/MM/yyyy HH:mm}."
-                : $"Ban da dung het {limit} cau hoi mien phi cho mon nay. Vui long cho den {windowEnd.ToLocalTime():dd/MM/yyyy HH:mm} hoac nang cap Plus de tiep tuc."
+                : $"Bạn đã dùng hết {limit} câu hỏi miễn phí cho môn này. Vui lòng chờ đến {windowEnd.ToLocalTime():dd/MM/yyyy HH:mm} hoặc nâng cấp Plus để tiếp tục."
         };
     }
 

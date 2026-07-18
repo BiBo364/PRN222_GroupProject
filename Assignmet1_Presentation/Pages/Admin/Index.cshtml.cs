@@ -41,7 +41,7 @@ public class IndexModel : PageModel
             allUsers = allUsers.Where(u => u.RoleId == roleId.Value).ToList();
 
         if (subjectId.HasValue)
-            allUsers = allUsers.Where(u => u.SubjectId == subjectId.Value).ToList();
+            allUsers = allUsers.Where(u => u.AssignedSubjects.Any(subject => subject.Id == subjectId.Value)).ToList();
 
         const int pageSize = 10;
         var totalItems = allUsers.Count;
@@ -68,16 +68,14 @@ public class IndexModel : PageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAssignSubjectAsync(int userId, int? subjectId)
+    public async Task<IActionResult> OnPostUpdateLecturerSubjectsAsync(int userId, List<int>? subjectIds)
     {
-        var (success, error) = await _userServices.AssignSubjectAsync(userId, subjectId);
+        var (success, error) = await _userServices.UpdateLecturerSubjectsAsync(userId, subjectIds ?? []);
 
         if (!success)
             TempData["Error"] = error ?? "Phân công môn học thất bại.";
         else
-            TempData["Success"] = subjectId.HasValue
-                ? "Phân công môn học thành công."
-                : "Đã gỡ môn học khỏi người dùng này.";
+            TempData["Success"] = "Đã cập nhật phân công môn học.";
 
         return RedirectToPage("/Admin/Index");
     }
@@ -98,11 +96,12 @@ public class IndexModel : PageModel
     {
         var users = await _userServices.GetAllUsersAsync();
         return users
-            .Where(u => u.RoleId == 2 && u.SubjectId.HasValue)
-            .GroupBy(u => u.SubjectId!.Value)
+            .Where(u => u.RoleId == 2)
+            .SelectMany(user => user.AssignedSubjects.Select(subject => new { subject.Id, TeacherName = user.FullName ?? user.Username }))
+            .GroupBy(item => item.Id)
             .ToDictionary(
                 group => group.Key,
-                group => group.First().FullName ?? group.First().Username);
+                group => group.First().TeacherName);
     }
 
     private static UserListItemViewModel ToViewModel(UserListItemDto dto) => new()
@@ -117,6 +116,12 @@ public class IndexModel : PageModel
         SubjectId = dto.SubjectId,
         SubjectCode = dto.SubjectCode,
         SubjectName = dto.SubjectName,
+        AssignedSubjects = dto.AssignedSubjects.Select(subject => new UserSubjectAssignmentViewModel
+        {
+            Id = subject.Id,
+            Code = subject.Code,
+            Name = subject.Name
+        }).ToList(),
         IsActive = dto.IsActive,
         LastLoginAt = dto.LastLoginAt,
         CreatedAt = dto.CreatedAt

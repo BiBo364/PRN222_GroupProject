@@ -620,10 +620,16 @@ public partial class RagEduContext : DbContext
                 .HasColumnName("is_deleted");
             entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
             entity.Property(e => e.DeletedBy).HasColumnName("deleted_by");
+            entity.Property(e => e.LecturerId).HasColumnName("lecturer_id");
 
             entity.HasOne(d => d.DeletedByNavigation).WithMany()
                 .HasForeignKey(d => d.DeletedBy)
                 .HasConstraintName("FK__subjects__deleted_by");
+
+            entity.HasOne(d => d.Lecturer).WithMany(p => p.AssignedSubjects)
+                .HasForeignKey(d => d.LecturerId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_subjects_lecturer");
         });
 
         modelBuilder.Entity<TestQuestion>(entity =>

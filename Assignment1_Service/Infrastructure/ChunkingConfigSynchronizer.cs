@@ -1,41 +1,42 @@
-using Assignment1_Repository.Models;
 using Assignment1_Repository.Repositories.Interfaces;
 using Assignment1_Service.Models;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Assignment1_Service.Infrastructure;
 
 /// <summary>
-/// Đồng bộ cấu hình chunking từ appsettings.json vào database khi khởi động.
-/// Đảm bảo mọi thay đổi trong appsettings.json đều được phản ánh vào bảng chunking_configs.
+/// Seeds the default chunking configuration from appsettings only when the database has no configuration.
 /// </summary>
 public static class ChunkingConfigSynchronizer
 {
     /// <summary>
-    /// Gọi khi khởi động app. Đọc ChunkingSettings từ appsettings.json và lưu/cập nhật vào DB.
+    /// Preserves database settings created by an administrator across application restarts.
     /// </summary>
     public static async Task SyncAsync(
         IDocumentRepository documentRepository,
         ChunkingSettings settings,
         ILogger logger)
     {
-        var description =
-            $"Cấu hình chunk từ appsettings.json: " +
-            $"{settings.MaxWordsPerChunk} từ/chunk, " +
-            $"overlap {settings.OverlapWords} từ, " +
-            $"TopK={settings.TopK}, " +
-            $"HybridRerank={settings.UseHybridRerank}";
+        var existing = await documentRepository.GetFirstChunkingConfigAsync();
+        if (existing is not null)
+        {
+            logger.LogInformation(
+                "Keeping database chunking configuration: Id={Id}, ChunkSize={ChunkSize}, Overlap={Overlap}.",
+                existing.Id,
+                existing.ChunkSize,
+                existing.ChunkOverlap);
+            return;
+        }
 
         var config = await documentRepository.UpsertChunkingConfigAsync(
             name: "appsettings-config",
             strategy: "fixed",
             chunkSize: settings.MaxWordsPerChunk,
             chunkOverlap: settings.OverlapWords,
-            description: description);
+            description: $"Default chunking configuration seeded from appsettings.json: {settings.MaxWordsPerChunk} words/chunk, overlap {settings.OverlapWords} words.");
 
         logger.LogInformation(
-            "Chunking config đã được đồng bộ vào DB: Id={Id}, ChunkSize={ChunkSize} từ, Overlap={Overlap} từ.",
+            "Seeded default chunking configuration in database: Id={Id}, ChunkSize={ChunkSize}, Overlap={Overlap}.",
             config.Id,
             config.ChunkSize,
             config.ChunkOverlap);

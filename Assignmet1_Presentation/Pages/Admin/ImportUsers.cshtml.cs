@@ -117,10 +117,11 @@ public class ImportUsersModel : PageModel
     {
         var users = await _userServices.GetAllUsersAsync();
         return users
-            .Where(u => u.RoleId == 2 && u.SubjectId.HasValue)
-            .GroupBy(u => u.SubjectId!.Value)
+            .Where(u => u.RoleId == 2)
+            .SelectMany(user => user.AssignedSubjects.Select(subject => new { subject.Id, TeacherName = user.FullName ?? user.Username }))
+            .GroupBy(item => item.Id)
             .ToDictionary(
                 group => group.Key,
-                group => group.First().FullName ?? group.First().Username);
+                group => group.First().TeacherName);
     }
 }

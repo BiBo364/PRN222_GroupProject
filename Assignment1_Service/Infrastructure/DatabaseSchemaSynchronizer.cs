@@ -29,7 +29,32 @@ public static class DatabaseSchemaSynchronizer
         }
 
         await NormalizeSoftDeleteColumnsAsync(context);
+        await EnsureLecturerAssignmentSchemaAsync(context);
         await EnsureLearningSchemaConstraintsAsync(context);
+    }
+
+    private static Task EnsureLecturerAssignmentSchemaAsync(RagEduContext context)
+    {
+        const string sql = """
+            IF COL_LENGTH(N'[dbo].[subjects]', N'lecturer_id') IS NOT NULL
+            BEGIN
+                UPDATE subject
+                SET lecturer_id = legacy_user.id
+                FROM [dbo].[subjects] AS subject
+                INNER JOIN [dbo].[users] AS legacy_user ON legacy_user.subject_id = subject.id
+                WHERE subject.lecturer_id IS NULL
+                  AND legacy_user.role_id = 2;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_subjects_lecturer')
+                    ALTER TABLE [dbo].[subjects] WITH CHECK ADD CONSTRAINT [FK_subjects_lecturer]
+                    FOREIGN KEY ([lecturer_id]) REFERENCES [dbo].[users] ([id]) ON DELETE SET NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'idx_subjects_lecturer' AND object_id = OBJECT_ID(N'[dbo].[subjects]'))
+                    CREATE INDEX [idx_subjects_lecturer] ON [dbo].[subjects] ([lecturer_id]);
+            END;
+            """;
+
+        return context.Database.ExecuteSqlRawAsync(sql);
     }
 
     private static async Task CreateTableAsync(

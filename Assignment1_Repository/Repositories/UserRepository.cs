@@ -25,6 +25,7 @@ public class UserRepository : IUserReposity
         return _context.Users
             .Include(u => u.Role)
             .Include(u => u.Subject)
+            .Include(u => u.AssignedSubjects)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
@@ -40,6 +41,7 @@ public class UserRepository : IUserReposity
         return _context.Users
             .Include(u => u.Role)
             .Include(u => u.Subject)
+            .Include(u => u.AssignedSubjects.Where(subject => subject.IsDeleted != true))
             .OrderBy(u => u.RoleId)
             .ThenBy(u => u.FullName)
             .ToListAsync();
@@ -48,8 +50,8 @@ public class UserRepository : IUserReposity
     public Task<User?> GetTeacherAssignedToSubjectAsync(int subjectId, int? excludeUserId = null)
     {
         var query = _context.Users
-            .Include(u => u.Subject)
-            .Where(u => u.RoleId == 2 && u.SubjectId == subjectId);
+            .Include(u => u.AssignedSubjects)
+            .Where(u => u.RoleId == 2 && u.AssignedSubjects.Any(subject => subject.Id == subjectId));
 
         if (excludeUserId.HasValue)
             query = query.Where(u => u.Id != excludeUserId.Value);

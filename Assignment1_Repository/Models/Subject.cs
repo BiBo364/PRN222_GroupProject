@@ -22,6 +22,8 @@ public partial class Subject
 
     public int? DeletedBy { get; set; }
 
+    public int? LecturerId { get; set; }
+
     public virtual ICollection<Chapter> Chapters { get; set; } = new List<Chapter>();
 
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
@@ -33,4 +35,6 @@ public partial class Subject
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 
     public virtual User? DeletedByNavigation { get; set; }
+
+    public virtual User? Lecturer { get; set; }
 }

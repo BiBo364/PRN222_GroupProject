@@ -8,7 +8,7 @@
     var activeUsers  = Model.ViewModel.Users.Count(u => u.IsActive);
     var lecturers    = Model.ViewModel.Users.Count(u => u.RoleId == 2);
     var studentCount = Model.ViewModel.Users.Count(u => u.RoleId == 3);
-    var unassigned   = Model.ViewModel.Users.Count(u => u.RoleId == 2 && u.SubjectId == null);
+    var unassigned   = Model.ViewModel.Users.Count(u => u.RoleId == 2 && u.AssignedSubjects.Count == 0);
 }
 
 <div class="d-flex flex-column gap-4">
@@ -178,12 +178,15 @@
                                 <!-- Subject assignment -->
                                 <td>
                                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        @if (user.SubjectId.HasValue)
+                                        @if (user.AssignedSubjects.Count > 0)
                                         {
-                                            <span class="status-chip primary" title="@user.SubjectName">
-                                                <i data-lucide="book-open" class="icon-xs"></i>
-                                                @user.SubjectCode
-                                            </span>
+                                            @foreach (var subject in user.AssignedSubjects)
+                                            {
+                                                <span class="status-chip primary" title="@subject.Name">
+                                                    <i data-lucide="book-open" class="icon-xs"></i>
+                                                    @subject.Code
+                                                </span>
+                                            }
                                         }
                                         else if (user.RoleId == 2)
                                         {
@@ -210,23 +213,22 @@
                                                         </span>
                                                     </li>
                                                     <li>
-                                                        <form asp-page-handler="AssignSubject" method="post" class="px-3 pb-2 pt-1">
+                                                        <form asp-page-handler="UpdateLecturerSubjects" method="post" class="px-3 pb-2 pt-1">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="userId" value="@user.Id" />
-                                                            <select name="subjectId" class="form-select form-select-sm mb-2">
-                                                                <option value="">— Bỏ môn học —</option>
+                                                            <div class="d-flex flex-column gap-1 mb-2" style="max-height:240px;overflow-y:auto">
                                                                 @foreach (var s in Model.ViewModel.Subjects)
                                                                 {
-                                                                    var isCurrentUserSubject = user.SubjectId == s.Id;
+                                                                    var isAssignedToCurrent = user.AssignedSubjects.Any(subject => subject.Id == s.Id);
                                                                     Model.ViewModel.TeacherBySubjectId.TryGetValue(s.Id, out var assignedTeacher);
-                                                                    var isTakenByOther = assignedTeacher != null && !isCurrentUserSubject;
-                                                                    <option value="@s.Id"
-                                                                            selected="@isCurrentUserSubject"
-                                                                            disabled="@isTakenByOther">
-                                                                        @s.Code — @s.Name@(isTakenByOther ? $" (đã gán: {assignedTeacher})" : "")
-                                                                    </option>
+                                                                    var isTakenByOther = assignedTeacher != null && !isAssignedToCurrent;
+                                                                    <label class="form-check small mb-0">
+                                                                        <input class="form-check-input" type="checkbox" name="subjectIds" value="@s.Id"
+                                                                               checked="@isAssignedToCurrent" disabled="@isTakenByOther" />
+                                                                        <span class="form-check-label">@s.Code — @s.Name@(isTakenByOther ? $" (đã gán: {assignedTeacher})" : "")</span>
+                                                                    </label>
                                                                 }
-                                                            </select>
+                                                            </div>
                                                             <button type="submit" class="btn btn-primary btn-sm w-100">
                                                                 <i data-lucide="save" class="icon-sm"></i> Lưu phân công
                                                             </button>

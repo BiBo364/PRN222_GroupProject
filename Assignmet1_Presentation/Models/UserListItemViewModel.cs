@@ -12,7 +12,15 @@ public class UserListItemViewModel
     public int? SubjectId { get; set; }
     public string? SubjectCode { get; set; }
     public string? SubjectName { get; set; }
+    public List<UserSubjectAssignmentViewModel> AssignedSubjects { get; set; } = [];
     public bool IsActive { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public DateTime? CreatedAt { get; set; }
+}
+
+public class UserSubjectAssignmentViewModel
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 }

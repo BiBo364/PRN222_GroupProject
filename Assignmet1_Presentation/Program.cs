@@ -152,8 +152,8 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<RagEduContext>();
     await DatabaseSchemaSynchronizer.UpdateAsync(db);
 
-    // Đồng bộ cấu hình chunk từ appsettings.json vào database.
-    // Mỗi lần restart app, DB sẽ được cập nhật theo đúng giá trị trong appsettings.json.
+    // Khởi tạo cấu hình chunk mặc định từ appsettings.json nếu DB chưa có bản ghi.
+    // Các thay đổi do Admin lưu trong DB được giữ nguyên sau khi restart.
     var docRepo        = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
     var chunkSettings  = scope.ServiceProvider.GetRequiredService<IOptions<ChunkingSettings>>().Value;
     var startupLogger  = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();

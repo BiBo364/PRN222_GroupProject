@@ -41,6 +41,8 @@ public partial class User
 
     public virtual ICollection<UserSubscription> UserSubscriptions { get; set; } = new List<UserSubscription>();
 
+    public virtual ICollection<Subject> AssignedSubjects { get; set; } = new List<Subject>();
+
     public virtual Role Role { get; set; } = null!;
 
     public virtual Subject? Subject { get; set; }

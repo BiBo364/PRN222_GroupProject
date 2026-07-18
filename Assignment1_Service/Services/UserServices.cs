@@ -8,6 +8,7 @@ using CsvHelper.Configuration;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace Assignment1_Service.Services;
 
@@ -77,6 +78,16 @@ public class UserServices : IUserServices
             SubjectId = u.SubjectId,
             SubjectCode = u.Subject?.Code,
             SubjectName = u.Subject?.Name,
+            AssignedSubjects = u.AssignedSubjects
+                .Where(subject => subject.IsDeleted != true)
+                .OrderBy(subject => subject.Code)
+                .Select(subject => new UserSubjectAssignmentDto
+                {
+                    Id = subject.Id,
+                    Code = subject.Code,
+                    Name = subject.Name
+                })
+                .ToList(),
             IsActive = u.IsActive ?? true,
             LastLoginAt = u.LastLoginAt,
             CreatedAt = u.CreatedAt
@@ -162,6 +173,9 @@ public class UserServices : IUserServices
             };
 
             await _userRepository.AddAsync(newUser);
+
+            if (roleId == LecturerRoleId && importSubjectId.HasValue)
+                await UpdateLecturerSubjectsAsync(newUser.Id, [importSubjectId.Value]);
 
             rowResult.Status = ImportRowStatus.Created;
             rowResult.Message = $"Tạo tài khoản thành công (tên đăng nhập: {username}).";
@@ -333,6 +347,48 @@ public class UserServices : IUserServices
 
         user.SubjectId = subjectId;
         await _userRepository.UpdateAsync(user);
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateLecturerSubjectsAsync(
+        int userId,
+        IReadOnlyCollection<int> subjectIds)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == userId);
+        if (user is null)
+            return (false, "Không tìm thấy người dùng.");
+
+        if (user.RoleId != LecturerRoleId)
+            return (false, "Chỉ có thể phân công môn học cho giảng viên.");
+
+        var requestedIds = subjectIds.Distinct().ToArray();
+        var requestedSubjects = await _context.Subjects
+            .Where(subject => requestedIds.Contains(subject.Id) && subject.IsDeleted != true)
+            .ToListAsync();
+
+        if (requestedSubjects.Count != requestedIds.Length)
+            return (false, "Một hoặc nhiều môn học không tồn tại.");
+
+        var conflict = requestedSubjects.FirstOrDefault(subject =>
+            subject.LecturerId.HasValue && subject.LecturerId.Value != userId);
+        if (conflict is not null)
+        {
+            var teacher = await _context.Users.FindAsync(conflict.LecturerId);
+            var teacherName = teacher?.FullName ?? teacher?.Username ?? "giảng viên khác";
+            return (false, $"Môn học {conflict.Code} đã được phân công cho giảng viên {teacherName}. Vui lòng gỡ môn này khỏi giảng viên hiện tại trước.");
+        }
+
+        var currentlyAssigned = await _context.Subjects
+            .Where(subject => subject.LecturerId == userId)
+            .ToListAsync();
+
+        foreach (var subject in currentlyAssigned)
+            subject.LecturerId = null;
+
+        foreach (var subject in requestedSubjects)
+            subject.LecturerId = userId;
+
+        await _context.SaveChangesAsync();
         return (true, null);
     }
 

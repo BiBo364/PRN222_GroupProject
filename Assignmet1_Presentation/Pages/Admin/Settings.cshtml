@@ -1,0 +1,47 @@
+@page "/Admin/Settings"
+@model Assignmet1_Presentation.Pages.Admin.SettingsModel
+@{
+    ViewData["Title"] = "Cài đặt";
+}
+
+<div class="d-flex flex-column gap-4">
+    <div class="page-hero d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3">
+        <div>
+            <div class="hero-badge mb-2"><i data-lucide="settings" class="icon-sm"></i> Cấu hình hệ thống</div>
+            <h1 class="page-title mb-1">Cài đặt</h1>
+            <p class="page-subtitle mb-0">Thiết lập kích thước chunk dùng khi hệ thống index tài liệu mới.</p>
+        </div>
+        <a asp-page="/Admin/Index" class="btn btn-outline-secondary flex-shrink-0"><i data-lucide="arrow-left" class="icon-sm me-2"></i> Quay lại quản trị</a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="surface-card">
+                <h2 class="h5 fw-semibold mb-4"><i data-lucide="scissors" class="icon-sm me-2"></i> Chia nhỏ tài liệu</h2>
+
+                <form method="post">
+                    <div class="mb-4">
+                        <label asp-for="Input.ChunkSize" class="form-label fw-semibold"></label>
+                        <input asp-for="Input.ChunkSize" type="number" min="1" max="2000" step="1" class="form-control form-control-lg" />
+                        <span asp-validation-for="Input.ChunkSize" class="text-danger small"></span>
+                        <div class="form-text">Số từ tối đa trong mỗi chunk. Giá trị khuyến nghị: 150–400 từ.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Input.ChunkOverlap" class="form-label fw-semibold"></label>
+                        <input asp-for="Input.ChunkOverlap" type="number" min="0" max="1999" step="1" class="form-control form-control-lg" />
+                        <span asp-validation-for="Input.ChunkOverlap" class="text-danger small"></span>
+                        <div class="form-text">Số từ lặp lại giữa hai chunk liền kề. Giá trị này phải nhỏ hơn chunk size; khuyến nghị khoảng 10–20%.</div>
+                    </div>
+
+                    <div class="alert alert-info mb-4">
+                        <i data-lucide="info" class="icon-sm me-2"></i>
+                        Thiết lập này được lưu trong database và chỉ áp dụng khi index tài liệu mới. Các tài liệu đã index không bị thay đổi.
+                    </div>
+
+                    <button type="submit" class="btn btn-primary"><i data-lucide="save" class="icon-sm me-2"></i>Lưu cài đặt</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -2,7 +2,7 @@
 @model Assignmet1_Presentation.Pages.Subjects.DetailsModel
 @{
     ViewData["Title"] = $"{Model.ViewModel.Subject.Code} - Môn học";
-    var hasDocuments  = Model.ViewModel.Documents.Any();
+    var hasDocuments  = Model.ViewModel.TotalDocumentCount > 0;
     var subject       = Model.ViewModel.Subject;
 }
 
@@ -56,7 +56,7 @@
         <div class="stat-card text-center">
             <div class="stat-value" style="background:var(--grad-cool);-webkit-background-clip:text;-webkit-text-fill-color:transparent"
                  id="subject-document-count">
-                @Model.ViewModel.Documents.Count
+                @Model.ViewModel.TotalDocumentCount
             </div>
             <div class="stat-label">
                 <i data-lucide="file-text" class="icon-xs me-1"></i> Tổng tài liệu
@@ -67,7 +67,7 @@
         <div class="stat-card text-center">
             <div class="stat-value" style="background:var(--grad-accent);-webkit-background-clip:text;-webkit-text-fill-color:transparent"
                  id="subject-indexed-count">
-                @Model.ViewModel.Documents.Count(d => d.Status == "indexed")
+                @Model.ViewModel.IndexedDocumentCount
             </div>
             <div class="stat-label">
                 <i data-lucide="check-circle" class="icon-xs me-1"></i> Đã lập chỉ mục
@@ -207,6 +207,7 @@
                                           method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="returnSubjectId" value="@subject.Id" />
+                                        <input type="hidden" name="returnPageNumber" value="@Model.DocumentsPagination.CurrentPage" />
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger btn-delete-doc"
                                                 data-doc-name="@doc.OriginalName"
@@ -233,6 +234,15 @@
             </tbody>
         </table>
     </div>
+    @{
+        var documentsPagination = Model.DocumentsPagination.ToViewModel(
+            "/Subjects/Details",
+            "pageNumber",
+            "tài liệu",
+            new Dictionary<string, object?> { ["id"] = subject.Id },
+            "document-table-wrapper");
+    }
+    <partial name="_Pagination" model="documentsPagination" />
 </div>
 
 <!-- ── Modal: Confirm Delete Document ────────────────────────────── -->
@@ -372,12 +382,10 @@
                 }).then(() => { window.location.href = "/Documents"; });
             }
 
-            refreshCounters();
-
             window.appHubRealtime.createConnection({
-                DocumentCreated: upsertDocument,
-                DocumentUpdated: upsertDocument,
-                DocumentDeleted: removeDocument,
+                DocumentCreated: () => window.location.reload(),
+                DocumentUpdated: () => window.location.reload(),
+                DocumentDeleted: () => window.location.reload(),
                 CourseUpdated: updateSubject,
                 CourseDeleted: removeSubject
             });

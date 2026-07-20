@@ -23,11 +23,21 @@ public class RecycleModel : PageModel
     }
 
     public List<SubjectListItemViewModel> Subjects { get; private set; } = [];
+    public PaginationSlice<SubjectListItemViewModel> SubjectsPagination { get; private set; } =
+        PaginationHelper.Paginate<SubjectListItemViewModel>([], 1, 10);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync()
     {
         var subjects = await _subjectService.GetDeletedSubjectsAsync();
-        Subjects = subjects.Select(ViewModelMapper.ToViewModel).ToList();
+        SubjectsPagination = PaginationHelper.Paginate(
+            subjects.Select(ViewModelMapper.ToViewModel),
+            PageNumber,
+            10);
+        PageNumber = SubjectsPagination.CurrentPage;
+        Subjects = SubjectsPagination.Items.ToList();
         return Page();
     }
 
@@ -48,6 +58,6 @@ public class RecycleModel : PageModel
             TempData["Error"] = "Lỗi khi khôi phục môn học.";
         }
 
-        return RedirectToPage("/Subjects/Recycle");
+        return RedirectToPage("/Subjects/Recycle", new { pageNumber = PageNumber });
     }
 }

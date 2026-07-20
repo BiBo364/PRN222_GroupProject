@@ -31,6 +31,16 @@ public class IndexModel : PageModel
     }
 
     public SubscriptionIndexViewModel ViewModel { get; set; } = new();
+    public PaginationSlice<PaymentTicketViewModel> TicketsPagination { get; private set; } =
+        PaginationHelper.Paginate<PaymentTicketViewModel>([], 1, 10);
+    public PaginationSlice<QuotaStatusViewModel> QuotasPagination { get; private set; } =
+        PaginationHelper.Paginate<QuotaStatusViewModel>([], 1, 10);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
+
+    [BindProperty(SupportsGet = true)]
+    public int QuotaPage { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync(DateTime? fromDate, DateTime? toDate)
     {
@@ -72,6 +82,18 @@ public class IndexModel : PageModel
             .ToList();
 
         var freeQuotas = subjectQuotas.Where(quota => !quota.IsPlus).ToList();
+        QuotasPagination = PaginationHelper.Paginate(
+            subjectQuotas
+                .OrderBy(quota => quota.SubjectCode)
+                .ThenBy(quota => quota.SubjectName),
+            QuotaPage,
+            10);
+        QuotaPage = QuotasPagination.CurrentPage;
+        TicketsPagination = PaginationHelper.Paginate(
+            tickets.Select(ViewModelMapper.ToViewModel),
+            PageNumber,
+            10);
+        PageNumber = TicketsPagination.CurrentPage;
 
         ViewModel = new SubscriptionIndexViewModel
         {
@@ -82,8 +104,8 @@ public class IndexModel : PageModel
             FreeQuestionLimit = _quotaSettings.FreeQuestionLimit > 0 ? _quotaSettings.FreeQuestionLimit : 5,
             FreeQuotaWindowHours = _quotaSettings.FreeQuotaWindowHours > 0 ? _quotaSettings.FreeQuotaWindowHours : 24,
             ActiveSubscription = active is null ? null : ViewModelMapper.ToViewModel(active),
-            SubjectQuotas = subjectQuotas,
-            Tickets = tickets.Select(ViewModelMapper.ToViewModel).ToList(),
+            SubjectQuotas = QuotasPagination.Items.ToList(),
+            Tickets = TicketsPagination.Items.ToList(),
             SubjectCount = subjectQuotas.Count,
             SubjectsOutOfQuotaCount = freeQuotas.Count(quota => !quota.IsAllowed),
             TotalQuestionsRemaining = active is null ? freeQuotas.Sum(quota => quota.QuestionsRemaining) : int.MaxValue,

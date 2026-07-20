@@ -190,6 +190,7 @@ public sealed class StaffAuditMiddlewareTests
         { "/Learning/Create", "", "create" },
         { "/Learning/Generate", "", "create" },
         { "/Learning/Compose", "", "create" },
+        { "/Admin/ImportUsers", "CreateManual", "create" },
         { "/Learning/ManualQuiz", "Save", "update" }
     };
 

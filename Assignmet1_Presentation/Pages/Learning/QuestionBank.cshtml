@@ -69,7 +69,7 @@
     </form>
 
     <div class="question-bank-summary">
-        <span><strong>@Model.Data.Questions.Count</strong> câu hỏi phù hợp</span>
+        <span><strong>@Model.QuestionsPagination.TotalItems</strong> câu hỏi phù hợp</span>
         @if (!string.IsNullOrWhiteSpace(Model.Search)
              || !string.IsNullOrWhiteSpace(Model.Difficulty)
              || !string.IsNullOrWhiteSpace(Model.QuestionType)
@@ -90,8 +90,21 @@
     }
     else
     {
-        <div class="question-bank-list">
-            @foreach (var question in Model.Data.Questions)
+        var questionsPagination = Model.QuestionsPagination.ToViewModel(
+            "/Learning/QuestionBank",
+            "pageNumber",
+            "câu hỏi",
+            new Dictionary<string, object?>
+            {
+                ["Search"] = Model.Search,
+                ["Difficulty"] = Model.Difficulty,
+                ["QuestionType"] = Model.QuestionType,
+                ["IncludeInactive"] = Model.IncludeInactive
+            },
+            "question-bank-results");
+
+        <div class="question-bank-list" id="question-bank-results">
+            @foreach (var question in Model.QuestionsPagination.Items)
             {
                 <article class="question-bank-card surface-card @(!question.IsActive ? "is-inactive" : null)">
                     <div class="question-bank-card-top">
@@ -118,6 +131,11 @@
                             <form method="post" asp-page-handler="SetActive">
                                 <input type="hidden" name="id" value="@question.Id" />
                                 <input type="hidden" name="isActive" value="@(!question.IsActive)" />
+                                <input type="hidden" name="Search" value="@Model.Search" />
+                                <input type="hidden" name="Difficulty" value="@Model.Difficulty" />
+                                <input type="hidden" name="QuestionType" value="@Model.QuestionType" />
+                                <input type="hidden" name="IncludeInactive" value="@Model.IncludeInactive.ToString().ToLowerInvariant()" />
+                                <input type="hidden" name="PageNumber" value="@Model.QuestionsPagination.CurrentPage" />
                                 <button class="icon-button @(!question.IsActive ? "is-success" : "is-danger")"
                                         type="submit"
                                         title="@(!question.IsActive ? "Khôi phục câu hỏi" : "Lưu trữ câu hỏi")">
@@ -175,6 +193,11 @@
                     <div class="modal-dialog modal-lg modal-dialog-scrollable">
                         <div class="modal-content learning-modal">
                             <form method="post" asp-page-handler="Update">
+                                <input type="hidden" name="Search" value="@Model.Search" />
+                                <input type="hidden" name="Difficulty" value="@Model.Difficulty" />
+                                <input type="hidden" name="QuestionType" value="@Model.QuestionType" />
+                                <input type="hidden" name="IncludeInactive" value="@Model.IncludeInactive.ToString().ToLowerInvariant()" />
+                                <input type="hidden" name="PageNumber" value="@Model.QuestionsPagination.CurrentPage" />
                                 <div class="modal-header">
                                     <div>
                                         <span class="eyebrow">Biên tập ngân hàng đề</span>
@@ -249,5 +272,6 @@
                 </div>
             }
         </div>
+        <partial name="_Pagination" model="questionsPagination" />
     }
 }

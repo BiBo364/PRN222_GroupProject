@@ -28,6 +28,11 @@ public class RecycleModel : PageModel
     }
 
     public List<DocumentListItemViewModel> Documents { get; private set; } = [];
+    public PaginationSlice<DocumentListItemViewModel> DocumentsPagination { get; private set; } =
+        PaginationHelper.Paginate<DocumentListItemViewModel>([], 1, 10);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -47,7 +52,12 @@ public class RecycleModel : PageModel
             docs = docs.Where(d => d.SubjectId == userSubjectId).ToList();
         }
 
-        Documents = docs.Select(ViewModelMapper.ToViewModel).ToList();
+        DocumentsPagination = PaginationHelper.Paginate(
+            docs.Select(ViewModelMapper.ToViewModel),
+            PageNumber,
+            10);
+        PageNumber = DocumentsPagination.CurrentPage;
+        Documents = DocumentsPagination.Items.ToList();
         return Page();
     }
 
@@ -65,7 +75,7 @@ public class RecycleModel : PageModel
         if (deletedDocument is null)
         {
             TempData["Error"] = "Không tìm thấy tài liệu trong thùng rác.";
-            return RedirectToPage("/Documents/Recycle");
+            return RedirectToPage("/Documents/Recycle", new { pageNumber = PageNumber });
         }
 
         if (roleId.Value == DocumentPermissions.LecturerRoleId)
@@ -74,7 +84,7 @@ public class RecycleModel : PageModel
             if (doc != null && doc.SubjectId != userSubjectId)
             {
                 TempData["Error"] = "Bạn chỉ có thể khôi phục tài liệu thuộc môn học được phân công.";
-                return RedirectToPage("/Documents/Recycle");
+                return RedirectToPage("/Documents/Recycle", new { pageNumber = PageNumber });
             }
         }
 
@@ -99,6 +109,6 @@ public class RecycleModel : PageModel
             TempData["Error"] = restoreError ?? "Khôi phục tài liệu thất bại.";
         }
 
-        return RedirectToPage("/Documents/Recycle");
+        return RedirectToPage("/Documents/Recycle", new { pageNumber = PageNumber });
     }
 }

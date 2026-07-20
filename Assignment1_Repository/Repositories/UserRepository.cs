@@ -15,9 +15,11 @@ public class UserRepository : IUserReposity
 
     public Task<User?> GetByUsernameAsync(string username)
     {
+        username = username.Trim().ToLowerInvariant();
         return _context.Users
-            .Include(u => u.Role)
-            .FirstOrDefaultAsync(u => u.Username == username || u.Email == username);
+            .FirstOrDefaultAsync(u =>
+                u.Username.ToLower() == username
+                || u.Email.ToLower() == username);
     }
 
     public Task<User?> GetByIdAsync(int id)
@@ -42,8 +44,9 @@ public class UserRepository : IUserReposity
             .Include(u => u.Role)
             .Include(u => u.Subject)
             .Include(u => u.AssignedSubjects.Where(subject => subject.IsDeleted != true))
-            .OrderBy(u => u.RoleId)
-            .ThenBy(u => u.FullName)
+            .OrderBy(u => u.RoleId == 1 ? 0 : 1)
+            .ThenByDescending(u => u.CreatedAt)
+            .ThenByDescending(u => u.Id)
             .ToListAsync();
     }
 

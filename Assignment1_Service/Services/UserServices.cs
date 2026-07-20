@@ -5,7 +5,9 @@ using Assignment1_Service.Services.Interfaces;
 using ClosedXML.Excel;
 using CsvHelper;
 using CsvHelper.Configuration;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
+using System.Net.Mail;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -92,6 +94,127 @@ public class UserServices : IUserServices
             LastLoginAt = u.LastLoginAt,
             CreatedAt = u.CreatedAt
         }).ToList();
+    }
+
+    public async Task<CreateUserResultDto> CreateUserAsync(CreateUserRequestDto request)
+    {
+        if (request.RoleId is not LecturerRoleId and not StudentRoleId)
+            return CreateUserFailure("Chỉ hỗ trợ tạo tài khoản giảng viên hoặc sinh viên.");
+
+        var fullName = NormalizeFullName(request.FullName);
+        if (fullName is null)
+            return CreateUserFailure("Vui lòng nhập họ và tên.");
+
+        if (fullName.Length > 200)
+            return CreateUserFailure("Họ và tên không được vượt quá 200 ký tự.");
+
+        var subjectId = request.RoleId == LecturerRoleId
+            ? request.SubjectId
+            : null;
+        if (subjectId.HasValue)
+        {
+            var subject = await _subjectRepository.GetByIdWithDetailsAsync(subjectId.Value);
+            if (subject is null)
+                return CreateUserFailure("Môn học được chọn không tồn tại hoặc đã bị xóa.");
+
+            var (isAvailable, availabilityError) = await ValidateTeacherSubjectAssignmentAsync(
+                subjectId.Value,
+                excludeUserId: null);
+            if (!isAvailable)
+                return CreateUserFailure(
+                    availabilityError ?? "Môn học này đã có giảng viên phụ trách.");
+        }
+
+        string username;
+        string email;
+        if (string.IsNullOrWhiteSpace(request.Username))
+        {
+            var generatedIdentity = await GenerateUniqueAccountIdentityAsync(fullName, request.RoleId);
+            username = generatedIdentity.Username;
+            email = generatedIdentity.Email;
+        }
+        else
+        {
+            username = request.Username.Trim().ToLowerInvariant();
+            var usernameError = ValidateRequestedUsername(username);
+            if (usernameError is not null)
+                return CreateUserFailure(usernameError);
+
+            if (await _userRepository.GetByUsernameAsync(username) is not null)
+                return CreateUserFailure("Tên đăng nhập này đã được sử dụng.");
+
+            email = GenerateEmail(username, request.RoleId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            email = request.Email.Trim().ToLowerInvariant();
+            if (email.Length > 200
+                || email.Any(char.IsWhiteSpace)
+                || !new EmailAddressAttribute().IsValid(email)
+                || !MailAddress.TryCreate(email, out var parsedEmail)
+                || !string.Equals(parsedEmail.Address, email, StringComparison.OrdinalIgnoreCase))
+            {
+                return CreateUserFailure("Địa chỉ email không đúng định dạng.");
+            }
+        }
+
+        if (await _userRepository.GetByEmailAsync(email) is not null)
+            return CreateUserFailure("Địa chỉ email này đã được sử dụng.");
+
+        var now = DateTime.Now;
+        var newUser = new User
+        {
+            Username = username,
+            Email = email,
+            FullName = fullName,
+            Password = DefaultPassword,
+            RoleId = request.RoleId,
+            SubjectId = subjectId,
+            IsActive = true,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        try
+        {
+            await _userRepository.AddAsync(newUser);
+        }
+        catch (DbUpdateException)
+        {
+            return CreateUserFailure(
+                "Không thể tạo tài khoản vì tên đăng nhập hoặc email đã tồn tại.");
+        }
+
+        if (request.RoleId == LecturerRoleId && subjectId.HasValue)
+        {
+            var assignment = await UpdateLecturerSubjectsAsync(newUser.Id, [subjectId.Value]);
+            if (!assignment.Success)
+            {
+                _context.Users.Remove(newUser);
+                await _context.SaveChangesAsync();
+                return CreateUserFailure(
+                    assignment.Error ?? "Không thể phân công môn học cho giảng viên.");
+            }
+        }
+
+        var notification = await _accountNotificationService.SendAccountCreatedEmailAsync(
+            newUser.Email,
+            newUser.FullName ?? newUser.Username,
+            newUser.Username,
+            DefaultPassword);
+
+        return new CreateUserResultDto
+        {
+            Success = true,
+            UserId = newUser.Id,
+            FullName = newUser.FullName,
+            Username = newUser.Username,
+            Email = newUser.Email,
+            TemporaryPassword = DefaultPassword,
+            NotificationSent = notification.IsSuccess,
+            NotificationMessage = notification.Message
+        };
     }
 
     public async Task<ImportUsersResultDto> ImportUsersFromFileAsync(Stream stream, string fileName, int? subjectId, int roleId)
@@ -518,6 +641,30 @@ public class UserServices : IUserServices
         };
 
         return $"{username}@{domain}";
+    }
+
+    private static string? ValidateRequestedUsername(string username)
+    {
+        if (username.Length is < 3 or > 100)
+            return "Tên đăng nhập phải có từ 3 đến 100 ký tự.";
+
+        if (username.Any(character =>
+                !char.IsAsciiLetterOrDigit(character)
+                && character is not '.' and not '_' and not '-'))
+        {
+            return "Tên đăng nhập chỉ được chứa chữ cái không dấu, chữ số, dấu chấm, gạch dưới hoặc gạch ngang.";
+        }
+
+        return null;
+    }
+
+    private static CreateUserResultDto CreateUserFailure(string error)
+    {
+        return new CreateUserResultDto
+        {
+            Success = false,
+            Error = error
+        };
     }
 
     private static string? NormalizeFullName(string? fullName)

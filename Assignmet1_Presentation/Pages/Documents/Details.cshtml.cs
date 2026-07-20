@@ -118,21 +118,24 @@ public class DetailsModel : PageModel
         return RedirectToPage("/Documents/Details", new { id });
     }
 
-    public async Task<IActionResult> OnPostDeleteAsync(int id, int? returnSubjectId = null)
+    public async Task<IActionResult> OnPostDeleteAsync(
+        int id,
+        int? returnSubjectId = null,
+        int? returnPageNumber = null)
     {
         var roleId = HttpContext.Session.GetInt32("RoleId");
         var userId = HttpContext.Session.GetInt32("UserId");
         if (roleId is null || userId is null || !DocumentPermissions.CanDelete(roleId.Value))
         {
             TempData["Error"] = "Bạn không có quyền xóa tài liệu.";
-            return RedirectAfterDelete(returnSubjectId);
+            return RedirectAfterDelete(returnSubjectId, returnPageNumber);
         }
 
         var document = await _documentService.GetDocumentByIdAsync(id);
         if (document is null)
         {
             TempData["Error"] = "Không tìm thấy tài liệu cần xóa.";
-            return RedirectAfterDelete(returnSubjectId);
+            return RedirectAfterDelete(returnSubjectId, returnPageNumber);
         }
 
         if (!document.SubjectId.HasValue
@@ -142,7 +145,9 @@ public class DetailsModel : PageModel
                 document.SubjectId.Value))
         {
             TempData["Error"] = "Bạn chỉ có thể xóa tài liệu thuộc môn học được phân công.";
-            return RedirectAfterDelete(returnSubjectId ?? document.SubjectId);
+            return RedirectAfterDelete(
+                returnSubjectId ?? document.SubjectId,
+                returnPageNumber);
         }
 
         var deletedDocumentName = document.OriginalName;
@@ -154,13 +159,17 @@ public class DetailsModel : PageModel
         if (!deleted)
         {
             TempData["Error"] = "Không thể xóa tài liệu. Vui lòng thử lại.";
-            return RedirectAfterDelete(returnSubjectId ?? document.SubjectId);
+            return RedirectAfterDelete(
+                returnSubjectId ?? document.SubjectId,
+                returnPageNumber);
         }
 
         await BroadcastDocumentDeletedAsync(id);
         await BroadcastCourseUpdatedAsync(deletedSubjectId);
         TempData["Success"] = $"Đã chuyển tài liệu vào thùng rác: {deletedDocumentName}. Bạn có thể khôi phục trong thùng rác tài liệu.";
-        return RedirectAfterDelete(returnSubjectId ?? deletedSubjectId);
+        return RedirectAfterDelete(
+            returnSubjectId ?? deletedSubjectId,
+            returnPageNumber);
     }
 
     private bool CanViewDocuments()
@@ -215,11 +224,17 @@ public class DetailsModel : PageModel
             .ToList();
     }
 
-    private IActionResult RedirectAfterDelete(int? subjectId)
+    private IActionResult RedirectAfterDelete(
+        int? subjectId,
+        int? pageNumber = null)
     {
         return subjectId.HasValue
-            ? RedirectToPage("/Subjects/Details", new { id = subjectId.Value })
-            : RedirectToPage("/Documents/Index");
+            ? RedirectToPage(
+                "/Subjects/Details",
+                new { id = subjectId.Value, pageNumber })
+            : RedirectToPage(
+                "/Documents/Index",
+                new { pageNumber });
     }
 
     private (string StorageRoot, string ContentRoot, string WebRoot) GetStoragePaths()

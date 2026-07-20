@@ -5,11 +5,10 @@ namespace Assignmet1_Presentation.Models;
 
 public class ImportUsersViewModel
 {
-    [Required(ErrorMessage = "Vui lòng chọn tệp (.xlsx, .csv, .json hoặc .txt).")]
     [Display(Name = "Tệp danh sách người dùng")]
     public IFormFile? File { get; set; }
 
-    [Display(Name = "Vai tro")]
+    [Display(Name = "Vai trò")]
     [Required(ErrorMessage = "Vui lòng chọn vai trò.")]
     public int RoleId { get; set; } = 3;
 
@@ -19,6 +18,39 @@ public class ImportUsersViewModel
     public List<SubjectListItemViewModel> SubjectOptions { get; set; } = [];
     public Dictionary<int, string> TeacherBySubjectId { get; set; } = [];
     public ImportResultViewModel? Result { get; set; }
+}
+
+public sealed class ManualCreateUserViewModel
+{
+    [Required(ErrorMessage = "Vui lòng nhập họ và tên.")]
+    [StringLength(200, ErrorMessage = "Họ và tên không được vượt quá 200 ký tự.")]
+    [Display(Name = "Họ và tên")]
+    public string FullName { get; set; } = string.Empty;
+
+    [StringLength(
+        100,
+        MinimumLength = 3,
+        ErrorMessage = "Tên đăng nhập phải có từ 3 đến 100 ký tự.")]
+    [RegularExpression(
+        "^[A-Za-z0-9._-]+$",
+        ErrorMessage = "Tên đăng nhập chỉ được chứa chữ cái không dấu, chữ số, dấu chấm, gạch dưới hoặc gạch ngang.")]
+    [Display(Name = "Tên đăng nhập")]
+    public string? Username { get; set; }
+
+    [StringLength(200, ErrorMessage = "Email không được vượt quá 200 ký tự.")]
+    [EmailAddress(ErrorMessage = "Địa chỉ email không đúng định dạng.")]
+    [Display(Name = "Email")]
+    public string? Email { get; set; }
+
+    [Range(2, 3, ErrorMessage = "Vui lòng chọn vai trò hợp lệ.")]
+    [Display(Name = "Vai trò")]
+    public int RoleId { get; set; } = 3;
+
+    [Display(Name = "Môn học phụ trách")]
+    public int? SubjectId { get; set; }
+
+    public List<SubjectListItemViewModel> SubjectOptions { get; set; } = [];
+    public Dictionary<int, string> TeacherBySubjectId { get; set; } = [];
 }
 
 public class ImportResultViewModel

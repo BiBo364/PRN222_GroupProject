@@ -28,7 +28,7 @@
     <!-- ── ALERTS ─────────────────────────────────────────────────── -->
 
     <!-- ── EMPTY STATE ────────────────────────────────────────────── -->
-    <div id="subject-empty-state" class="empty-state surface-card" style="display:@(Model.ViewModel.Subjects.Count == 0 ? "block" : "none")">
+    <div id="subject-empty-state" class="empty-state surface-card" style="display:@(Model.SubjectsPagination.TotalItems == 0 ? "block" : "none")">
         <div class="empty-state-icon">
             <i data-lucide="library" style="width:56px;height:56px;color:var(--text-faint)"></i>
         </div>
@@ -87,6 +87,15 @@
             </div>
         }
     </div>
+
+    @{
+        var subjectsPagination = Model.SubjectsPagination.ToViewModel(
+            "/Documents/Index",
+            "pageNumber",
+            "môn học",
+            fragment: "subject-grid");
+    }
+    <partial name="_Pagination" model="subjectsPagination" />
 
 </div>
 
@@ -163,8 +172,8 @@
                     existing.querySelector(".subject-chapter-count").textContent = String(subject.chapterCount ?? 0);
                     existing.querySelector(".subject-document-count").textContent = String(subject.documentCount ?? 0);
                 } else {
-                    grid.insertAdjacentHTML("beforeend", cardHtml(subject));
-                    lucide.createIcons();
+                    window.location.reload();
+                    return;
                 }
 
                 sortCards();
@@ -174,7 +183,7 @@
             function removeSubject(id) {
                 const card = grid.querySelector(`[data-subject-card][data-subject-id="${id}"]`);
                 if (card) card.remove();
-                updateEmptyState();
+                window.location.reload();
             }
 
             updateEmptyState();

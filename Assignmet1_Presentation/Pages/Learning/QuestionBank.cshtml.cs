@@ -1,4 +1,5 @@
 using Assignmet1_Presentation.Filters;
+using Assignmet1_Presentation.Models;
 using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,8 @@ public class QuestionBankModel : PageModel
     }
 
     public QuestionBankPageDto? Data { get; private set; }
+    public PaginationSlice<QuestionBankItemDto> QuestionsPagination { get; private set; } =
+        PaginationHelper.Paginate<QuestionBankItemDto>([], 1, 10);
 
     [BindProperty(SupportsGet = true)]
     public string? Search { get; set; }
@@ -29,6 +32,9 @@ public class QuestionBankModel : PageModel
 
     [BindProperty(SupportsGet = true)]
     public bool IncludeInactive { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -74,7 +80,7 @@ public class QuestionBankModel : PageModel
             TempData["Error"] = exception.Message;
         }
 
-        return RedirectToPage();
+        return RedirectToPage(CurrentRouteValues());
     }
 
     public async Task<IActionResult> OnPostSetActiveAsync(
@@ -98,13 +104,7 @@ public class QuestionBankModel : PageModel
             TempData["Error"] = exception.Message;
         }
 
-        return RedirectToPage(new
-        {
-            Search,
-            Difficulty,
-            QuestionType,
-            IncludeInactive
-        });
+        return RedirectToPage(CurrentRouteValues());
     }
 
     private async Task<bool> LoadAsync(CancellationToken cancellationToken)
@@ -118,10 +118,29 @@ public class QuestionBankModel : PageModel
             cancellationToken);
 
         if (Data is not null)
+        {
+            QuestionsPagination = PaginationHelper.Paginate(
+                Data.Questions,
+                PageNumber,
+                10);
+            PageNumber = QuestionsPagination.CurrentPage;
             return true;
+        }
 
         TempData["Error"] = "Bạn không có quyền quản lý ngân hàng câu hỏi.";
         return false;
+    }
+
+    private object CurrentRouteValues()
+    {
+        return new
+        {
+            Search,
+            Difficulty,
+            QuestionType,
+            IncludeInactive,
+            pageNumber = PageNumber
+        };
     }
 
     private int CurrentUserId()

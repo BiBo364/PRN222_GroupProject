@@ -37,6 +37,24 @@ else
 {
     var data = Model.Dashboard;
     var subject = data.Subject;
+    var quizPagination = Model.LearningSetsPagination.ToViewModel(
+        "/Learning/Index",
+        "quizPage",
+        "hoạt động ôn tập",
+        new Dictionary<string, object?>
+        {
+            ["attemptPage"] = Model.AttemptsPagination.CurrentPage
+        },
+        "published-learning-sets");
+    var attemptPagination = Model.AttemptsPagination.ToViewModel(
+        "/Learning/Index",
+        "attemptPage",
+        "lần làm bài",
+        new Dictionary<string, object?>
+        {
+            ["quizPage"] = Model.LearningSetsPagination.CurrentPage
+        },
+        "recent-attempts");
 
     <section class="learning-hero">
         <div class="learning-hero-copy">
@@ -194,7 +212,7 @@ else
         else
         {
             <div class="learning-card-grid">
-                @foreach (var set in data.LearningSets)
+                @foreach (var set in Model.LearningSetsPagination.Items)
                 {
                     <article class="learning-set-card surface-card">
                         <div class="learning-set-top">
@@ -235,12 +253,13 @@ else
                     </article>
                 }
             </div>
+            <partial name="_Pagination" model="quizPagination" />
         }
     </section>
 
     @if (!data.CanManage && data.RecentAttempts.Count > 0)
     {
-        <section class="learning-section">
+        <section class="learning-section" id="recent-attempts">
             <div class="learning-section-heading">
                 <div>
                     <span class="eyebrow">Tiến độ gần đây</span>
@@ -248,7 +267,7 @@ else
                 </div>
             </div>
             <div class="attempt-list surface-card">
-                @foreach (var attempt in data.RecentAttempts.Take(6))
+                @foreach (var attempt in Model.AttemptsPagination.Items)
                 {
                     <a class="attempt-row" asp-page="/Learning/Play" asp-route-id="@attempt.LearningSetId">
                         <span class="attempt-score">@attempt.Percentage.ToString("0.#")%</span>
@@ -260,6 +279,7 @@ else
                     </a>
                 }
             </div>
+            <partial name="_Pagination" model="attemptPagination" />
         </section>
     }
 }

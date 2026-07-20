@@ -1,4 +1,5 @@
 using Assignmet1_Presentation.Filters;
+using Assignmet1_Presentation.Models;
 using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -17,12 +18,22 @@ public class AnalyticsModel : PageModel
     }
 
     public QuizAnalyticsDashboardDto? Dashboard { get; private set; }
+    public PaginationSlice<QuizPerformanceDto> PerformancePagination { get; private set; } =
+        PaginationHelper.Paginate<QuizPerformanceDto>([], 1, 10);
+    public PaginationSlice<QuestionAnalyticsDto> QuestionsPagination { get; private set; } =
+        PaginationHelper.Paginate<QuestionAnalyticsDto>([], 1, 10);
 
     [BindProperty(SupportsGet = true)]
     public int? QuizId { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public int Days { get; set; } = 30;
+
+    [BindProperty(SupportsGet = true)]
+    public int PerformancePage { get; set; } = 1;
+
+    [BindProperty(SupportsGet = true)]
+    public int QuestionPage { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -41,7 +52,19 @@ public class AnalyticsModel : PageModel
         }
 
         if (Dashboard is not null)
+        {
+            PerformancePagination = PaginationHelper.Paginate(
+                Dashboard.QuizPerformance,
+                PerformancePage,
+                10);
+            QuestionsPagination = PaginationHelper.Paginate(
+                Dashboard.Questions,
+                QuestionPage,
+                10);
+            PerformancePage = PerformancePagination.CurrentPage;
+            QuestionPage = QuestionsPagination.CurrentPage;
             return Page();
+        }
 
         TempData["Error"] = "Bạn cần được phân công môn học để xem thống kê Quiz.";
         return RedirectToPage("/Learning/Index");

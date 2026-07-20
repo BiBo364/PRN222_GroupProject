@@ -1,0 +1,105 @@
+@model PaginationViewModel
+@using Microsoft.AspNetCore.Routing
+
+@if (Model.TotalPages > 1)
+{
+    var firstVisiblePage = Math.Max(1, Model.CurrentPage - 2);
+    var lastVisiblePage = Math.Min(Model.TotalPages, firstVisiblePage + 4);
+    firstVisiblePage = Math.Max(1, lastVisiblePage - 4);
+
+    string PageUrl(int pageNumber)
+    {
+        var values = new RouteValueDictionary(Model.RouteValues)
+        {
+            [Model.PageParameterName] = pageNumber
+        };
+        var url = Url.Page(Model.PageName, values: values) ?? "#";
+        return string.IsNullOrWhiteSpace(Model.Fragment)
+            ? url
+            : $"{url}#{Uri.EscapeDataString(Model.Fragment)}";
+    }
+
+    <div class="pagination-shell">
+        <div class="pagination-summary">
+            Hiển thị @Model.FirstItemNumber–@Model.LastItemNumber
+            trong @Model.TotalItems @Model.ItemLabel
+        </div>
+        <nav aria-label="Phân trang @Model.ItemLabel">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                    @if (Model.HasPreviousPage)
+                    {
+                        <a class="page-link"
+                           href="@PageUrl(Model.CurrentPage - 1)"
+                           aria-label="Sang trang trước">
+                            <i data-lucide="chevron-left" class="icon-xs"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="page-link" aria-disabled="true" aria-label="Không có trang trước">
+                            <i data-lucide="chevron-left" class="icon-xs"></i>
+                        </span>
+                    }
+                </li>
+
+                @if (firstVisiblePage > 1)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@PageUrl(1)">1</a>
+                    </li>
+                    @if (firstVisiblePage > 2)
+                    {
+                        <li class="page-item disabled">
+                            <span class="page-link" aria-hidden="true">…</span>
+                        </li>
+                    }
+                }
+
+                @for (var pageNumber = firstVisiblePage; pageNumber <= lastVisiblePage; pageNumber++)
+                {
+                    <li class="page-item @(Model.CurrentPage == pageNumber ? "active" : "")">
+                        @if (Model.CurrentPage == pageNumber)
+                        {
+                            <span class="page-link" aria-current="page">@pageNumber</span>
+                        }
+                        else
+                        {
+                            <a class="page-link" href="@PageUrl(pageNumber)">@pageNumber</a>
+                        }
+                    </li>
+                }
+
+                @if (lastVisiblePage < Model.TotalPages)
+                {
+                    @if (lastVisiblePage < Model.TotalPages - 1)
+                    {
+                        <li class="page-item disabled">
+                            <span class="page-link" aria-hidden="true">…</span>
+                        </li>
+                    }
+                    <li class="page-item">
+                        <a class="page-link" href="@PageUrl(Model.TotalPages)">@Model.TotalPages</a>
+                    </li>
+                }
+
+                <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                    @if (Model.HasNextPage)
+                    {
+                        <a class="page-link"
+                           href="@PageUrl(Model.CurrentPage + 1)"
+                           aria-label="Sang trang sau">
+                            <i data-lucide="chevron-right" class="icon-xs"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="page-link" aria-disabled="true" aria-label="Không có trang sau">
+                            <i data-lucide="chevron-right" class="icon-xs"></i>
+                        </span>
+                    }
+                </li>
+            </ul>
+        </nav>
+    </div>
+}

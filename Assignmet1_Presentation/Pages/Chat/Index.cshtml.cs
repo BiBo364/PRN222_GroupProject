@@ -21,6 +21,11 @@ public class IndexModel : PageModel
     }
 
     public ChatIndexViewModel ViewModel { get; set; } = new();
+    public PaginationSlice<ChatSessionListItemViewModel> SessionsPagination { get; private set; } =
+        PaginationHelper.Paginate<ChatSessionListItemViewModel>([], 1, 10);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync(int? subjectId)
     {
@@ -56,6 +61,11 @@ public class IndexModel : PageModel
         var quotaStatus = selectedSubjectId.HasValue && !CanBypassSubscription()
             ? await BuildQuotaStatusAsync(numericUserId.Value, selectedSubjectId.Value, selectedSubject)
             : null;
+        SessionsPagination = PaginationHelper.Paginate(
+            sessions.Select(ViewModelMapper.ToViewModel),
+            PageNumber,
+            10);
+        PageNumber = SessionsPagination.CurrentPage;
 
         ViewModel = new ChatIndexViewModel
         {
@@ -63,7 +73,7 @@ public class IndexModel : PageModel
             AvailableSubjects = availableSubjects.Select(ViewModelMapper.ToViewModel).ToList(),
             SelectedSubjectId = selectedSubjectId,
             QuotaStatus = quotaStatus,
-            Sessions = sessions.Select(ViewModelMapper.ToViewModel).ToList()
+            Sessions = SessionsPagination.Items.ToList()
         };
 
         return Page();

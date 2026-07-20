@@ -83,6 +83,15 @@
 }
 else
 {
+    var sessionsPagination = Model.SessionsPagination.ToViewModel(
+        "/Chat/Index",
+        "pageNumber",
+        "cuộc trò chuyện",
+        new Dictionary<string, object?>
+        {
+            ["subjectId"] = Model.ViewModel.SelectedSubjectId
+        });
+
     <div class="surface-card p-0 overflow-hidden">
         @foreach (var session in Model.ViewModel.Sessions)
         {
@@ -95,5 +104,6 @@ else
                 <span class="status-chip badge-soft">Mở</span>
             </a>
         }
+        <partial name="_Pagination" model="sessionsPagination" />
     </div>
 }

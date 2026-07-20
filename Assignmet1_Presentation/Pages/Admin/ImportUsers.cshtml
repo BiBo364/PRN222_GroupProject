@@ -2,31 +2,144 @@
 @model Assignmet1_Presentation.Pages.Admin.ImportUsersModel
 @using Assignment1_Service.Models
 @{
-    ViewData["Title"] = "Nhập người dùng";
+    ViewData["Title"] = "Tạo tài khoản người dùng";
 }
 
 <div class="d-flex flex-column gap-4">
     <div class="page-hero d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3">
         <div>
-            <div class="hero-badge mb-2"><i data-lucide="upload-cloud" class="icon-sm"></i> Nhập dữ liệu hàng loạt</div>
-            <h1 class="page-title mb-1">Nhập người dùng</h1>
+            <div class="hero-badge mb-2"><i data-lucide="user-plus" class="icon-sm"></i> Quản lý tài khoản</div>
+            <h1 class="page-title mb-1">Tạo tài khoản người dùng</h1>
             <p class="page-subtitle mb-0">
-                Tải lên file <strong>.xlsx, .csv, .json, .txt</strong> chỉ cần họ tên. Hệ thống sẽ tự tạo username/email,
-                mật khẩu mặc định <code>1234567</code> và sẽ gửi email thông báo nếu SMTP đã được cấu hình.
+                Tạo trực tiếp từng tài khoản ngay trên hệ thống, không cần chuẩn bị hay tải lên tệp.
+                Chỉ sử dụng chức năng nhập danh sách khi cần tạo số lượng lớn tài khoản.
+                Tài khoản mới sử dụng mật khẩu tạm thời <code>1234567</code> và phải đổi mật khẩu trong lần đăng nhập đầu tiên.
             </p>
         </div>
         <a asp-page="/Admin/Index" class="btn btn-outline-secondary flex-shrink-0"><i data-lucide="arrow-left" class="icon-sm me-2"></i> Quay lại danh sách</a>
     </div>
 
+    <div class="surface-card">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3 mb-4">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="icon-tile icon-tile-primary">
+                        <i data-lucide="user-round-plus" class="icon-sm"></i>
+                    </span>
+                    <h2 class="h5 fw-semibold mb-0">Tạo tài khoản thủ công</h2>
+                </div>
+                <p class="text-muted mb-0">
+                    Phù hợp khi cần thêm nhanh một vài sinh viên hoặc giảng viên mà không phải chuẩn bị tệp dữ liệu.
+                </p>
+                <div class="d-flex align-items-center gap-2 text-success small fw-semibold mt-2">
+                    <i data-lucide="check-circle-2" class="icon-sm"></i>
+                    Biểu mẫu này hoạt động độc lập và không yêu cầu tệp Excel, CSV, JSON hoặc TXT.
+                </div>
+            </div>
+            <div class="mini-panel py-2 px-3 flex-shrink-0">
+                <div class="small text-muted">Mật khẩu tạm thời</div>
+                <div class="fw-bold font-monospace">1234567</div>
+            </div>
+        </div>
+
+        <form method="post" asp-page-handler="CreateManual" id="manualCreateForm" novalidate>
+            @Html.AntiForgeryToken()
+
+            @if (Model.ActiveForm == "manual"
+                && !ViewData.ModelState.IsValid
+                && ViewData.ModelState.ErrorCount > 0)
+            {
+                <div class="alert alert-danger mb-4">
+                    <div asp-validation-summary="All"></div>
+                </div>
+            }
+
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <label asp-for="ManualInput.FullName" class="form-label fw-semibold"></label>
+                    <input asp-for="ManualInput.FullName"
+                           class="form-control form-control-lg"
+                           placeholder="Ví dụ: Nguyễn Minh Anh"
+                           autocomplete="off" />
+                    <span asp-validation-for="ManualInput.FullName" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <label asp-for="ManualInput.RoleId" class="form-label fw-semibold"></label>
+                    <select asp-for="ManualInput.RoleId" class="form-select form-select-lg">
+                        <option value="3">Sinh viên</option>
+                        <option value="2">Giảng viên</option>
+                    </select>
+                    <span asp-validation-for="ManualInput.RoleId" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 col-lg-3" id="manualSubjectAssignmentGroup">
+                    <label asp-for="ManualInput.SubjectId" class="form-label fw-semibold"></label>
+                    <select asp-for="ManualInput.SubjectId" class="form-select form-select-lg">
+                        <option value="">Chưa phân công môn học</option>
+                        @foreach (var subject in Model.ManualInput.SubjectOptions)
+                        {
+                            var isTaken = Model.ManualInput.TeacherBySubjectId.TryGetValue(
+                                subject.Id,
+                                out var assignedTeacher);
+                            <option value="@subject.Id" disabled="@isTaken">
+                                @subject.Code - @subject.Name@(isTaken ? $" (đã có GV: {assignedTeacher})" : "")
+                            </option>
+                        }
+                    </select>
+                    <span asp-validation-for="ManualInput.SubjectId" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="ManualInput.Username" class="form-label fw-semibold"></label>
+                    <input asp-for="ManualInput.Username"
+                           class="form-control"
+                           placeholder="Để trống để hệ thống tự tạo"
+                           autocomplete="off"
+                           spellcheck="false" />
+                    <div class="form-text">Chỉ dùng chữ cái không dấu, chữ số, dấu chấm, gạch dưới hoặc gạch ngang.</div>
+                    <span asp-validation-for="ManualInput.Username" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="ManualInput.Email" class="form-label fw-semibold"></label>
+                    <input asp-for="ManualInput.Email"
+                           class="form-control"
+                           placeholder="Để trống để hệ thống tự tạo theo vai trò"
+                           autocomplete="off"
+                           spellcheck="false" />
+                    <div class="form-text">Hệ thống sẽ gửi thông tin đăng nhập tới email này nếu SMTP đã được cấu hình.</div>
+                    <span asp-validation-for="ManualInput.Email" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mt-4 pt-3 border-top">
+                <div class="d-flex align-items-start gap-2 text-muted small">
+                    <i data-lucide="shield-check" class="icon-sm mt-1 flex-shrink-0"></i>
+                    <span>Tài khoản được kích hoạt ngay và sẽ bắt buộc đổi mật khẩu trong lần đăng nhập đầu tiên.</span>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg px-4 flex-shrink-0" id="manualSubmitBtn">
+                    <i data-lucide="user-plus" class="icon-sm me-2"></i>
+                    Tạo tài khoản
+                </button>
+            </div>
+        </form>
+    </div>
+
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="surface-card h-100">
-                <h2 class="h5 fw-semibold mb-4"><i data-lucide="file-up" class="icon-sm me-2"></i> Tải lên danh sách</h2>
+                <h2 class="h5 fw-semibold mb-2"><i data-lucide="file-up" class="icon-sm me-2"></i> Nhập danh sách số lượng lớn</h2>
+                <p class="text-muted small mb-4">
+                    Chỉ cần dùng mục này khi có nhiều sinh viên hoặc giảng viên và đã chuẩn bị danh sách bên ngoài hệ thống.
+                </p>
 
                 <form method="post" enctype="multipart/form-data" id="importForm">
                     @Html.AntiForgeryToken()
 
-                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+                    @if (Model.ActiveForm == "import"
+                        && !ViewData.ModelState.IsValid
+                        && ViewData.ModelState.ErrorCount > 0)
                     {
                         <div class="alert alert-danger mb-4">
                             <div asp-validation-summary="All"></div>
@@ -69,7 +182,7 @@
 
         <div class="col-lg-6">
             <div class="surface-card h-100">
-                <h2 class="h5 fw-semibold mb-4"><i data-lucide="info" class="icon-sm me-2"></i> Hướng dẫn</h2>
+                <h2 class="h5 fw-semibold mb-4"><i data-lucide="info" class="icon-sm me-2"></i> Hướng dẫn nhập hàng loạt</h2>
                 <div class="d-flex flex-column gap-3">
                     <div class="mini-panel">
                         <div class="fw-semibold small"><i data-lucide="file-spreadsheet" class="icon-sm me-1"></i> Định dạng file</div>
@@ -149,10 +262,10 @@
                             <th>Ghi chú</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="importResultBody">
                         @foreach (var row in result.Rows)
                         {
-                            <tr>
+                            <tr data-import-result-row>
                                 <td>@row.RowNumber</td>
                                 <td>@(row.FullName ?? "-")</td>
                                 <td>@(row.Email ?? "-")</td>
@@ -184,6 +297,15 @@
                     </tbody>
                 </table>
             </div>
+            <div id="importResultPagination"
+                 class="pagination-shell"
+                 data-page-size="15"
+                 aria-label="Phân trang kết quả nhập người dùng">
+                <div id="importResultSummary" class="pagination-summary"></div>
+                <nav aria-label="Các trang kết quả nhập người dùng">
+                    <ul id="importResultPages" class="pagination pagination-sm mb-0"></ul>
+                </nav>
+            </div>
         </div>
     }
 </div>
@@ -194,23 +316,101 @@
     const roleSelect = document.getElementById('Input_RoleId');
     const subjectGroup = document.getElementById('subjectAssignmentGroup');
     const subjectSelect = document.getElementById('Input_SubjectId');
+    const manualRoleSelect = document.getElementById('ManualInput_RoleId');
+    const manualSubjectGroup = document.getElementById('manualSubjectAssignmentGroup');
+    const manualSubjectSelect = document.getElementById('ManualInput_SubjectId');
 
-    function syncSubjectAssignmentVisibility() {
-        const isLecturer = roleSelect && roleSelect.value === '2';
-        if (subjectGroup) subjectGroup.style.display = isLecturer ? '' : 'none';
-        if (!isLecturer && subjectSelect) subjectSelect.value = '';
+    function syncSubjectAssignmentVisibility(select, group, subject) {
+        const isLecturer = select && select.value === '2';
+        if (group) group.hidden = !isLecturer;
+        if (!isLecturer && subject) subject.value = '';
     }
 
     if (roleSelect) {
-        roleSelect.addEventListener('change', syncSubjectAssignmentVisibility);
-        syncSubjectAssignmentVisibility();
+        roleSelect.addEventListener('change', () =>
+            syncSubjectAssignmentVisibility(roleSelect, subjectGroup, subjectSelect));
+        syncSubjectAssignmentVisibility(roleSelect, subjectGroup, subjectSelect);
     }
 
-    document.getElementById('importForm').addEventListener('submit', function () {
+    if (manualRoleSelect) {
+        manualRoleSelect.addEventListener('change', () =>
+            syncSubjectAssignmentVisibility(manualRoleSelect, manualSubjectGroup, manualSubjectSelect));
+        syncSubjectAssignmentVisibility(manualRoleSelect, manualSubjectGroup, manualSubjectSelect);
+    }
+
+    document.getElementById('importForm')?.addEventListener('submit', function () {
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
         btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm me-2 spin"></i> Đang xử lý...';
         lucide.createIcons();
     });
+
+    document.getElementById('manualCreateForm')?.addEventListener('submit', function () {
+        if (!this.checkValidity()) return;
+
+        const btn = document.getElementById('manualSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm me-2 spin"></i> Đang tạo tài khoản...';
+        lucide.createIcons();
+    });
+
+    (() => {
+        const pagination = document.getElementById('importResultPagination');
+        const pageList = document.getElementById('importResultPages');
+        const summary = document.getElementById('importResultSummary');
+        const rows = Array.from(document.querySelectorAll('[data-import-result-row]'));
+        if (!pagination || !pageList || !summary || rows.length === 0) return;
+
+        const pageSize = Number.parseInt(pagination.dataset.pageSize || '15', 10);
+        const totalPages = Math.ceil(rows.length / pageSize);
+        let currentPage = 1;
+
+        const addButton = (label, targetPage, disabled = false, active = false, ariaLabel = '') => {
+            const item = document.createElement('li');
+            item.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'page-link';
+            button.textContent = label;
+            button.disabled = disabled;
+            if (ariaLabel) button.setAttribute('aria-label', ariaLabel);
+            if (active) button.setAttribute('aria-current', 'page');
+            button.addEventListener('click', () => renderPage(targetPage));
+
+            item.appendChild(button);
+            pageList.appendChild(item);
+        };
+
+        const renderPage = (requestedPage) => {
+            currentPage = Math.min(Math.max(requestedPage, 1), totalPages);
+            const firstIndex = (currentPage - 1) * pageSize;
+            const lastIndexExclusive = Math.min(firstIndex + pageSize, rows.length);
+
+            rows.forEach((row, index) => {
+                row.hidden = index < firstIndex || index >= lastIndexExclusive;
+            });
+
+            summary.textContent =
+                `Hiển thị ${firstIndex + 1}-${lastIndexExclusive} trong tổng số ${rows.length} kết quả.`;
+            pageList.replaceChildren();
+            addButton('Trước', currentPage - 1, currentPage === 1, false, 'Trang trước');
+
+            const firstPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+            const lastPage = Math.min(totalPages, firstPage + 4);
+            for (let page = firstPage; page <= lastPage; page += 1) {
+                addButton(page.toString(), page, false, page === currentPage, `Trang ${page}`);
+            }
+
+            addButton('Sau', currentPage + 1, currentPage === totalPages, false, 'Trang sau');
+        };
+
+        if (totalPages <= 1) {
+            pagination.hidden = true;
+            return;
+        }
+
+        renderPage(1);
+    })();
 </script>
 }

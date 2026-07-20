@@ -28,7 +28,7 @@
         <div class="card-header-row">
             <h2 class="card-header-title">
                 <i data-lucide="file-x" class="icon-sm me-1" style="color:var(--rose)"></i>
-                Danh sách tài liệu đã xóa (@Model.Documents.Count)
+                Danh sách tài liệu đã xóa (@Model.DocumentsPagination.TotalItems)
             </h2>
         </div>
 
@@ -44,6 +44,11 @@
         }
         else
         {
+            var documentsPagination = Model.DocumentsPagination.ToViewModel(
+                "/Documents/Recycle",
+                "pageNumber",
+                "tài liệu đã xóa");
+
             <div class="table-responsive">
                 <table class="table table-hover mb-0 align-middle">
                     <thead>
@@ -91,6 +96,7 @@
                                     <form asp-page-handler="Restore" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@doc.Id" />
+                                        <input type="hidden" name="PageNumber" value="@Model.DocumentsPagination.CurrentPage" />
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-success btn-restore"
                                                 data-item-name="@doc.OriginalName"
@@ -104,6 +110,7 @@
                     </tbody>
                 </table>
             </div>
+            <partial name="_Pagination" model="documentsPagination" />
         }
     </div>
 </div>

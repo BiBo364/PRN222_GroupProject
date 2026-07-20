@@ -172,6 +172,9 @@ public sealed class StaffAuditMiddleware
 
     private static string Action(HttpContext context, string handler, string path)
     {
+        if (handler.Contains("CreateManual", StringComparison.OrdinalIgnoreCase))
+            return "create";
+
         if (handler.Contains("PermanentlyDelete", StringComparison.OrdinalIgnoreCase)
             || handler.Contains("Delete", StringComparison.OrdinalIgnoreCase))
         {

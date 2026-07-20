@@ -9,6 +9,7 @@ public interface IUserServices
     Task<(bool Success, string? Error)> ChangeDefaultPasswordAsync(int userId, string newPassword);
 
     Task<List<UserListItemDto>> GetAllUsersAsync();
+    Task<CreateUserResultDto> CreateUserAsync(CreateUserRequestDto request);
     Task<ImportUsersResultDto> ImportUsersFromFileAsync(Stream stream, string fileName, int? subjectId, int roleId);
     Task<(bool Success, string? Error)> AssignSubjectAsync(int userId, int? subjectId);
     Task<(bool Success, string? Error)> UpdateLecturerSubjectsAsync(int userId, IReadOnlyCollection<int> subjectIds);

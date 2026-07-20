@@ -39,7 +39,7 @@
             <h2 class="card-header-title">
                 <i data-lucide="book-copy" class="icon-sm me-1" style="color:var(--primary)"></i>
                 Danh sách môn học —
-                <span id="subject-count">@Model.Subjects.Count</span> mon
+                <span id="subject-count">@Model.SubjectsPagination.TotalItems</span> môn
             </h2>
             <a asp-page="/Subjects/Create" class="btn btn-primary btn-sm d-none d-md-inline-flex">
                 <i data-lucide="plus" class="icon-sm"></i> Thêm mới
@@ -113,6 +113,7 @@
                                     <form asp-page-handler="Delete" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@subject.Id" />
+                                        <input type="hidden" name="PageNumber" value="@Model.SubjectsPagination.CurrentPage" />
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger btn-delete-confirm"
                                                 data-item-name="môn học @subject.Code - @subject.Name"
@@ -129,6 +130,14 @@
                 </tbody>
             </table>
         </div>
+        @{
+            var subjectsPagination = Model.SubjectsPagination.ToViewModel(
+                "/Subjects/Manage",
+                "pageNumber",
+                "môn học",
+                fragment: "subject-table-wrapper");
+        }
+        <partial name="_Pagination" model="subjectsPagination" />
     </div>
 </div>
 
@@ -194,7 +203,6 @@
                 const rows = grid.querySelectorAll("[data-subject-row]");
                 if (emptyState)   emptyState.style.display   = rows.length === 0 ? "block" : "none";
                 if (tableWrapper) tableWrapper.style.display = rows.length === 0 ? "none"  : "block";
-                if (countNode)    countNode.textContent       = rows.length.toString();
             }
 
             function sortRows() {
@@ -214,8 +222,8 @@
                     const docCount = existing.querySelector(".subject-document-count");
                     if (docCount) docCount.textContent = String(subject.documentCount ?? 0);
                 } else {
-                    grid.insertAdjacentHTML("beforeend", subjectRowHtml(subject));
-                    lucide.createIcons();
+                    window.location.reload();
+                    return;
                 }
                 sortRows();
                 updateEmptyState();
@@ -224,7 +232,7 @@
             function removeSubject(id) {
                 const row = grid.querySelector(`[data-subject-row][data-subject-id="${id}"]`);
                 if (row) row.remove();
-                updateEmptyState();
+                window.location.reload();
             }
 
             updateEmptyState();

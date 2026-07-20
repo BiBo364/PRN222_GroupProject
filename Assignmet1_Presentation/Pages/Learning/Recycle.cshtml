@@ -6,6 +6,12 @@
 
 @if (Model.Data is not null)
 {
+    var itemsPagination = Model.ItemsPagination.ToViewModel(
+        "/Learning/Recycle",
+        "pageNumber",
+        "Quiz đã xóa",
+        fragment: "deleted-quiz-list");
+
     <div class="learning-page-heading learning-page-heading-actions">
         <div>
             <a class="learning-back-link" asp-page="/Learning/Index">
@@ -32,7 +38,7 @@
             <i data-lucide="archive-restore"></i>
         </span>
         <div>
-            <strong>@Model.Data.Items.Count Quiz trong thùng rác</strong>
+            <strong>@Model.ItemsPagination.TotalItems Quiz trong thùng rác</strong>
             <span>@Model.Data.Subject.Code · @Model.Data.Subject.Name</span>
         </div>
     </section>
@@ -48,8 +54,8 @@
     }
     else
     {
-        <div class="recycle-grid">
-            @foreach (var item in Model.Data.Items)
+        <div class="recycle-grid" id="deleted-quiz-list">
+            @foreach (var item in Model.ItemsPagination.Items)
             {
                 <article class="recycle-card surface-card">
                     <header>
@@ -81,6 +87,7 @@
                     <footer>
                         <form method="post" asp-page-handler="Restore">
                             <input type="hidden" name="id" value="@item.Id" />
+                            <input type="hidden" name="PageNumber" value="@Model.ItemsPagination.CurrentPage" />
                             <button type="submit" class="btn btn-primary">
                                 <i data-lucide="archive-restore" class="icon-sm"></i>
                                 Khôi phục
@@ -88,6 +95,7 @@
                         </form>
                         <form method="post" asp-page-handler="PermanentlyDelete">
                             <input type="hidden" name="id" value="@item.Id" />
+                            <input type="hidden" name="PageNumber" value="@Model.ItemsPagination.CurrentPage" />
                             <button type="submit"
                                     class="btn btn-outline-danger btn-delete-confirm"
                                     data-item-name="@item.Title"
@@ -101,5 +109,6 @@
                 </article>
             }
         </div>
+        <partial name="_Pagination" model="itemsPagination" />
     }
 }

@@ -19,6 +19,11 @@ public class IndexModel : PageModel
     }
 
     public DocumentListViewModel ViewModel { get; set; } = new();
+    public PaginationSlice<SubjectListItemViewModel> SubjectsPagination { get; private set; } =
+        PaginationHelper.Paginate<SubjectListItemViewModel>([], 1, 12);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -27,10 +32,15 @@ public class IndexModel : PageModel
 
         var roleId = HttpContext.Session.GetInt32("RoleId")!.Value;
         var subjects = await _subjectService.GetSubjectsAsync();
+        SubjectsPagination = PaginationHelper.Paginate(
+            subjects.Select(ViewModelMapper.ToViewModel),
+            PageNumber,
+            12);
+        PageNumber = SubjectsPagination.CurrentPage;
 
         ViewModel = new DocumentListViewModel
         {
-            Subjects = subjects.Select(ViewModelMapper.ToViewModel).ToList(),
+            Subjects = SubjectsPagination.Items.ToList(),
             CanCreateSubject = DocumentPermissions.CanManageSubjects(roleId)
         };
 

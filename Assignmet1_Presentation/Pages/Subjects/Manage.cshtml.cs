@@ -24,11 +24,21 @@ public class ManageModel : PageModel
     }
 
     public List<SubjectListItemViewModel> Subjects { get; private set; } = [];
+    public PaginationSlice<SubjectListItemViewModel> SubjectsPagination { get; private set; } =
+        PaginationHelper.Paginate<SubjectListItemViewModel>([], 1, 10);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync()
     {
         var subjects = await _subjectService.GetSubjectsAsync();
-        Subjects = subjects.Select(ViewModelMapper.ToViewModel).ToList();
+        SubjectsPagination = PaginationHelper.Paginate(
+            subjects.Select(ViewModelMapper.ToViewModel),
+            PageNumber,
+            10);
+        PageNumber = SubjectsPagination.CurrentPage;
+        Subjects = SubjectsPagination.Items.ToList();
         return Page();
     }
 
@@ -46,6 +56,6 @@ public class ManageModel : PageModel
             TempData["Error"] = error ?? "Không thể xóa môn học.";
         }
 
-        return RedirectToPage("/Subjects/Manage");
+        return RedirectToPage("/Subjects/Manage", new { pageNumber = PageNumber });
     }
 }

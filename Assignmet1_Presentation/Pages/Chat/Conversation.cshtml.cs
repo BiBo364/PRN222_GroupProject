@@ -24,6 +24,12 @@ public class ConversationModel : PageModel
     [BindProperty]
     public ChatConversationViewModel ViewModel { get; set; } = new();
 
+    public PaginationSlice<ChatMessageViewModel> MessagesPagination { get; private set; } =
+        PaginationHelper.Paginate<ChatMessageViewModel>([], 1, 20);
+
+    [BindProperty(SupportsGet = true)]
+    public int MessagePage { get; set; } = 1;
+
     public async Task<IActionResult> OnGetAsync(string id)
     {
         var userId = GetUserId();
@@ -43,6 +49,7 @@ public class ConversationModel : PageModel
                 .ToList(),
             SelectedSubjectId = session.SubjectId
         };
+        ApplyMessagePagination();
 
         if (session.SubjectId.HasValue && !CanBypassSubscription())
         {
@@ -75,6 +82,7 @@ public class ConversationModel : PageModel
         ViewModel.AvailableSubjects = (await _chatService.GetAvailableSubjectsAsync())
             .Select(ViewModelMapper.ToViewModel)
             .ToList();
+        ApplyMessagePagination();
 
         if (session.SubjectId.HasValue && !CanBypassSubscription())
         {
@@ -191,5 +199,17 @@ public class ConversationModel : PageModel
             Request.Headers["X-Requested-With"],
             "XMLHttpRequest",
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ApplyMessagePagination()
+    {
+        var newestFirst = ViewModel.Session.Messages
+            .AsEnumerable()
+            .Reverse();
+        MessagesPagination = PaginationHelper.Paginate(newestFirst, MessagePage, 20);
+        MessagePage = MessagesPagination.CurrentPage;
+        ViewModel.Session.Messages = MessagesPagination.Items
+            .Reverse()
+            .ToList();
     }
 }

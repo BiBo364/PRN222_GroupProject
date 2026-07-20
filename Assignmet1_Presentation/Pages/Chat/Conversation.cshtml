@@ -3,6 +3,12 @@
 @{
     ViewData["Title"] = Model.ViewModel.Session.Title ?? "Chat";
     var session = Model.ViewModel.Session;
+    var messagesPagination = Model.MessagesPagination.ToViewModel(
+        "/Chat/Conversation",
+        nameof(Model.MessagePage),
+        "tin nhắn",
+        new Dictionary<string, object?> { ["id"] = session.Id },
+        "chat-history");
 }
 
 <section class="page-hero mb-4">
@@ -36,6 +42,10 @@ else
 
 
 <div id="chatError" class="alert alert-danger d-none" role="alert"></div>
+
+<div id="chat-history">
+    <partial name="_Pagination" model="messagesPagination" />
+</div>
 
 <div id="chatMessages" class="chat-shell scroll-panel mb-3" data-session-id="@session.Id">
     <p id="chatEmptyState" class="page-subtitle mb-0 @(session.Messages.Any() ? "d-none" : string.Empty)">
@@ -74,6 +84,7 @@ else
 
 <div class="surface-card">
     <form id="chatForm" asp-page-handler="Ask" asp-route-id="@session.Id" method="post">
+        <input type="hidden" asp-for="MessagePage" />
         <div asp-validation-summary="All" class="text-danger mb-2"></div>
         <div class="input-group input-group-lg">
             <input asp-for="ViewModel.Question" class="form-control" placeholder="Đặt câu hỏi về tài liệu môn học..." autocomplete="off" />

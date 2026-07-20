@@ -8,6 +8,28 @@
 {
     var data = Model.Dashboard;
     var maximumTrendAttempts = Math.Max(1, data.Trend.Max(point => point.AttemptCount));
+    var performancePagination = Model.PerformancePagination.ToViewModel(
+        "/Learning/Analytics",
+        "performancePage",
+        "Quiz",
+        new Dictionary<string, object?>
+        {
+            ["QuizId"] = Model.QuizId,
+            ["Days"] = Model.Days,
+            ["questionPage"] = Model.QuestionsPagination.CurrentPage
+        },
+        "quiz-performance");
+    var questionPagination = Model.QuestionsPagination.ToViewModel(
+        "/Learning/Analytics",
+        "questionPage",
+        "câu hỏi phân tích",
+        new Dictionary<string, object?>
+        {
+            ["QuizId"] = Model.QuizId,
+            ["Days"] = Model.Days,
+            ["performancePage"] = Model.PerformancePagination.CurrentPage
+        },
+        "question-analytics");
 
     <div class="learning-page-heading learning-page-heading-actions">
         <div>
@@ -129,7 +151,7 @@
 
     @if (data.QuizPerformance.Count > 0)
     {
-        <section class="surface-card analytics-section">
+        <section class="surface-card analytics-section" id="quiz-performance">
             <div class="learning-section-heading">
                 <div>
                     <span class="eyebrow">So sánh Quiz</span>
@@ -149,7 +171,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var quiz in data.QuizPerformance)
+                        @foreach (var quiz in Model.PerformancePagination.Items)
                         {
                             <tr>
                                 <td>
@@ -167,10 +189,11 @@
                     </tbody>
                 </table>
             </div>
+            <partial name="_Pagination" model="performancePagination" />
         </section>
     }
 
-    <section class="analytics-section">
+    <section class="analytics-section" id="question-analytics">
         <div class="learning-section-heading">
             <div>
                 <span class="eyebrow">Chẩn đoán câu hỏi</span>
@@ -190,7 +213,7 @@
         else
         {
             <div class="question-analytics-list">
-                @foreach (var question in data.Questions)
+                @foreach (var question in Model.QuestionsPagination.Items)
                 {
                     <article class="surface-card question-analytics-card">
                         <div class="question-analytics-heading">
@@ -234,6 +257,7 @@
                     </article>
                 }
             </div>
+            <partial name="_Pagination" model="questionPagination" />
         }
     </section>
 }

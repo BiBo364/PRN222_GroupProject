@@ -1,4 +1,5 @@
 using Assignmet1_Presentation.Filters;
+using Assignmet1_Presentation.Models;
 using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,11 @@ public class VersionsModel : PageModel
     }
 
     public QuizVersionHistoryDto? History { get; private set; }
+    public PaginationSlice<QuizVersionDto> VersionsPagination { get; private set; } =
+        PaginationHelper.Paginate<QuizVersionDto>([], 1, 10);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync(int id, CancellationToken cancellationToken)
     {
@@ -25,7 +31,14 @@ public class VersionsModel : PageModel
             id,
             cancellationToken);
         if (History is not null)
+        {
+            VersionsPagination = PaginationHelper.Paginate(
+                History.Versions,
+                PageNumber,
+                10);
+            PageNumber = VersionsPagination.CurrentPage;
             return Page();
+        }
 
         TempData["Error"] = "Không tìm thấy Quiz hoặc bạn không có quyền xem lịch sử phiên bản.";
         return RedirectToPage("/Learning/Index");
@@ -51,7 +64,7 @@ public class VersionsModel : PageModel
             TempData["Error"] = exception.Message;
         }
 
-        return RedirectToPage(new { id });
+        return RedirectToPage(new { id, pageNumber = PageNumber });
     }
 
     private int CurrentUserId()

@@ -52,5 +52,6 @@ public class IndexModel : PageModel
                 PageSize = 25
             },
             cancellationToken);
+        PageNumber = Data.CurrentPage;
     }
 }

@@ -1,4 +1,5 @@
 using Assignmet1_Presentation.Filters;
+using Assignmet1_Presentation.Models;
 using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,11 @@ public class DetailsModel : PageModel
     }
 
     public LearningSetDetailDto? LearningSet { get; private set; }
+    public PaginationSlice<LearningSetQuestionDto> QuestionsPagination { get; private set; } =
+        PaginationHelper.Paginate<LearningSetQuestionDto>([], 1, 10);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync(int id, CancellationToken cancellationToken)
     {
@@ -26,7 +32,14 @@ public class DetailsModel : PageModel
             cancellationToken);
 
         if (LearningSet is not null)
+        {
+            QuestionsPagination = PaginationHelper.Paginate(
+                LearningSet.Questions,
+                PageNumber,
+                10);
+            PageNumber = QuestionsPagination.CurrentPage;
             return Page();
+        }
 
         TempData["Error"] = "Không tìm thấy bộ ôn tập hoặc bạn không có quyền truy cập.";
         return RedirectToPage("/Learning/Index");
@@ -53,7 +66,7 @@ public class DetailsModel : PageModel
             TempData["Error"] = exception.Message;
         }
 
-        return RedirectToPage(new { id });
+        return RedirectToPage(new { id, pageNumber = PageNumber });
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(
@@ -69,7 +82,7 @@ public class DetailsModel : PageModel
         catch (InvalidOperationException exception)
         {
             TempData["Error"] = exception.Message;
-            return RedirectToPage(new { id });
+            return RedirectToPage(new { id, pageNumber = PageNumber });
         }
     }
 

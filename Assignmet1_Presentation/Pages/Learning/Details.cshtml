@@ -24,6 +24,12 @@
 @if (Model.LearningSet is not null)
 {
     var set = Model.LearningSet;
+    var questionsPagination = Model.QuestionsPagination.ToViewModel(
+        "/Learning/Details",
+        "pageNumber",
+        "câu hỏi",
+        new Dictionary<string, object?> { ["id"] = set.Id },
+        "quiz-question-list");
 
     <div class="learning-page-heading learning-page-heading-actions">
         <div>
@@ -68,6 +74,7 @@
                 }
                 <form method="post" asp-page-handler="Publish">
                     <input type="hidden" name="id" value="@set.Id" />
+                    <input type="hidden" name="PageNumber" value="@Model.QuestionsPagination.CurrentPage" />
                     <input type="hidden"
                            name="isPublished"
                            value="@(set.IsPublished ? "false" : "true")" />
@@ -90,8 +97,8 @@
                     </div>
                 </div>
 
-                <div class="set-question-list">
-                    @foreach (var question in set.Questions)
+                <div class="set-question-list" id="quiz-question-list">
+                    @foreach (var question in Model.QuestionsPagination.Items)
                     {
                         <article class="set-question-row">
                             <span class="set-question-number">@question.OrderIndex.ToString("00")</span>
@@ -116,6 +123,7 @@
                         </article>
                     }
                 </div>
+                <partial name="_Pagination" model="questionsPagination" />
             </section>
         </main>
 
@@ -146,6 +154,7 @@
                     <p>Quiz sẽ được ẩn khỏi sinh viên nhưng vẫn có thể khôi phục. Lịch sử làm bài và ngân hàng câu hỏi chưa bị xóa.</p>
                     <form method="post" asp-page-handler="Delete">
                         <input type="hidden" name="id" value="@set.Id" />
+                        <input type="hidden" name="PageNumber" value="@Model.QuestionsPagination.CurrentPage" />
                         <button type="submit"
                                 class="btn btn-outline-danger w-100 btn-delete-confirm"
                                 data-item-name="@set.Title"

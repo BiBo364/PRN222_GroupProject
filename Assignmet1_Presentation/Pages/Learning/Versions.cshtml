@@ -7,6 +7,15 @@
 @if (Model.History is not null)
 {
     var history = Model.History;
+    var versionsPagination = Model.VersionsPagination.ToViewModel(
+        "/Learning/Versions",
+        "pageNumber",
+        "phiên bản",
+        new Dictionary<string, object?>
+        {
+            ["id"] = history.LearningSetId
+        },
+        "quiz-version-history");
 
     <div class="learning-page-heading learning-page-heading-actions">
         <div>
@@ -40,8 +49,8 @@
         </div>
     </section>
 
-    <div class="version-timeline">
-        @foreach (var version in history.Versions)
+    <div class="version-timeline" id="quiz-version-history">
+        @foreach (var version in Model.VersionsPagination.Items)
         {
             <article class="surface-card version-card">
                 <div class="version-marker">
@@ -78,6 +87,7 @@
                           data-quiz-title="@version.Title">
                         <input type="hidden" name="id" value="@history.LearningSetId" />
                         <input type="hidden" name="versionId" value="@version.Id" />
+                        <input type="hidden" name="PageNumber" value="@Model.VersionsPagination.CurrentPage" />
                         <button class="btn btn-outline-primary" type="submit">
                             <i data-lucide="history" class="icon-sm"></i>
                             Khôi phục phiên bản này
@@ -87,4 +97,5 @@
             </article>
         }
     </div>
+    <partial name="_Pagination" model="versionsPagination" />
 }

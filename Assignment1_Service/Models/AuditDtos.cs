@@ -38,6 +38,8 @@ public sealed class AuditLogPageDto
     public int TotalItems { get; init; }
     public int TotalPages { get; init; }
     public bool CanViewAllUsers { get; init; }
+    public bool HasPreviousPage => CurrentPage > 1;
+    public bool HasNextPage => CurrentPage < TotalPages;
 }
 
 public sealed class AuditLogEntryDto

@@ -1,6 +1,7 @@
 using Assignmet1_Presentation.Filters;
 using Assignmet1_Presentation.Mappings;
 using Assignmet1_Presentation.Models;
+using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -24,22 +25,29 @@ public class ImportUsersModel : PageModel
     [BindProperty]
     public ImportUsersViewModel Input { get; set; } = new();
 
+    [BindProperty]
+    public ManualCreateUserViewModel ManualInput { get; set; } = new();
+
+    public string? ActiveForm { get; private set; }
+
     public async Task<IActionResult> OnGetAsync()
     {
-        var subjects = await _subjectService.GetSubjectsAsync();
-        Input = new ImportUsersViewModel
-        {
-            SubjectOptions = subjects.Select(ViewModelMapper.ToViewModel).ToList(),
-            TeacherBySubjectId = await BuildTeacherBySubjectIdAsync()
-        };
+        await LoadFormOptionsAsync();
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var subjects = await _subjectService.GetSubjectsAsync();
-        Input.SubjectOptions = subjects.Select(ViewModelMapper.ToViewModel).ToList();
-        Input.TeacherBySubjectId = await BuildTeacherBySubjectIdAsync();
+        ActiveForm = "import";
+        RemoveModelStatePrefix(nameof(ManualInput));
+        await LoadFormOptionsAsync();
+
+        if (Input.File is null || Input.File.Length == 0)
+        {
+            ModelState.AddModelError(
+                $"{nameof(Input)}.{nameof(Input.File)}",
+                "Vui lòng chọn tệp (.xlsx, .csv, .json hoặc .txt).");
+        }
 
         if (!ModelState.IsValid)
             return Page();
@@ -111,6 +119,72 @@ public class ImportUsersModel : PageModel
         }
 
         return Page();
+    }
+
+    public async Task<IActionResult> OnPostCreateManualAsync()
+    {
+        ActiveForm = "manual";
+        RemoveModelStatePrefix(nameof(Input));
+        await LoadFormOptionsAsync();
+
+        if (ManualInput.RoleId != 2)
+            ManualInput.SubjectId = null;
+
+        if (!ModelState.IsValid)
+            return Page();
+
+        var result = await _userServices.CreateUserAsync(new CreateUserRequestDto
+        {
+            FullName = ManualInput.FullName,
+            Username = ManualInput.Username,
+            Email = ManualInput.Email,
+            RoleId = ManualInput.RoleId,
+            SubjectId = ManualInput.SubjectId
+        });
+
+        if (!result.Success)
+        {
+            ModelState.AddModelError(
+                nameof(ManualInput),
+                result.Error ?? "Không thể tạo tài khoản. Vui lòng kiểm tra lại thông tin.");
+            return Page();
+        }
+
+        TempData["Success"] =
+            $"Đã tạo tài khoản {result.Username} cho {result.FullName}. Email đăng nhập: {result.Email}. Mật khẩu tạm thời: {result.TemporaryPassword}.";
+        if (!result.NotificationSent)
+        {
+            TempData["Warning"] =
+                $"Tài khoản đã được tạo nhưng email thông báo chưa gửi được. {result.NotificationMessage}";
+        }
+
+        return RedirectToPage(
+            "/Admin/Index",
+            new { createdUserId = result.UserId });
+    }
+
+    private async Task LoadFormOptionsAsync()
+    {
+        var subjects = await _subjectService.GetSubjectsAsync();
+        var subjectOptions = subjects.Select(ViewModelMapper.ToViewModel).ToList();
+        var teacherBySubjectId = await BuildTeacherBySubjectIdAsync();
+
+        Input.SubjectOptions = subjectOptions;
+        Input.TeacherBySubjectId = teacherBySubjectId;
+        ManualInput.SubjectOptions = subjectOptions;
+        ManualInput.TeacherBySubjectId = teacherBySubjectId;
+    }
+
+    private void RemoveModelStatePrefix(string prefix)
+    {
+        var keys = ModelState.Keys
+            .Where(key =>
+                string.Equals(key, prefix, StringComparison.Ordinal)
+                || key.StartsWith($"{prefix}.", StringComparison.Ordinal))
+            .ToList();
+
+        foreach (var key in keys)
+            ModelState.Remove(key);
     }
 
     private async Task<Dictionary<int, string>> BuildTeacherBySubjectIdAsync()

@@ -199,6 +199,19 @@
 }
 else
 {
+    var ticketsPagination = Model.TicketsPagination.ToViewModel(
+        "/Subscription/Index",
+        "pageNumber",
+        "giao dịch",
+        new Dictionary<string, object?> { ["quotaPage"] = Model.QuotaPage },
+        fragment: "subscription-transactions");
+    var quotasPagination = Model.QuotasPagination.ToViewModel(
+        "/Subscription/Index",
+        "quotaPage",
+        "môn học",
+        new Dictionary<string, object?> { ["pageNumber"] = Model.PageNumber },
+        "subject-quotas");
+
     <section class="page-hero mb-4">
         <div class="hero-badge mb-3">Sinh viên</div>
         <h1 class="page-title">Mua gói Plus cho sinh viên</h1>
@@ -254,7 +267,7 @@ else
         </article>
     </div>
 
-    <div class="surface-card mb-5">
+    <div id="subject-quotas" class="surface-card mb-5">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
             <div>
                 <div class="stat-label mb-2">Hạn mức miễn phí</div>
@@ -316,6 +329,7 @@ else
                     </tbody>
                 </table>
             </div>
+            <partial name="_Pagination" model="quotasPagination" />
         }
     </div>
 
@@ -366,7 +380,7 @@ else
         </div>
     }
 
-    <div>
+    <div id="subscription-transactions">
         <h4>Lịch sử giao dịch MoMo</h4>
         @if (!Model.ViewModel.Tickets.Any())
         {
@@ -404,6 +418,7 @@ else
                         </tbody>
                     </table>
                 </div>
+                <partial name="_Pagination" model="ticketsPagination" />
             </div>
         }
     </div>

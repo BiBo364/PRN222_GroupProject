@@ -20,6 +20,11 @@ public class DetailsModel : PageModel
     }
 
     public SubjectDetailViewModel ViewModel { get; private set; } = new();
+    public PaginationSlice<DocumentListItemViewModel> DocumentsPagination { get; private set; } =
+        PaginationHelper.Paginate<DocumentListItemViewModel>([], 1, 10);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -32,10 +37,20 @@ public class DetailsModel : PageModel
 
         var roleId = HttpContext.Session.GetInt32("RoleId")!.Value;
         var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
+        var allDocuments = subject.Documents
+            .Select(ViewModelMapper.ToViewModel)
+            .ToList();
+        DocumentsPagination = PaginationHelper.Paginate(
+            allDocuments,
+            PageNumber,
+            10);
+        PageNumber = DocumentsPagination.CurrentPage;
         ViewModel = new SubjectDetailViewModel
         {
             Subject = ViewModelMapper.ToViewModel(subject.Subject),
-            Documents = subject.Documents.Select(ViewModelMapper.ToViewModel).ToList(),
+            Documents = DocumentsPagination.Items.ToList(),
+            TotalDocumentCount = allDocuments.Count,
+            IndexedDocumentCount = allDocuments.Count(document => document.Status == "indexed"),
             CanCreateSubject = DocumentPermissions.CanManageSubjects(roleId),
             CanUploadDocument = DocumentPermissions.CanUploadToSubject(roleId, userSubjectId, id),
             CanEditDocument = DocumentPermissions.CanUploadToSubject(roleId, userSubjectId, id),

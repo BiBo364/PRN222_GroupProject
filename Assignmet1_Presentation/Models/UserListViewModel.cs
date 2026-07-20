@@ -15,5 +15,11 @@ public class UserListViewModel
     public int CurrentPage { get; set; } = 1;
     public int TotalPages { get; set; }
     public int TotalItems { get; set; }
+    public int ActiveItems { get; set; }
+    public int LecturerItems { get; set; }
+    public int StudentItems { get; set; }
+    public int UnassignedLecturerItems { get; set; }
     public int PageSize { get; set; } = 10;
+    public bool HasPreviousPage => CurrentPage > 1;
+    public bool HasNextPage => CurrentPage < TotalPages;
 }

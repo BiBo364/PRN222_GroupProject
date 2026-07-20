@@ -23,32 +23,57 @@ public class IndexModel : PageModel
 
     public UserListViewModel ViewModel { get; set; } = new();
 
-    public async Task<IActionResult> OnGetAsync(string? search, int? roleId, int? subjectId, int page = 1)
+    [BindProperty(SupportsGet = true)]
+    public string? Search { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public int? RoleId { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public int? SubjectId { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
+
+    [BindProperty(SupportsGet = true)]
+    public int? CreatedUserId { get; set; }
+
+    public async Task<IActionResult> OnGetAsync()
     {
         var allUsers = await _userServices.GetAllUsersAsync();
         var allSubjects = await _subjectService.GetSubjectsAsync();
 
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrWhiteSpace(Search))
         {
-            var term = search.Trim().ToLowerInvariant();
+            var term = Search.Trim().ToLowerInvariant();
             allUsers = allUsers.Where(u =>
                 u.Username.ToLowerInvariant().Contains(term) ||
                 u.Email.ToLowerInvariant().Contains(term) ||
                 (u.FullName ?? string.Empty).ToLowerInvariant().Contains(term)).ToList();
         }
 
-        if (roleId.HasValue)
-            allUsers = allUsers.Where(u => u.RoleId == roleId.Value).ToList();
+        if (RoleId.HasValue)
+            allUsers = allUsers.Where(u => u.RoleId == RoleId.Value).ToList();
 
-        if (subjectId.HasValue)
-            allUsers = allUsers.Where(u => u.AssignedSubjects.Any(subject => subject.Id == subjectId.Value)).ToList();
+        if (SubjectId.HasValue)
+            allUsers = allUsers
+                .Where(u => u.AssignedSubjects.Any(subject => subject.Id == SubjectId.Value))
+                .ToList();
 
         const int pageSize = 10;
         var totalItems = allUsers.Count;
+        var activeItems = allUsers.Count(user => user.IsActive);
+        var lecturerItems = allUsers.Count(user => user.RoleId == 2);
+        var studentItems = allUsers.Count(user => user.RoleId == 3);
+        var unassignedLecturerItems = allUsers.Count(
+            user => user.RoleId == 2 && user.AssignedSubjects.Count == 0);
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-        page = Math.Max(1, Math.Min(page, totalPages == 0 ? 1 : totalPages));
+        PageNumber = Math.Clamp(PageNumber, 1, Math.Max(1, totalPages));
 
-        var pagedUsers = allUsers.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var pagedUsers = allUsers
+            .Skip((PageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
         var teacherBySubjectId = await BuildTeacherBySubjectIdAsync();
 
         ViewModel = new UserListViewModel
@@ -56,12 +81,16 @@ public class IndexModel : PageModel
             Users = pagedUsers.Select(ToViewModel).ToList(),
             Subjects = allSubjects.Select(ViewModelMapper.ToViewModel).ToList(),
             TeacherBySubjectId = teacherBySubjectId,
-            SearchTerm = search,
-            FilterRoleId = roleId,
-            FilterSubjectId = subjectId,
-            CurrentPage = page,
+            SearchTerm = Search,
+            FilterRoleId = RoleId,
+            FilterSubjectId = SubjectId,
+            CurrentPage = PageNumber,
             TotalPages = totalPages,
             TotalItems = totalItems,
+            ActiveItems = activeItems,
+            LecturerItems = lecturerItems,
+            StudentItems = studentItems,
+            UnassignedLecturerItems = unassignedLecturerItems,
             PageSize = pageSize
         };
 
@@ -77,7 +106,7 @@ public class IndexModel : PageModel
         else
             TempData["Success"] = "Đã cập nhật phân công môn học.";
 
-        return RedirectToPage("/Admin/Index");
+        return RedirectToPage("/Admin/Index", CurrentListRouteValues());
     }
 
     public async Task<IActionResult> OnPostToggleStatusAsync(int userId)
@@ -89,7 +118,18 @@ public class IndexModel : PageModel
         else
             TempData["Success"] = "Cập nhật trạng thái tài khoản thành công.";
 
-        return RedirectToPage("/Admin/Index");
+        return RedirectToPage("/Admin/Index", CurrentListRouteValues());
+    }
+
+    private object CurrentListRouteValues()
+    {
+        return new
+        {
+            search = Search,
+            roleId = RoleId,
+            subjectId = SubjectId,
+            pageNumber = PageNumber
+        };
     }
 
     private async Task<Dictionary<int, string>> BuildTeacherBySubjectIdAsync()

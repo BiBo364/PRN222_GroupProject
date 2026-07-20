@@ -4,11 +4,10 @@
 @{
     ViewData["Title"] = "Quản lý người dùng";
 
-    var totalUsers   = Model.ViewModel.Users.Count;
-    var activeUsers  = Model.ViewModel.Users.Count(u => u.IsActive);
-    var lecturers    = Model.ViewModel.Users.Count(u => u.RoleId == 2);
-    var studentCount = Model.ViewModel.Users.Count(u => u.RoleId == 3);
-    var unassigned   = Model.ViewModel.Users.Count(u => u.RoleId == 2 && u.AssignedSubjects.Count == 0);
+    var totalUsers = Model.ViewModel.TotalItems;
+    var activeUsers = Model.ViewModel.ActiveItems;
+    var lecturers = Model.ViewModel.LecturerItems;
+    var unassigned = Model.ViewModel.UnassignedLecturerItems;
 }
 
 <div class="d-flex flex-column gap-4">
@@ -24,7 +23,7 @@
         </div>
         <div class="d-flex gap-2 flex-shrink-0">
             <a asp-page="/Admin/ImportUsers" class="btn btn-primary">
-                <i data-lucide="file-up" class="icon-sm"></i> Nhập người dùng
+                <i data-lucide="user-plus" class="icon-sm"></i> Tạo tài khoản
             </a>
         </div>
     </div>
@@ -112,7 +111,7 @@
         <div class="card-header-row">
             <h2 class="card-header-title">
                 <i data-lucide="users" class="icon-sm me-1" style="color:var(--primary)"></i>
-                Danh sách người dùng — @Model.ViewModel.Users.Count kết quả
+                Danh sách người dùng — @Model.ViewModel.TotalItems kết quả
             </h2>
         </div>
 
@@ -150,7 +149,8 @@
                                 var initials = (user.FullName?.Length > 0
                                     ? user.FullName[0]
                                     : user.Username[0]).ToString().ToUpper();
-                            <tr>
+                                var isNewlyCreated = Model.CreatedUserId == user.Id;
+                            <tr id="user-row-@user.Id" class="@(isNewlyCreated ? "user-row-newly-created" : string.Empty)">
                                 <!-- Avatar + info -->
                                 <td class="ps-4">
                                     <div class="d-flex align-items-center gap-3">
@@ -160,6 +160,10 @@
                                         <div>
                                             <div class="fw-semibold" style="font-size:.9rem;color:var(--text)">
                                                 @(user.FullName ?? user.Username)
+                                                @if (isNewlyCreated)
+                                                {
+                                                    <span class="status-chip bg-success ms-2">Vừa tạo</span>
+                                                }
                                             </div>
                                             <div style="font-size:.78rem;color:var(--text-muted)">@user.Email</div>
                                             <div style="font-size:.72rem;color:var(--text-faint)">@@@user.Username</div>
@@ -200,41 +204,62 @@
                                         @if (user.RoleId == 2)
                                         {
                                             <!-- Assign dropdown -->
-                                            <div class="dropdown">
+                                            <div class="dropdown subject-assignment-dropdown">
                                                 <button class="btn btn-sm btn-outline-secondary py-0 px-2"
-                                                        data-bs-toggle="dropdown" title="Phân công môn học"
+                                                        data-bs-toggle="dropdown"
+                                                        data-bs-auto-close="outside"
+                                                        aria-expanded="false"
+                                                        title="Phân công môn học"
                                                         style="height:24px;min-width:28px">
                                                     <i data-lucide="chevrons-up-down" class="icon-xs"></i>
                                                 </button>
-                                                <ul class="dropdown-menu" style="min-width:240px">
-                                                    <li>
-                                                        <span class="dropdown-header" style="font-size:.72rem;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em">
-                                                            Phân công môn học
-                                                        </span>
-                                                    </li>
-                                                    <li>
-                                                        <form asp-page-handler="UpdateLecturerSubjects" method="post" class="px-3 pb-2 pt-1">
-                                                            @Html.AntiForgeryToken()
-                                                            <input type="hidden" name="userId" value="@user.Id" />
-                                                            <div class="d-flex flex-column gap-1 mb-2" style="max-height:240px;overflow-y:auto">
-                                                                @foreach (var s in Model.ViewModel.Subjects)
-                                                                {
-                                                                    var isAssignedToCurrent = user.AssignedSubjects.Any(subject => subject.Id == s.Id);
-                                                                    Model.ViewModel.TeacherBySubjectId.TryGetValue(s.Id, out var assignedTeacher);
-                                                                    var isTakenByOther = assignedTeacher != null && !isAssignedToCurrent;
-                                                                    <label class="form-check small mb-0">
-                                                                        <input class="form-check-input" type="checkbox" name="subjectIds" value="@s.Id"
-                                                                               checked="@isAssignedToCurrent" disabled="@isTakenByOther" />
-                                                                        <span class="form-check-label">@s.Code — @s.Name@(isTakenByOther ? $" (đã gán: {assignedTeacher})" : "")</span>
-                                                                    </label>
-                                                                }
-                                                            </div>
+                                                <div class="dropdown-menu dropdown-menu-end subject-assignment-menu">
+                                                    <div class="subject-assignment-header">Phân công môn học</div>
+                                                    <form asp-page-handler="UpdateLecturerSubjects" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="userId" value="@user.Id" />
+                                                        <input type="hidden" name="Search" value="@Model.ViewModel.SearchTerm" />
+                                                        <input type="hidden" name="RoleId" value="@Model.ViewModel.FilterRoleId" />
+                                                        <input type="hidden" name="SubjectId" value="@Model.ViewModel.FilterSubjectId" />
+                                                        <input type="hidden" name="PageNumber" value="@Model.ViewModel.CurrentPage" />
+
+                                                        <div class="subject-assignment-options">
+                                                            @foreach (var s in Model.ViewModel.Subjects)
+                                                            {
+                                                                var isAssignedToCurrent = user.AssignedSubjects.Any(subject => subject.Id == s.Id);
+                                                                Model.ViewModel.TeacherBySubjectId.TryGetValue(s.Id, out var assignedTeacher);
+                                                                var isTakenByOther = assignedTeacher != null && !isAssignedToCurrent;
+                                                                <label class="subject-assignment-option @(isTakenByOther ? "is-disabled" : string.Empty)">
+                                                                    <input class="form-check-input subject-assignment-checkbox"
+                                                                           type="checkbox"
+                                                                           name="subjectIds"
+                                                                           value="@s.Id"
+                                                                           checked="@isAssignedToCurrent"
+                                                                           disabled="@isTakenByOther" />
+                                                                    <span class="subject-assignment-copy">
+                                                                        <span class="subject-assignment-title">
+                                                                            <strong>@s.Code</strong>
+                                                                            <span>— @s.Name</span>
+                                                                        </span>
+                                                                        @if (isTakenByOther)
+                                                                        {
+                                                                            <span class="subject-assignment-meta">
+                                                                                Đã gán cho @assignedTeacher
+                                                                            </span>
+                                                                        }
+                                                                    </span>
+                                                                </label>
+                                                            }
+                                                        </div>
+
+                                                        <div class="subject-assignment-footer">
                                                             <button type="submit" class="btn btn-primary btn-sm w-100">
-                                                                <i data-lucide="save" class="icon-sm"></i> Lưu phân công
+                                                                <i data-lucide="save" class="icon-sm"></i>
+                                                                Lưu phân công
                                                             </button>
-                                                        </form>
-                                                    </li>
-                                                </ul>
+                                                        </div>
+                                                    </form>
+                                                </div>
                                             </div>
                                         }
                                     </div>
@@ -270,6 +295,10 @@
                                     <form asp-page-handler="ToggleStatus" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="userId" value="@user.Id" />
+                                        <input type="hidden" name="Search" value="@Model.ViewModel.SearchTerm" />
+                                        <input type="hidden" name="RoleId" value="@Model.ViewModel.FilterRoleId" />
+                                        <input type="hidden" name="SubjectId" value="@Model.ViewModel.FilterSubjectId" />
+                                        <input type="hidden" name="PageNumber" value="@Model.ViewModel.CurrentPage" />
                                         <button type="button"
                                                 class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success") btn-toggle-status"
                                                 data-action="@(user.IsActive ? "vô hiệu hóa" : "kích hoạt")"
@@ -289,6 +318,10 @@
             <!-- Pagination -->
             @if (Model.ViewModel.TotalPages > 1)
             {
+                var firstVisiblePage = Math.Max(1, Model.ViewModel.CurrentPage - 2);
+                var lastVisiblePage = Math.Min(Model.ViewModel.TotalPages, firstVisiblePage + 4);
+                firstVisiblePage = Math.Max(1, lastVisiblePage - 4);
+
                 <div class="px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2"
                      style="border-top:1px solid var(--surface-border)">
                     <div style="font-size:.82rem;color:var(--text-muted)">
@@ -298,38 +331,103 @@
                         @((Model.ViewModel.CurrentPage - 1) * Model.ViewModel.PageSize + Model.ViewModel.Users.Count)
                         trong @Model.ViewModel.TotalItems người dùng
                     </div>
-                    <nav aria-label="Phân trang">
+                    <nav aria-label="Phân trang danh sách người dùng">
                         <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item @(Model.ViewModel.CurrentPage == 1 ? "disabled" : "")">
-                                <a class="page-link"
-                                   asp-page="/Admin/Index"
-                                   asp-route-page="@(Model.ViewModel.CurrentPage - 1)"
-                                   asp-route-search="@Model.ViewModel.SearchTerm"
-                                   asp-route-roleId="@Model.ViewModel.FilterRoleId"
-                                   asp-route-subjectId="@Model.ViewModel.FilterSubjectId">
-                                    <i data-lucide="chevron-left" class="icon-xs"></i>
-                                </a>
-                            </li>
-                            @for (int i = 1; i <= Model.ViewModel.TotalPages; i++)
-                            {
-                                <li class="page-item @(Model.ViewModel.CurrentPage == i ? "active" : "")">
+                            <li class="page-item @(!Model.ViewModel.HasPreviousPage ? "disabled" : "")">
+                                @if (Model.ViewModel.HasPreviousPage)
+                                {
                                     <a class="page-link"
                                        asp-page="/Admin/Index"
-                                       asp-route-page="@i"
+                                       asp-route-pageNumber="@(Model.ViewModel.CurrentPage - 1)"
                                        asp-route-search="@Model.ViewModel.SearchTerm"
                                        asp-route-roleId="@Model.ViewModel.FilterRoleId"
-                                       asp-route-subjectId="@Model.ViewModel.FilterSubjectId">@i</a>
+                                       asp-route-subjectId="@Model.ViewModel.FilterSubjectId"
+                                       aria-label="Sang trang trước">
+                                        <i data-lucide="chevron-left" class="icon-xs"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="page-link" aria-disabled="true" aria-label="Không có trang trước">
+                                        <i data-lucide="chevron-left" class="icon-xs"></i>
+                                    </span>
+                                }
+                            </li>
+
+                            @if (firstVisiblePage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       asp-page="/Admin/Index"
+                                       asp-route-pageNumber="1"
+                                       asp-route-search="@Model.ViewModel.SearchTerm"
+                                       asp-route-roleId="@Model.ViewModel.FilterRoleId"
+                                       asp-route-subjectId="@Model.ViewModel.FilterSubjectId">1</a>
+                                </li>
+                                @if (firstVisiblePage > 2)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link" aria-hidden="true">…</span>
+                                    </li>
+                                }
+                            }
+
+                            @for (var pageNumber = firstVisiblePage; pageNumber <= lastVisiblePage; pageNumber++)
+                            {
+                                <li class="page-item @(Model.ViewModel.CurrentPage == pageNumber ? "active" : "")">
+                                    @if (Model.ViewModel.CurrentPage == pageNumber)
+                                    {
+                                        <span class="page-link" aria-current="page">@pageNumber</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="page-link"
+                                           asp-page="/Admin/Index"
+                                           asp-route-pageNumber="@pageNumber"
+                                           asp-route-search="@Model.ViewModel.SearchTerm"
+                                           asp-route-roleId="@Model.ViewModel.FilterRoleId"
+                                           asp-route-subjectId="@Model.ViewModel.FilterSubjectId">@pageNumber</a>
+                                    }
                                 </li>
                             }
-                            <li class="page-item @(Model.ViewModel.CurrentPage == Model.ViewModel.TotalPages ? "disabled" : "")">
-                                <a class="page-link"
-                                   asp-page="/Admin/Index"
-                                   asp-route-page="@(Model.ViewModel.CurrentPage + 1)"
-                                   asp-route-search="@Model.ViewModel.SearchTerm"
-                                   asp-route-roleId="@Model.ViewModel.FilterRoleId"
-                                   asp-route-subjectId="@Model.ViewModel.FilterSubjectId">
-                                    <i data-lucide="chevron-right" class="icon-xs"></i>
-                                </a>
+
+                            @if (lastVisiblePage < Model.ViewModel.TotalPages)
+                            {
+                                @if (lastVisiblePage < Model.ViewModel.TotalPages - 1)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link" aria-hidden="true">…</span>
+                                    </li>
+                                }
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       asp-page="/Admin/Index"
+                                       asp-route-pageNumber="@Model.ViewModel.TotalPages"
+                                       asp-route-search="@Model.ViewModel.SearchTerm"
+                                       asp-route-roleId="@Model.ViewModel.FilterRoleId"
+                                       asp-route-subjectId="@Model.ViewModel.FilterSubjectId">@Model.ViewModel.TotalPages</a>
+                                </li>
+                            }
+
+                            <li class="page-item @(!Model.ViewModel.HasNextPage ? "disabled" : "")">
+                                @if (Model.ViewModel.HasNextPage)
+                                {
+                                    <a class="page-link"
+                                       asp-page="/Admin/Index"
+                                       asp-route-pageNumber="@(Model.ViewModel.CurrentPage + 1)"
+                                       asp-route-search="@Model.ViewModel.SearchTerm"
+                                       asp-route-roleId="@Model.ViewModel.FilterRoleId"
+                                       asp-route-subjectId="@Model.ViewModel.FilterSubjectId"
+                                       aria-label="Sang trang sau">
+                                        <i data-lucide="chevron-right" class="icon-xs"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="page-link" aria-disabled="true" aria-label="Không có trang sau">
+                                        <i data-lucide="chevron-right" class="icon-xs"></i>
+                                    </span>
+                                }
                             </li>
                         </ul>
                     </nav>

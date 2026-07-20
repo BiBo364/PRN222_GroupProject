@@ -1,4 +1,5 @@
 using Assignmet1_Presentation.Filters;
+using Assignmet1_Presentation.Models;
 using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,11 @@ public class RecycleModel : PageModel
     }
 
     public LearningRecycleBinDto? Data { get; private set; }
+    public PaginationSlice<DeletedLearningSetDto> ItemsPagination { get; private set; } =
+        PaginationHelper.Paginate<DeletedLearningSetDto>([], 1, 9);
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -24,7 +30,14 @@ public class RecycleModel : PageModel
             CurrentUserId(),
             cancellationToken);
         if (Data is not null)
+        {
+            ItemsPagination = PaginationHelper.Paginate(
+                Data.Items,
+                PageNumber,
+                9);
+            PageNumber = ItemsPagination.CurrentPage;
             return Page();
+        }
 
         TempData["Error"] = "Chỉ giảng viên được phân công môn học mới có thể truy cập thùng rác Quiz.";
         return RedirectToPage("/Learning/Index");
@@ -47,7 +60,7 @@ public class RecycleModel : PageModel
             TempData["Error"] = exception.Message;
         }
 
-        return RedirectToPage();
+        return RedirectToPage(new { pageNumber = PageNumber });
     }
 
     public async Task<IActionResult> OnPostPermanentlyDeleteAsync(
@@ -67,7 +80,7 @@ public class RecycleModel : PageModel
             TempData["Error"] = exception.Message;
         }
 
-        return RedirectToPage();
+        return RedirectToPage(new { pageNumber = PageNumber });
     }
 
     private int CurrentUserId()

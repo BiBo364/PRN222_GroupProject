@@ -22,7 +22,7 @@ public sealed class RequireDocumentUploadAttribute : Attribute, IPageFilter
             return;
         }
 
-        if (!session.GetInt32("SubjectId").HasValue)
+        if (DocumentPermissions.GetAssignedSubjectIds(session).Count == 0)
         {
             SetError(
                 context,

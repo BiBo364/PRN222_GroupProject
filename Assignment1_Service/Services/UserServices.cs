@@ -59,6 +59,10 @@ public class UserServices : IUserServices
             FullName = user.FullName,
             RoleId = user.RoleId,
             SubjectId = user.SubjectId,
+            AssignedSubjectIds = user.AssignedSubjects
+                .Where(subject => subject.IsDeleted != true)
+                .Select(subject => subject.Id)
+                .ToList(),
             RequirePasswordChange = IsDefaultPassword(user.Password)
         };
     }

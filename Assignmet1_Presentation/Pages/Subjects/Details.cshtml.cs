@@ -36,7 +36,6 @@ public class DetailsModel : PageModel
             return NotFound();
 
         var roleId = HttpContext.Session.GetInt32("RoleId")!.Value;
-        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
         var allDocuments = subject.Documents
             .Select(ViewModelMapper.ToViewModel)
             .ToList();
@@ -52,10 +51,10 @@ public class DetailsModel : PageModel
             TotalDocumentCount = allDocuments.Count,
             IndexedDocumentCount = allDocuments.Count(document => document.Status == "indexed"),
             CanCreateSubject = DocumentPermissions.CanManageSubjects(roleId),
-            CanUploadDocument = DocumentPermissions.CanUploadToSubject(roleId, userSubjectId, id),
-            CanEditDocument = DocumentPermissions.CanUploadToSubject(roleId, userSubjectId, id),
+            CanUploadDocument = CanUploadToSubject(roleId, id),
+            CanEditDocument = CanUploadToSubject(roleId, id),
             CanDeleteDocument = DocumentPermissions.CanDelete(roleId)
-                && DocumentPermissions.CanUploadToSubject(roleId, userSubjectId, id)
+                && CanUploadToSubject(roleId, id)
         };
 
         return Page();
@@ -72,4 +71,10 @@ public class DetailsModel : PageModel
         var roleId = HttpContext.Session.GetInt32("RoleId");
         return roleId is not null && DocumentPermissions.CanView(roleId.Value);
     }
+
+    private bool CanUploadToSubject(int roleId, int subjectId)
+        => DocumentPermissions.CanUploadToAssignedSubject(
+            roleId,
+            DocumentPermissions.GetAssignedSubjectIds(HttpContext.Session),
+            subjectId);
 }

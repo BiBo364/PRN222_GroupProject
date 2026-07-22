@@ -1,4 +1,5 @@
 using Assignmet1_Presentation.Filters;
+using Assignmet1_Presentation.Helpers;
 using Assignmet1_Presentation.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -57,6 +58,10 @@ public class LoginModel : PageModel
             HttpContext.Session.SetInt32("SubjectId", user.SubjectId.Value);
         else
             HttpContext.Session.Remove("SubjectId");
+
+        HttpContext.Session.SetString(
+            DocumentPermissions.AssignedSubjectIdsSessionKey,
+            string.Join(',', user.AssignedSubjectIds));
 
         if (user.RequirePasswordChange)
         {

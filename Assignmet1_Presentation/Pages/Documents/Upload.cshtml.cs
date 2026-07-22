@@ -239,17 +239,17 @@ public class UploadModel : PageModel
     private async Task<SubjectViewModel?> ResolveSubjectAsync(int? subjectId, bool allowFallback)
     {
         var roleId = HttpContext.Session.GetInt32("RoleId");
-        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
+        var assignedSubjectIds = DocumentPermissions.GetAssignedSubjectIds(HttpContext.Session);
 
         if (roleId == DocumentPermissions.LecturerRoleId)
         {
-            if (!userSubjectId.HasValue)
+            if (assignedSubjectIds.Count == 0)
                 return null;
 
-            if (subjectId.HasValue && subjectId.Value != userSubjectId.Value)
+            if (subjectId.HasValue && !assignedSubjectIds.Contains(subjectId.Value))
                 return null;
 
-            var assignedSubject = await _subjectService.GetSubjectAsync(userSubjectId.Value);
+            var assignedSubject = await _subjectService.GetSubjectAsync(subjectId ?? assignedSubjectIds.First());
             return assignedSubject is null ? null : ViewModelMapper.ToViewModel(assignedSubject.Subject);
         }
 
@@ -279,8 +279,10 @@ public class UploadModel : PageModel
         if (roleId is null)
             return false;
 
-        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
-        return DocumentPermissions.CanUploadToSubject(roleId.Value, userSubjectId, subjectId);
+        return DocumentPermissions.CanUploadToAssignedSubject(
+            roleId.Value,
+            DocumentPermissions.GetAssignedSubjectIds(HttpContext.Session),
+            subjectId);
     }
 
     private string? GetSubjectAccessError()
@@ -289,8 +291,7 @@ public class UploadModel : PageModel
         if (roleId != DocumentPermissions.LecturerRoleId)
             return null;
 
-        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
-        return userSubjectId.HasValue
+        return DocumentPermissions.GetAssignedSubjectIds(HttpContext.Session).Count > 0
             ? null
             : "Bạn chưa được phân công môn học. Vui lòng liên hệ quản trị viên.";
     }

@@ -356,10 +356,7 @@ public class DocumentService : IDocumentService
         if (user.RoleId != 2)
             return (false, "Bạn không có quyền upload tài liệu.");
 
-        if (!user.SubjectId.HasValue)
-            return (false, "Bạn chưa được gán môn học.");
-
-        if (user.SubjectId.Value != subjectId)
+        if (!user.AssignedSubjects.Any(subject => subject.IsDeleted != true && subject.Id == subjectId))
             return (false, "Bạn chỉ được phép tải tài liệu lên môn học được phân công.");
 
         return (true, null);

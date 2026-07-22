@@ -17,6 +17,7 @@ public class UserRepository : IUserReposity
     {
         username = username.Trim().ToLowerInvariant();
         return _context.Users
+            .Include(u => u.AssignedSubjects)
             .FirstOrDefaultAsync(u =>
                 u.Username.ToLower() == username
                 || u.Email.ToLower() == username);

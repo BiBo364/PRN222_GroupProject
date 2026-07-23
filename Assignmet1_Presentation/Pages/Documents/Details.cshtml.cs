@@ -43,14 +43,15 @@ public class DetailsModel : PageModel
             return NotFound();
 
         var roleId = HttpContext.Session.GetInt32("RoleId")!.Value;
-        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
         var viewModel = ViewModelMapper.ToDocumentDetailPage(document);
         viewModel.CanUpload = document.SubjectId.HasValue
-            && DocumentPermissions.CanUploadToSubject(roleId, userSubjectId, document.SubjectId.Value);
+            && CanUploadToSubject(document.SubjectId.Value);
         viewModel.CanEdit = viewModel.CanUpload;
         viewModel.CanDelete = document.SubjectId.HasValue
-            && DocumentPermissions.CanDelete(roleId)
-            && DocumentPermissions.CanUploadToSubject(roleId, userSubjectId, document.SubjectId.Value);
+            && DocumentPermissions.CanDeleteDocumentFromSubject(
+                roleId,
+                HttpContext.Session,
+                document.SubjectId.Value);
         viewModel.CanReindex = viewModel.CanUpload;
         viewModel.ChapterOptions = await BuildChapterOptionsAsync(document.SubjectId, document.ChapterId);
 
@@ -139,9 +140,9 @@ public class DetailsModel : PageModel
         }
 
         if (!document.SubjectId.HasValue
-            || !DocumentPermissions.CanUploadToSubject(
+            || !DocumentPermissions.CanDeleteDocumentFromSubject(
                 roleId.Value,
-                HttpContext.Session.GetInt32("SubjectId"),
+                HttpContext.Session,
                 document.SubjectId.Value))
         {
             TempData["Error"] = "Bạn chỉ có thể xóa tài liệu thuộc môn học được phân công.";
@@ -252,7 +253,9 @@ public class DetailsModel : PageModel
         if (roleId is null)
             return false;
 
-        var userSubjectId = HttpContext.Session.GetInt32("SubjectId");
-        return DocumentPermissions.CanUploadToSubject(roleId.Value, userSubjectId, subjectId);
+        return DocumentPermissions.CanUploadToAssignedSubject(
+            roleId.Value,
+            DocumentPermissions.GetAssignedSubjectIds(HttpContext.Session),
+            subjectId);
     }
 }

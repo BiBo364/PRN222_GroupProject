@@ -29,6 +29,13 @@ public static class DocumentPermissions
         int targetSubjectId)
         => CanUpload(roleId) && assignedSubjectIds.Contains(targetSubjectId);
 
+    public static bool CanDeleteDocumentFromSubject(
+        int roleId,
+        ISession session,
+        int targetSubjectId)
+        => CanDelete(roleId)
+            && GetAssignedSubjectIds(session).Contains(targetSubjectId);
+
     public static IReadOnlyCollection<int> GetAssignedSubjectIds(ISession session)
     {
         var assignedSubjectIds = (session.GetString(AssignedSubjectIdsSessionKey) ?? string.Empty)

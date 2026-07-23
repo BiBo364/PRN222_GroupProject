@@ -30,9 +30,9 @@ public static class ApiEndpoints
                 return Results.NotFound(new { message = "Không tìm thấy tài liệu." });
 
             if (!document.SubjectId.HasValue
-                || !DocumentPermissions.CanUploadToSubject(
+                || !DocumentPermissions.CanDeleteDocumentFromSubject(
                     roleId.Value,
-                    httpContext.Session.GetInt32("SubjectId"),
+                    httpContext.Session,
                     document.SubjectId.Value))
             {
                 return Results.Json(new { message = "Bạn chỉ có thể xóa tài liệu thuộc môn học được phân công." }, statusCode: StatusCodes.Status403Forbidden);

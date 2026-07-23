@@ -1,4 +1,5 @@
 using Assignmet1_Presentation.Helpers;
+using RagEdu.Tests.Infrastructure;
 
 namespace RagEdu.Tests.Presentation;
 
@@ -29,5 +30,19 @@ public class DocumentPermissionsTests
             999);
 
         Assert.False(allowed);
+    }
+
+    [Fact]
+    public void CanDeleteDocumentFromSubject_AllowsAnySubjectAssignedInSession()
+    {
+        var session = new TestSession();
+        session.SetString(DocumentPermissions.AssignedSubjectIdsSessionKey, "1007,1010,392");
+
+        var allowed = DocumentPermissions.CanDeleteDocumentFromSubject(
+            DocumentPermissions.LecturerRoleId,
+            session,
+            1010);
+
+        Assert.True(allowed);
     }
 }

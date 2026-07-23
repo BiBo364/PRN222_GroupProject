@@ -90,39 +90,19 @@ public class ChunkDisplayItem
 
     private static List<ChunkDisplayItem> BuildPageItems(IReadOnlyList<ChunkViewModel> chunks)
     {
-        var distinctPageNumbers = chunks
-            .Select(chunk => NormalizeNumber(chunk.PageNumber))
-            .Where(number => number.HasValue)
-            .Select(number => number!.Value)
-            .Distinct()
-            .Count();
-
-        // DOCX files often index all chunks as page 1; keep those chunks split for readability.
-        var shouldGroupByPage = distinctPageNumbers > 1;
-
         return chunks
-            .GroupBy(chunk => shouldGroupByPage
-                ? (NormalizeNumber(chunk.PageNumber) ?? 0)
-                : chunk.ChunkIndex)
-            .OrderBy(group => group.Key == 0 && shouldGroupByPage ? int.MaxValue : group.Key)
-            .ThenBy(group => group.Min(chunk => chunk.ChunkIndex))
-            .Select((group, index) =>
+            .OrderBy(chunk => chunk.ChunkIndex)
+            .Select((chunk, index) =>
             {
-                var groupChunks = group
-                    .OrderBy(chunk => chunk.CharStart ?? int.MaxValue)
-                    .ThenBy(chunk => chunk.ChunkIndex)
-                    .ToList();
-                var content = MergeChunkContent(groupChunks);
-
                 return new ChunkDisplayItem
                 {
-                    Chunk = groupChunks[0],
-                    Chunks = groupChunks,
+                    Chunk = chunk,
+                    Chunks = [chunk],
                     IsSlide = false,
                     DisplayIndex = index + 1,
-                    PageNumber = shouldGroupByPage ? NormalizeNumber(group.Key) : null,
-                    Content = content,
-                    TokenCount = CountTokens(content),
+                    PageNumber = NormalizeNumber(chunk.PageNumber),
+                    Content = NormalizeDisplayText(chunk.Content),
+                    TokenCount = chunk.TokenCount ?? CountTokens(chunk.Content),
                     ImageUrls = []
                 };
             })

@@ -46,7 +46,12 @@ public static class TextExtractor
         using var document = PdfDocument.Open(filePath);
         foreach (var page in document.GetPages())
         {
-            var text = page.Text?.Trim();
+            var text = string.Join(
+                    " ",
+                    page.GetWords()
+                        .Select(word => word.Text)
+                        .Where(word => !string.IsNullOrWhiteSpace(word)))
+                .Trim();
             if (!string.IsNullOrWhiteSpace(text))
                 pages.Add(new PageTextSegment { PageNumber = page.Number, Content = text });
         }

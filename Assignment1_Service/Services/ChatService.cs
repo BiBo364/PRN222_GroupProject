@@ -4,6 +4,7 @@ using Assignment1_Service.Helpers;
 using Assignment1_Service.Models;
 using Assignment1_Service.Services.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Assignment1_Service.Services;
 
@@ -85,6 +86,7 @@ public class ChatService : IChatService
 
     public async Task<ChatReplyDto> AskAsync(string sessionId, string userId, string question)
     {
+        var totalTimer = Stopwatch.StartNew();
         var session = await _chatRepository.GetSessionForUserAsync(sessionId, userId)
             ?? throw new InvalidOperationException("Không tìm thấy cuộc trò chuyện.");
 
@@ -95,6 +97,7 @@ public class ChatService : IChatService
             ?? throw new InvalidOperationException("Cuộc trò chuyện chưa được gắn với môn học.");
 
         var subject = await GetAvailableSubjectAsync(subjectId);
+        var sessionLoadElapsed = totalTimer.Elapsed;
 
         var isFirstQuestion = !session.Messages.Any(m => m.Role == "user");
         var recentHistory = session.Messages
@@ -111,15 +114,28 @@ public class ChatService : IChatService
             CreatedAt = DateTime.Now
         });
 
-        var embeddingModels = await _chatRepository.GetEmbeddingModelsAsync();
+        var embeddingTimer = Stopwatch.StartNew();
+        var configuredEmbeddingModels = await _chatRepository.GetEmbeddingModelsAsync();
+        var embeddingModels = EmbeddingModelSelector.SelectForQueryAndRetrieval(configuredEmbeddingModels);
         if (embeddingModels.Count == 0)
             throw new InvalidOperationException("Chưa cấu hình mô hình biểu diễn ngữ nghĩa.");
 
+        if (embeddingModels.Count < configuredEmbeddingModels.Count)
+        {
+            _logger.LogWarning(
+                "Using one local fallback embedding model ({ModelId}) instead of {ConfiguredModelCount} unsupported configured models for chat retrieval.",
+                embeddingModels[0].Id,
+                configuredEmbeddingModels.Count);
+        }
+
         var queryVectors = await _embeddingService.GenerateQueryEmbeddingsAsync(question, embeddingModels);
+        embeddingTimer.Stop();
         if (queryVectors.Count == 0)
             throw new InvalidOperationException("Không thể tạo biểu diễn ngữ nghĩa cho câu hỏi này.");
 
+        var retrievalTimer = Stopwatch.StartNew();
         var retrieved = await RetrieveChunksAsync(question, subject.Id, queryVectors, embeddingModels);
+        retrievalTimer.Stop();
         if (retrieved.Count == 0)
             throw new InvalidOperationException("Môn học đã chọn chưa có tài liệu được lập chỉ mục.");
 
@@ -128,9 +144,11 @@ public class ChatService : IChatService
             retrieved.Count,
             sessionId,
             subject.Id);
+        var answerTimer = Stopwatch.StartNew();
         var answer = retrieved.Count == 0
             ? "Mình không tìm thấy nội dung phù hợp trong tài liệu đã index để trả lời câu hỏi này."
             : await _geminiService.GenerateAnswerAsync(question, retrieved, recentHistory);
+        answerTimer.Stop();
 
         var reply = new ChatReplyDto
         {
@@ -165,6 +183,16 @@ public class ChatService : IChatService
             session.Title = TruncateTitle(question);
 
         await _chatRepository.UpdateSessionAsync(session);
+
+        totalTimer.Stop();
+        _logger.LogInformation(
+            "Chat latency for session {SessionId}: session load {SessionLoadMs} ms, query embedding {EmbeddingMs} ms, retrieval {RetrievalMs} ms, answer generation {AnswerMs} ms, total {TotalMs} ms.",
+            sessionId,
+            sessionLoadElapsed.TotalMilliseconds,
+            embeddingTimer.Elapsed.TotalMilliseconds,
+            retrievalTimer.Elapsed.TotalMilliseconds,
+            answerTimer.Elapsed.TotalMilliseconds,
+            totalTimer.Elapsed.TotalMilliseconds);
 
         return reply;
     }

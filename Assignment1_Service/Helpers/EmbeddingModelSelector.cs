@@ -4,6 +4,23 @@ namespace Assignment1_Service.Helpers;
 
 public static class EmbeddingModelSelector
 {
+    public static IReadOnlyList<EmbeddingModel> SelectForQueryAndRetrieval(
+        IReadOnlyCollection<EmbeddingModel> models)
+    {
+        var plan = Resolve(models);
+        if (plan.GeminiModels.Count > 0 || plan.LocalFallbackModels.Count > 0)
+            return models.OrderBy(model => model.Id).ToList();
+
+        // Unsupported configured providers are all evaluated by the same local fallback.
+        // Keeping only the highest-dimensional stored fallback vector avoids repeated,
+        // near-duplicate vector scans for every chat question.
+        return plan.UnsupportedModels
+            .OrderByDescending(model => model.Dimension)
+            .ThenBy(model => model.Id)
+            .Take(1)
+            .ToList();
+    }
+
     public static EmbeddingModelPlan Resolve(IReadOnlyCollection<EmbeddingModel> models)
     {
         var ordered = models

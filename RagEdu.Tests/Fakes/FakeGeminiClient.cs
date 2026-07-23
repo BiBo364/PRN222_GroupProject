@@ -6,6 +6,7 @@ internal sealed class FakeGeminiClient : IGeminiClient
     public string TextResponse { get; set; } = string.Empty;
     public object? JsonResponse { get; set; }
     public Exception? ExceptionToThrow { get; set; }
+    public Queue<Exception> ExceptionsToThrow { get; } = new();
     public int TextCallCount { get; private set; }
     public int JsonCallCount { get; private set; }
     public string? LastSystemInstruction { get; private set; }
@@ -28,6 +29,9 @@ internal sealed class FakeGeminiClient : IGeminiClient
         LastMessages = messages;
         LastTemperature = temperature;
         LastMaximumOutputTokens = maximumOutputTokens;
+
+        if (ExceptionsToThrow.TryDequeue(out var queuedException))
+            throw queuedException;
 
         if (ExceptionToThrow is not null)
             throw ExceptionToThrow;

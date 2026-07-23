@@ -7,6 +7,8 @@ namespace Assignment1_Service.Services;
 
 public class GeminiService : IGeminiService
 {
+    private const int AnswerGenerationAttempts = 2;
+
     private readonly IGeminiClient _geminiClient;
     private readonly ILogger<GeminiService> _logger;
 
@@ -27,31 +29,43 @@ public class GeminiService : IGeminiService
             return BuildNoContextResponse(question);
         }
 
-        try
+        Exception? lastException = null;
+        for (var attempt = 1; attempt <= AnswerGenerationAttempts; attempt++)
         {
-            var messages = BuildMessages(question, chunks, recentHistory);
-            var answer = await _geminiClient.GenerateTextAsync(
-                BuildSystemPrompt(),
-                messages,
-                temperature: 0.2,
-                maximumOutputTokens: 1200,
-                cancellationToken);
-
-            if (LooksInsufficient(answer))
+            try
             {
-                _logger.LogWarning("Gemini answer was insufficient; using extractive fallback.");
-                return BuildExtractiveFallback(question, chunks);
-            }
+                var messages = BuildMessages(question, chunks, recentHistory);
+                var answer = await _geminiClient.GenerateTextAsync(
+                    BuildSystemPrompt(),
+                    messages,
+                    temperature: 0.2,
+                    maximumOutputTokens: 1200,
+                    cancellationToken);
 
-            return answer.Trim();
+                if (LooksInsufficient(answer))
+                {
+                    _logger.LogWarning("Gemini answer was insufficient; using extractive fallback.");
+                    return BuildExtractiveFallback(question, chunks);
+                }
+
+                return answer.Trim();
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                lastException = exception;
+                _logger.LogWarning(
+                    exception,
+                    "Gemini answer generation failed on attempt {Attempt}/{MaximumAttempts}.",
+                    attempt,
+                    AnswerGenerationAttempts);
+
+                if (attempt < AnswerGenerationAttempts)
+                    await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken);
+            }
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            _logger.LogWarning(
-                exception,
-                "Gemini answer generation failed; using extractive fallback.");
-            return BuildExtractiveFallback(question, chunks);
-        }
+
+        _logger.LogWarning(lastException, "Gemini answer generation failed after retry; returning a provider-unavailable response.");
+        return BuildProviderUnavailableResponse(question);
     }
 
     private static string BuildSystemPrompt()
@@ -135,6 +149,13 @@ public class GeminiService : IGeminiService
         return IsVietnameseQuestion(question)
             ? "Mình không tìm thấy nội dung phù hợp trong tài liệu đã lập chỉ mục để trả lời câu hỏi này."
             : "I couldn't find relevant content in the indexed documents to answer this question.";
+    }
+
+    private static string BuildProviderUnavailableResponse(string question)
+    {
+        return IsVietnameseQuestion(question)
+            ? "Dịch vụ AI đang tạm thời không thể diễn giải tài liệu bằng tiếng Việt. Vui lòng thử lại sau ít phút."
+            : "The AI service is temporarily unavailable to explain the course material. Please try again in a few minutes.";
     }
 
     private static string BuildInsufficientContextResponse(string question)

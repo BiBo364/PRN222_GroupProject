@@ -24,6 +24,43 @@ public sealed class GeminiServiceTests
         Assert.Contains(client.LastMessages!, message => message.Text == "Question: What is serialization?");
     }
 
+    [Fact]
+    public async Task GenerateAnswerAsync_FirstProviderAttemptFails_RetriesBeforeUsingExtractiveFallback()
+    {
+        var client = new FakeGeminiClient
+        {
+            TextResponse = "Serialization là quá trình chuyển một đối tượng thành định dạng có thể lưu trữ hoặc truyền đi."
+        };
+        client.ExceptionsToThrow.Enqueue(new HttpRequestException("Temporary provider failure."));
+        var service = new GeminiService(client, NullLogger<GeminiService>.Instance);
+
+        var answer = await service.GenerateAnswerAsync(
+            "Serialization là gì?",
+            [CreateChunk("Serialization converts an object into a format that can be stored or transmitted.")],
+            []);
+
+        Assert.Equal("Serialization là quá trình chuyển một đối tượng thành định dạng có thể lưu trữ hoặc truyền đi.", answer);
+        Assert.Equal(2, client.TextCallCount);
+    }
+
+    [Fact]
+    public async Task GenerateAnswerAsync_AllProviderAttemptsFail_VietnameseQuestion_DoesNotReturnRawEnglishChunk()
+    {
+        var client = new FakeGeminiClient
+        {
+            ExceptionToThrow = new HttpRequestException("Provider unavailable.")
+        };
+        var service = new GeminiService(client, NullLogger<GeminiService>.Instance);
+
+        var answer = await service.GenerateAnswerAsync(
+            "Serialization là gì?",
+            [CreateChunk("Serialization converts an object into a format that can be stored or transmitted.")],
+            []);
+
+        Assert.StartsWith("Dịch vụ AI", answer);
+        Assert.DoesNotContain("Serialization converts", answer);
+    }
+
     [Theory]
     [InlineData("What is serialization?", "I couldn't find relevant content")]
     [InlineData("Serialization là gì?", "Mình không tìm thấy nội dung phù hợp")]
